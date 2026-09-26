@@ -3,6 +3,8 @@ import type { ChatMessage } from '../store/chats'
 import type { GroupChat, GroupMember } from '../store/groups'
 import { useChatParams } from '../store/chatParams'
 import { useSettings } from '../store/settings'
+import { useSchedule, currentActivity } from '../store/schedule'
+import { useMinds } from '../store/interact'
 import type { ApiPreset } from '../store/apiPresets'
 import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
@@ -19,7 +21,22 @@ export function buildCharacterPrompt(c: Character): string {
   for (const f of c.extraFields) {
     if (f.label && f.value) lines.push(`${f.label}：${f.value}`)
   }
+  const mind = useMinds.getState().minds[c.id]
+  if (mind) {
+    lines.push(`当前状态：心情 ${mind.mood}/100，好感度 ${mind.affection}/100${mind.location ? `，所在位置：${mind.location}` : ''}`)
+  }
   return lines.join('\n')
+}
+
+export function buildScheduleContext(characterId: string): string {
+  const { routines, items } = useSchedule.getState()
+  const act = currentActivity(characterId, routines, items)
+  const today = useSchedule.getState().items.filter(
+    (i) => (i.characterId === characterId || i.characterId === 'global') && i.date === new Date().toISOString().slice(0, 10)
+  )
+  const parts = [`正在进行：${act.label}`]
+  if (today.length > 0) parts.push(`今日安排：${today.map((t) => `${t.start}-${t.end} ${t.label}`).join('、')}`)
+  return parts.join('\n')
 }
 
 function nowLine(): string {
@@ -54,15 +71,20 @@ function historyToApi(
 export function buildSingleChatMessages(
   character: Character,
   history: ChatMessage[],
-  preset: ApiPreset
+  preset: ApiPreset,
+  extraUserInstruction?: string
 ): ChatApiMessage[] {
-  const sys = `${buildCharacterPrompt(character)}\n\n${nowLine()}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
+  const sys = `${buildCharacterPrompt(character)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
   const historyApi = historyToApi(history).slice(-preset.contextCount)
+  const instruction: ChatApiMessage | null = extraUserInstruction
+    ? { role: 'user', content: extraUserInstruction }
+    : null
+  const body = instruction ? [...historyApi, instruction] : historyApi
   if (preset.injectMode === 'merge-user') {
     const sysAsUser: ChatApiMessage = { role: 'user', content: `[系统设定]\n${sys}` }
-    return [sysAsUser, ...historyApi]
+    return [sysAsUser, ...body]
   }
-  return [{ role: 'system', content: sys }, ...historyApi]
+  return [{ role: 'system', content: sys }, ...body]
 }
 
 export function buildGroupMemberPrompt(
@@ -91,7 +113,7 @@ export function buildGroupChatMessages(
   preset: ApiPreset,
   extraContext: ChatApiMessage[] = []
 ): ChatApiMessage[] {
-  const sys = `${buildGroupMemberPrompt(member, character, group)}\n\n${nowLine()}`
+  const sys = `${buildGroupMemberPrompt(member, character, group)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}`
   const historyApi = historyToApi(history).slice(-preset.contextCount)
   if (preset.injectMode === 'merge-user') {
     return [{ role: 'user', content: `[系统设定]\n${sys}` }, ...historyApi, ...extraContext]
@@ -134,4 +156,80 @@ export async function generateCharacterReply(
   onDelta: (delta: string) => void
 ): Promise<string> {
   return streamChat(preset, messages, { onDelta })
+}
+
+export function isSleeping(characterId: string, now = new Date()): { asleep: boolean; label: string } {
+  const { routines, items } = useSchedule.getState()
+  const act = currentActivity(characterId, routines, items, now)
+  return { asleep: act.isSleep, label: act.label }
+}
+
+export function buildProactiveMessages(
+  character: Character,
+  history: ChatMessage[],
+  preset: ApiPreset
+): ChatApiMessage[] {
+  return buildSingleChatMessages(
+    character,
+    history,
+    preset,
+    '（系统指令：现在由你主动发起一条消息。结合当前时间、你的日程和最近的对话氛围，自然地主动说点什么。只输出消息本身。）'
+  )
+}
+
+export function buildCheckinMessages(
+  character: Character,
+  history: ChatMessage[],
+  preset: ApiPreset,
+  activity: { label: string; progress: number }
+): ChatApiMessage[] {
+  return buildSingleChatMessages(
+    character,
+    history,
+    preset,
+    `（系统指令：用户正在查岗。你正在进行：${activity.label}（进度 ${activity.progress}%）。用角色的口吻发一条报备消息，说说你正在做什么、状态如何。只输出消息本身。）`
+  )
+}
+
+export function buildReactMessages(
+  character: Character,
+  history: ChatMessage[],
+  preset: ApiPreset,
+  trigger: string
+): ChatApiMessage[] {
+  return buildSingleChatMessages(
+    character,
+    history,
+    preset,
+    `（系统指令：${trigger}。用角色的口吻自然回应这件事。只输出消息本身。）`
+  )
+}
+
+export async function generateMindUpdate(
+  character: Character,
+  preset: ApiPreset,
+  history: ChatMessage[]
+): Promise<{ thought: string; location: string; mood: number; affection: number } | null> {
+  const sys = `${buildCharacterPrompt(character)}
+【心声任务】根据最近的对话，以第一人称输出角色此刻的内心想法。严格输出 JSON（不要 markdown 代码块）：
+{"thought":"内心想法，40字以内","location":"所在位置，8字以内","mood":0到100整数,"affection":0到100整数}`
+  const recent = historyToApi(history.slice(-8))
+  const apiMessages: ChatApiMessage[] =
+    preset.injectMode === 'merge-user'
+      ? [{ role: 'user', content: `[系统设定]\n${sys}` }, ...recent]
+      : [{ role: 'system', content: sys }, ...recent]
+  try {
+    const raw = await streamChat(preset, apiMessages, { onDelta: () => {} })
+    const match = raw.match(/\{[\s\S]*\}/)
+    if (!match) return null
+    const j = JSON.parse(match[0])
+    return {
+      thought: String(j.thought ?? '').slice(0, 60),
+      location: String(j.location ?? '').slice(0, 12),
+      mood: Math.max(0, Math.min(100, Number(j.mood) || 0)),
+      affection: Math.max(0, Math.min(100, Number(j.affection) || 0)),
+    }
+  } catch {
+    return null
+  }
 }

@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, Users, ChevronRight, Pencil, Trash2, MessageCircle, X } from 'lucide-react'
 import { useCharacters, type Character } from '../../store/characters'
 import { useGroups } from '../../store/groups'
-import { useToast } from '../../store/ui'
+import { useToast, useUI } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
 import CharacterEditor from './CharacterEditor'
 import GroupCreatorModal from './GroupCreatorModal'
@@ -20,6 +20,15 @@ export default function ContactsApp() {
   const [detail, setDetail] = useState<Character | null>(null)
   const [groupCreatorOpen, setGroupCreatorOpen] = useState(false)
   const [openChat, setOpenChat] = useState<{ kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null>(null)
+  const pendingChat = useUI((s) => s.pendingChat)
+  const setPendingChat = useUI((s) => s.setPendingChat)
+
+  useEffect(() => {
+    if (pendingChat) {
+      setOpenChat(pendingChat)
+      setPendingChat(null)
+    }
+  }, [pendingChat, setPendingChat])
 
   if (openChat?.kind === 'single') {
     return <ChatScreen characterId={openChat.characterId} onExit={() => setOpenChat(null)} />

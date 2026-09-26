@@ -1,7 +1,22 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer'
+export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice'
+
+export interface MessageData {
+  amount?: number
+  note?: string
+  kind?: 'exclusive' | 'normal' | 'password'
+  password?: string
+  claimState?: 'open' | 'claimed' | 'expired'
+  claimedBy?: string
+  claimAmount?: number
+  claimedAt?: number
+  voiceId?: string
+  seconds?: number
+  value?: number
+  cover?: string
+}
 
 export interface ChatMessage {
   id: string
@@ -9,6 +24,7 @@ export interface ChatMessage {
   type: MessageType
   content: string
   imageId?: string | null
+  data?: MessageData
   timestamp: number
   recalled?: boolean
 }

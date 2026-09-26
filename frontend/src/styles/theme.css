@@ -356,6 +356,46 @@ input[type='color'] {
   }
 }
 
+.fw-burst {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: fwBurst 1.4s ease-out forwards;
+}
+.fw-burst::after {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: inherit;
+}
+@keyframes fwBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(3.2);
+    box-shadow:
+      0 -26px 0 -2px currentColor,
+      0 26px 0 -2px currentColor,
+      -26px 0 0 -2px currentColor,
+      26px 0 0 -2px currentColor,
+      -18px -18px 0 -3px currentColor,
+      18px -18px 0 -3px currentColor,
+      -18px 18px 0 -3px currentColor,
+      18px 18px 0 -3px currentColor;
+  }
+}
+
 .row-item {
   display: flex;
   align-items: center;

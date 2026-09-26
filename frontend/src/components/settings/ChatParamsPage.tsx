@@ -1,7 +1,10 @@
-import { ImagePlus, Trash2 } from 'lucide-react'
-import { useChatParams } from '../../store/chatParams'
+import { ImagePlus, Trash2, Wallet, GitBranch, Palette, BellRing } from 'lucide-react'
+import { useChatParams, todayStr } from '../../store/chatParams'
 import { useStickers } from '../../store/stickers'
 import { useToast } from '../../store/ui'
+import { useWallet, useBranches, useChatAppearance } from '../../store/interact'
+import { useChats } from '../../store/chats'
+import { useCharacters } from '../../store/characters'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
 import { useBlobURL } from '../WallpaperLayer'
@@ -31,6 +34,8 @@ export default function ChatParamsPage() {
     }
     input.click()
   }
+
+  const sentToday = params.date === todayStr() ? params.count : 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -65,6 +70,11 @@ export default function ChatParamsPage() {
         <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: -8 }}>数值越大，角色回复前等待越久</div>
       </SectionCard>
 
+      <ProactiveSection sentToday={sentToday} />
+      <WalletSection />
+      <BranchSection />
+      <AppearanceSection />
+
       <div>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
           <span className="fs-body" style={{ color: 'var(--text-primary)', flex: 1 }}>表情包管理</span>
@@ -96,6 +106,356 @@ export default function ChatParamsPage() {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function ProactiveSection({ sentToday }: { sentToday: number }) {
+  const params = useChatParams()
+  return (
+    <SectionCard>
+      <SectionTitle icon={<BellRing size={14} />} title="主动消息" />
+      <Row
+        label="角色主动发消息"
+        sub={`今日已主动发过 ${sentToday} 条`}
+        right={<Toggle checked={params.proactive} onChange={(v) => params.update({ proactive: v })} />}
+      />
+      <SliderRow
+        label="每日上限"
+        min={1}
+        max={20}
+        step={1}
+        value={params.proactivePerDay}
+        format={(v) => `${v} 条`}
+        onChange={(v) => params.update({ proactivePerDay: v })}
+      />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
+        <span className="fs-body" style={{ color: 'var(--text-primary)', flex: 1 }}>免打扰时段</span>
+        <input
+          type="time"
+          value={params.quietStart}
+          onChange={(e) => params.update({ quietStart: e.target.value })}
+          style={{ width: 110 }}
+        />
+        <span className="fs-aux" style={{ color: 'var(--text-tertiary)' }}>至</span>
+        <input
+          type="time"
+          value={params.quietEnd}
+          onChange={(e) => params.update({ quietEnd: e.target.value })}
+          style={{ width: 110 }}
+        />
+      </div>
+      <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: -6 }}>
+        时段内角色不会主动发消息；仅对已产生对话的角色生效，消息会先写入会话并弹出通知横幅
+      </div>
+    </SectionCard>
+  )
+}
+
+function WalletSection() {
+  const balance = useWallet((s) => s.balance)
+  const transactions = useWallet((s) => s.transactions)
+  const topup = useWallet((s) => s.topup)
+  const push = useToast((s) => s.push)
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={<Wallet size={14} />} title="钱包" />
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 0 10px' }}>
+        <span className="fs-hero mono" style={{ color: 'var(--text-primary)' }}>{balance.toLocaleString()}</span>
+        <span className="fs-aux" style={{ color: 'var(--text-tertiary)' }}>余额</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+        {[100, 500, 1000].map((n) => (
+          <button
+            key={n}
+            className="btn btn-sm"
+            style={{ flex: 1 }}
+            onClick={() => {
+              topup(n)
+              push(`已充值 ${n}`)
+            }}
+          >
+            +{n}
+          </button>
+        ))}
+      </div>
+      {transactions.length === 0 ? (
+        <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '14px 0' }}>
+          暂无交易记录。转账、发红包、收红包都会记录在这里
+        </div>
+      ) : (
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          {[...transactions].reverse().slice(0, 30).map((t) => {
+            const income = t.kind === 'transfer-in' || t.kind === 'redpacket-in' || t.kind === 'topup'
+            const label = TX_LABEL[t.kind]
+            return (
+              <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 2px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className="fs-aux" style={{ display: 'block', color: 'var(--text-primary)' }}>
+                    {label}{t.withName ? ` · ${t.withName}` : ''}
+                  </span>
+                  <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>
+                    {t.note} · {fmtTime(t.time)}
+                  </span>
+                </span>
+                <span className="fs-body mono" style={{ color: income ? '#7ee2a8' : '#ff8a8a' }}>
+                  {income ? '+' : '-'}{t.amount}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </SectionCard>
+  )
+}
+
+const TX_LABEL: Record<string, string> = {
+  'transfer-out': '转账支出',
+  'transfer-in': '转账收入',
+  'redpacket-out': '发出红包',
+  'redpacket-in': '领取红包',
+  topup: '充值',
+}
+
+function fmtTime(t: number): string {
+  const d = new Date(t)
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
+function BranchSection() {
+  const branches = useBranches((s) => s.branches)
+  const activeBranchId = useBranches((s) => s.activeBranchId)
+  const setActive = useBranches((s) => s.setActive)
+  const removeBranch = useBranches((s) => s.removeBranch)
+  const sessions = useChats((s) => s.sessions)
+  const characters = useCharacters((s) => s.characters)
+  const push = useToast((s) => s.push)
+
+  const sessionName = (sessionId: string) => {
+    const s = sessions.find((x) => x.id === sessionId)
+    const c = s ? characters.find((x) => x.id === s.characterId) : null
+    return c?.name ?? '已删除角色'
+  }
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={<GitBranch size={14} />} title="分支管理" />
+      {branches.length === 0 ? (
+        <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '14px 0' }}>
+          暂无分支。在聊天中长按任意消息即可“从此处分叉”，不影响主线剧情
+        </div>
+      ) : (
+        branches.map((b) => {
+          const active = activeBranchId[b.sessionId] === b.id
+          return (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 2px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="fs-body" style={{ display: 'block', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {b.name}
+                </span>
+                <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>
+                  {sessionName(b.sessionId)} 的分支 · {b.messages.length} 条消息 · {fmtTime(b.createdAt)}
+                  {active ? ' · 使用中' : ''}
+                </span>
+              </span>
+              {!active && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => {
+                    setActive(b.sessionId, b.id)
+                    push(`已切换到分支「${b.name}」`)
+                  }}
+                >
+                  切换
+                </button>
+              )}
+              <button
+                className="pressable"
+                style={{ color: '#ff8a8a', padding: 6 }}
+                onClick={() => {
+                  removeBranch(b.id)
+                  push('分支已删除')
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          )
+        })
+      )}
+    </SectionCard>
+  )
+}
+
+const BUBBLE_STYLES: { value: ReturnType<typeof useChatAppearance.getState>['bubbleStyle']; label: string }[] = [
+  { value: 'default', label: '默认' },
+  { value: 'minimal', label: '极简' },
+  { value: 'pill', label: '胶囊' },
+  { value: 'glass', label: '玻璃' },
+  { value: 'flat', label: '扁平' },
+]
+
+function AppearanceSection() {
+  const app = useChatAppearance()
+  const push = useToast((s) => s.push)
+  const badgeUrl = useBlobURL(app.badgeImageId)
+
+  const uploadBadge = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = async () => {
+      const f = input.files?.[0]
+      if (!f) return
+      const compressed = await compressImage(f, 256)
+      const id = await putBlob(compressed)
+      app.update({ badgeImageId: id })
+      push('头像挂件已设置')
+    }
+    input.click()
+  }
+
+  return (
+    <SectionCard>
+      <SectionTitle icon={<Palette size={14} />} title="聊天外观" />
+      <Row
+        label="气泡样式"
+        right={
+          <div style={{ display: 'flex', gap: 4 }}>
+            {BUBBLE_STYLES.map((s) => (
+              <button
+                key={s.value}
+                className="btn btn-sm pressable"
+                onClick={() => app.update({ bubbleStyle: s.value })}
+                style={{
+                  padding: '0 10px',
+                  background: app.bubbleStyle === s.value ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                  color: app.bubbleStyle === s.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                }}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <Row
+        label="头像形状"
+        right={
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['circle', 'rounded'] as const).map((v) => (
+              <button
+                key={v}
+                className="btn btn-sm pressable"
+                onClick={() => app.update({ avatarShape: v })}
+                style={{
+                  padding: '0 12px',
+                  background: app.avatarShape === v ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                  color: app.avatarShape === v ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                }}
+              >
+                {v === 'circle' ? '圆形' : '圆角'}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <Row
+        label="头像大小"
+        right={
+          <div style={{ display: 'flex', gap: 4 }}>
+            {([28, 32, 40] as const).map((v) => (
+              <button
+                key={v}
+                className="btn btn-sm pressable"
+                onClick={() => app.update({ avatarSize: v })}
+                style={{
+                  padding: '0 12px',
+                  background: app.avatarSize === v ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                  color: app.avatarSize === v ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                }}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <SliderRow
+        label="聊天字号"
+        min={0.85}
+        max={1.25}
+        step={0.05}
+        value={app.fontSize}
+        format={(v) => `${Math.round(v * 100)}%`}
+        onChange={(v) => app.update({ fontSize: v })}
+      />
+      <Row
+        label="时间戳"
+        right={
+          <div style={{ display: 'flex', gap: 4 }}>
+            {(['outside', 'hidden'] as const).map((v) => (
+              <button
+                key={v}
+                className="btn btn-sm pressable"
+                onClick={() => app.update({ timestampStyle: v })}
+                style={{
+                  padding: '0 12px',
+                  background: app.timestampStyle === v ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                  color: app.timestampStyle === v ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                }}
+              >
+                {v === 'outside' ? '显示' : '隐藏'}
+              </button>
+            ))}
+          </div>
+        }
+      />
+      <Row
+        label="简化模式"
+        sub="隐藏气泡装饰，纯文本显示"
+        right={<Toggle checked={app.simpleMode} onChange={(v) => app.update({ simpleMode: v })} />}
+      />
+      <div style={{ padding: '8px 0' }}>
+        <div className="fs-body" style={{ color: 'var(--text-primary)', marginBottom: 6 }}>自定义气泡 CSS</div>
+        <textarea
+          value={app.customBubbleCss}
+          onChange={(e) => app.update({ customBubbleCss: e.target.value })}
+          placeholder={'可用类名：\n.ksc-bubble 所有气泡\n.bubble-left 对方气泡\n.bubble-right 我的气泡\n例：.bubble-right { background: #2b4c7e; }'}
+          rows={4}
+          style={{ resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </div>
+      <Row
+        label="头像挂件"
+        sub={app.badgeImageId ? '已设置挂件，显示在头像右下角' : '上传小图作为头像挂件'}
+        right={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {badgeUrl && (
+              <img src={badgeUrl} alt="" style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
+            )}
+            {app.badgeImageId && (
+              <button className="pressable" style={{ color: '#ff8a8a', padding: 4 }} onClick={() => app.update({ badgeImageId: null })}>
+                <Trash2 size={14} />
+              </button>
+            )}
+            <button className="btn btn-sm" onClick={uploadBadge} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ImagePlus size={13} /> 上传
+            </button>
+          </div>
+        }
+      />
+    </SectionCard>
+  )
+}
+
+function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0 4px', color: 'var(--text-secondary)' }}>
+      {icon}
+      <span className="fs-body" style={{ fontWeight: 600 }}>{title}</span>
     </div>
   )
 }

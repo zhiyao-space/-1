@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, Users } from 'lucide-react'
 import { useChats } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
 import { useGroups } from '../../store/groups'
 import { useApiPresets } from '../../store/apiPresets'
+import { useUI } from '../../store/ui'
 import CharacterEditor from './CharacterEditor'
 import GroupCreatorModal from './GroupCreatorModal'
 import Avatar from './Avatar'
@@ -30,6 +31,15 @@ export default function MessagesApp() {
   const [editorOpen, setEditorOpen] = useState(false)
   const [groupOpen, setGroupOpen] = useState(false)
   const [open, setOpen] = useState<{ kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null>(null)
+  const pendingChat = useUI((s) => s.pendingChat)
+  const setPendingChat = useUI((s) => s.setPendingChat)
+
+  useEffect(() => {
+    if (pendingChat) {
+      setOpen(pendingChat)
+      setPendingChat(null)
+    }
+  }, [pendingChat, setPendingChat])
 
   const rows = useMemo<Row[]>(() => {
     const singles = (chats

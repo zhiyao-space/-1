@@ -17,9 +17,10 @@ export interface GroupMessage {
   senderType: 'user' | 'character' | 'system'
   senderId?: string
   senderName?: string
-  type: 'text' | 'image' | 'sticker' | 'ooc' | 'system'
+  type: 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice'
   content: string
   imageId?: string | null
+  data?: import('./chats').MessageData
   timestamp: number
   recalled?: boolean
 }
@@ -31,6 +32,7 @@ export interface GroupChat {
   description: string
   announcement: string
   includeSelf: boolean
+  spectate?: boolean
   members: GroupMember[]
   messages: GroupMessage[]
   maxRepliesPerRound: number

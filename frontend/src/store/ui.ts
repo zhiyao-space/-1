@@ -5,19 +5,27 @@ export type AppId = 'settings' | 'about' | 'contacts' | 'messages' | 'forum' | '
 interface UIState {
   screen: 'lock' | 'desktop'
   activeApp: AppId | null
+  banner: { characterId: string; characterName: string; text: string } | null
+  pendingChat: { kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null
   unlock: () => void
   lock: () => void
   openApp: (id: AppId) => void
   closeApp: () => void
+  setBanner: (b: UIState['banner']) => void
+  setPendingChat: (p: UIState['pendingChat']) => void
 }
 
 export const useUI = create<UIState>((set) => ({
   screen: 'lock',
   activeApp: null,
+  banner: null,
+  pendingChat: null,
   unlock: () => set({ screen: 'desktop' }),
   lock: () => set({ screen: 'lock', activeApp: null }),
   openApp: (id) => set({ activeApp: id }),
   closeApp: () => set({ activeApp: null }),
+  setBanner: (banner) => set({ banner }),
+  setPendingChat: (pendingChat) => set({ pendingChat }),
 }))
 
 export interface ToastItem {

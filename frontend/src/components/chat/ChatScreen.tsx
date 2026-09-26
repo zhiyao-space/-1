@@ -1,26 +1,70 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, Plus, Send, StopCircle, Smile, Image as ImageIcon, Braces, Trash2, Copy, Undo2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  Plus,
+  Send,
+  StopCircle,
+  Smile,
+  Image as ImageIcon,
+  Braces,
+  Trash2,
+  Copy,
+  Undo2,
+  GitBranch,
+  CalendarDays,
+  Heart,
+  Mic,
+  Banknote,
+  Gift,
+  ClipboardCheck,
+  Timer,
+  BedDouble,
+} from 'lucide-react'
 import { useChats, type ChatMessage } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
 import { useChatParams } from '../../store/chatParams'
 import { useStickers } from '../../store/stickers'
 import { getDefaultChatPreset, getPresetById } from '../../store/apiPresets'
 import { useToast } from '../../store/ui'
-import { useBlobURL } from '../WallpaperLayer'
+import { useSettings } from '../../store/settings'
+import { useSchedule, currentActivity } from '../../store/schedule'
+import { useBranches, useChatAppearance, useWallet } from '../../store/interact'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
-import { buildSingleChatMessages, splitReply, randomTypingDelay } from '../../lib/chatEngine'
+import {
+  buildSingleChatMessages,
+  buildCheckinMessages,
+  buildReactMessages,
+  splitReply,
+  randomTypingDelay,
+  isSleeping,
+} from '../../lib/chatEngine'
 import { streamChat } from '../../lib/api'
 import Avatar from './Avatar'
+import { Modal } from '../common'
 import { TypingIndicator, TimeText, useImageViewer } from './ChatParts'
+import { TransferCard, RedPacketCard, VoiceBubble, DiceCard, recordVoice } from './Cards'
+import { TransferModal, RedPacketModal, ReverseReportModal, beep } from './PayAndTools'
+import TomatoOverlay from './TomatoOverlay'
+import ScheduleView from './ScheduleView'
+import MindPanel from './MindPanel'
+import { WallpaperLayer, useBlobURL } from '../WallpaperLayer'
+
+function genId(): string {
+  return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+}
 
 export default function ChatScreen({ characterId, onExit }: { characterId: string; onExit: () => void }) {
   const character = useCharacters((s) => s.characters.find((c) => c.id === characterId))
   const chats = useChats()
   const params = useChatParams()
   const push = useToast((s) => s.push)
+  const settings = useSettings()
+  const appearance = useChatAppearance()
   const sessionId = useMemo(() => (characterId ? chats.getOrCreateSession(characterId) : ''), [characterId])
   const session = useChats((s) => s.sessions.find((x) => x.id === sessionId))
+  const activeBranchId = useBranches((s) => s.activeBranchId[sessionId] ?? null)
+  const branch = useBranches((s) => s.branches.find((b) => b.id === activeBranchId) ?? null)
   const [input, setInput] = useState('')
   const [plusOpen, setPlusOpen] = useState(false)
   const [stickerOpen, setStickerOpen] = useState(false)
@@ -28,8 +72,20 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const [streamText, setStreamText] = useState<string | null>(null)
   const [awaitingManual, setAwaitingManual] = useState(false)
   const [actionMsg, setActionMsg] = useState<ChatMessage | null>(null)
+  const [view, setView] = useState<'chat' | 'schedule'>('chat')
+  const [mindOpen, setMindOpen] = useState(false)
+  const [checkinOpen, setCheckinOpen] = useState(false)
+  const [sleepOpen, setSleepOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [redpacketOpen, setRedpacketOpen] = useState(false)
+  const [reportOpen, setReportOpen] = useState(false)
+  const [tomatoOpen, setTomatoOpen] = useState(false)
+  const [tomato, setTomato] = useState<{ seconds: number; noise: boolean; accompany: boolean } | null>(null)
+  const [branchNaming, setBranchNaming] = useState<ChatMessage | null>(null)
+  const [branchName, setBranchName] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
+  const awakeUntilRef = useRef(0)
   const [viewer, openViewer] = useImageViewer()
   const stickers = useStickers((s) => s.stickers)
 
@@ -38,13 +94,32 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     return character.apiPresetId ? getPresetById(character.apiPresetId) : getDefaultChatPreset()
   }, [character, sessionId, session?.messages.length])
 
-  const messages = session?.messages ?? []
+  const baseMessages = session?.messages ?? []
+  const messages = branch ? branch.messages : baseMessages
+  const act = useMemo(
+    () => (character ? currentActivity(character.id, useSchedule.getState().routines, useSchedule.getState().items) : { label: '空闲', progress: 0, isSleep: false, source: 'free' as const }),
+    [character, view, messages.length]
+  )
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages.length, streamText, typing])
+  }, [messages.length, streamText, typing, view])
 
   useEffect(() => () => abortRef.current?.abort(), [])
+
+  useEffect(() => {
+    let style = document.getElementById('ksc-chat-css')
+    if (appearance.customBubbleCss.trim()) {
+      if (!style) {
+        style = document.createElement('style')
+        style.id = 'ksc-chat-css'
+        document.head.appendChild(style)
+      }
+      style.textContent = appearance.customBubbleCss
+    } else if (style) {
+      style.textContent = ''
+    }
+  }, [appearance.customBubbleCss])
 
   if (!character) {
     return (
@@ -54,13 +129,46 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     )
   }
 
-  const runGeneration = async () => {
+  const addLocal = (base: Omit<ChatMessage, 'id' | 'timestamp'>): ChatMessage => {
+    if (branch) {
+      const full: ChatMessage = { ...base, id: genId(), timestamp: Date.now() }
+      useBranches.getState().appendToBranch(branch.id, full)
+      return full
+    }
+    return chats.addMessage(sessionId, base)
+  }
+
+  const updateLocal = (msgId: string, patch: Partial<ChatMessage>) => {
+    if (branch) useBranches.getState().updateBranchMessage(branch.id, msgId, patch)
+    else chats.updateMessage(sessionId, msgId, patch)
+  }
+
+  const removeLocal = (msgId: string) => {
+    if (branch) useBranches.getState().removeBranchMessage(branch.id, msgId)
+    else chats.removeMessage(sessionId, msgId)
+  }
+
+  const ensureAwakeOrProceed = (proceed: () => void) => {
+    const sleep = isSleeping(character.id)
+    if (sleep.asleep && Date.now() > awakeUntilRef.current) {
+      setSleepOpen(true)
+      return
+    }
+    proceed()
+  }
+
+  const runGeneration = async (extraInstruction?: string) => {
     if (!preset || !preset.baseUrl) {
       push('请先在 设置 → API 配置 中添加聊天 API 预设', 'error')
       setAwaitingManual(false)
       return
     }
-    const apiMessages = buildSingleChatMessages(character, chats.sessions.find((x) => x.id === sessionId)?.messages ?? [], preset)
+    ensureAwakeOrProceed(() => doGenerate(extraInstruction))
+  }
+
+  const doGenerate = async (extraInstruction?: string) => {
+    if (!preset || !preset.baseUrl) return
+    const apiMessages = buildSingleChatMessages(character, messages, preset, extraInstruction)
     setTyping(true)
     setAwaitingManual(false)
     await new Promise((r) => setTimeout(r, randomTypingDelay()))
@@ -68,9 +176,9 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     const ctrl = new AbortController()
     abortRef.current = ctrl
     try {
+      let full = ''
       if (params.streamOutput) {
         setStreamText('')
-        let full = ''
         await streamChat(preset, apiMessages, {
           onDelta: (d) => {
             full += d
@@ -79,11 +187,10 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
           signal: ctrl.signal,
         })
         setStreamText(null)
-        emitParts(full)
       } else {
-        const full = await streamChat(preset, apiMessages, { onDelta: () => {}, signal: ctrl.signal })
-        emitParts(full)
+        full = await streamChat(preset, apiMessages, { onDelta: () => {}, signal: ctrl.signal })
       }
+      emitParts(full)
     } catch (err) {
       setStreamText(null)
       if ((err as Error).name !== 'AbortError') push(`生成失败：${(err as Error).message}`, 'error')
@@ -100,29 +207,32 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     }
     parts.forEach((p, i) => {
       setTimeout(() => {
-        chats.addMessage(sessionId, { role: 'assistant', type: 'text', content: p })
+        addLocal({ role: 'assistant', type: 'text', content: p })
       }, i * 250)
     })
+  }
+
+  const afterUserMsg = () => {
+    if (params.autoReply) runGeneration()
+    else setAwaitingManual(true)
   }
 
   const send = () => {
     const text = input.trim()
     if (!text) return
-    chats.addMessage(sessionId, { role: 'user', type: 'text', content: text })
+    addLocal({ role: 'user', type: 'text', content: text })
     setInput('')
     setPlusOpen(false)
-    if (params.autoReply) runGeneration()
-    else setAwaitingManual(true)
+    afterUserMsg()
   }
 
   const sendOoc = () => {
     const text = input.trim()
     if (!text) return
-    chats.addMessage(sessionId, { role: 'user', type: 'ooc', content: text })
+    addLocal({ role: 'user', type: 'ooc', content: text })
     setInput('')
     setPlusOpen(false)
-    if (params.autoReply) runGeneration()
-    else setAwaitingManual(true)
+    afterUserMsg()
   }
 
   const sendImage = () => {
@@ -134,31 +244,166 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
       if (!file) return
       const compressed = await compressImage(file, 1280)
       const id = await putBlob(compressed)
-      chats.addMessage(sessionId, { role: 'user', type: 'image', content: '[图片]', imageId: id })
+      addLocal({ role: 'user', type: 'image', content: '[图片]', imageId: id })
       setPlusOpen(false)
-      if (params.autoReply) runGeneration()
-      else setAwaitingManual(true)
+      afterUserMsg()
     }
     inputEl.click()
   }
 
+  const sendVoice = async () => {
+    setPlusOpen(false)
+    const r = await recordVoice()
+    if (!r) {
+      push('无法访问麦克风', 'error')
+      return
+    }
+    const id = await putBlob(r.blob)
+    addLocal({ role: 'user', type: 'voice', content: `[语音 ${r.seconds}"]`, data: { voiceId: id, seconds: r.seconds } })
+    afterUserMsg()
+  }
+
   const sendSticker = (imageId: string) => {
-    chats.addMessage(sessionId, { role: 'user', type: 'sticker', content: '[表情]', imageId })
+    addLocal({ role: 'user', type: 'sticker', content: '[表情]', imageId })
     setStickerOpen(false)
-    if (params.autoReply) runGeneration()
-    else setAwaitingManual(true)
+    afterUserMsg()
+  }
+
+  const doTransfer = (targetId: string, targetName: string, amount: number, note: string) => {
+    const ok = useWallet.getState().transferOut(characterId, character.name, amount, note)
+    if (!ok) {
+      push('余额不足，请先在 设置 → 聊天参数 → 钱包 充值', 'error')
+      return
+    }
+    addLocal({ role: 'user', type: 'transfer', content: `[转账 ¥${amount.toFixed(2)}]`, data: { amount, note } })
+    useToast.getState().push('转账成功')
+    runGeneration(
+      `（系统指令：用户向你转账了 ${amount.toFixed(2)} 元${note ? `，备注：${note}` : ''}。用角色的口吻自然回应这笔转账。只输出消息本身。）`
+    )
+  }
+
+  const doRedpacket = (payload: {
+    targetName: string
+    amount: number
+    note: string
+    kind: 'exclusive' | 'normal' | 'password'
+    password?: string
+    cover: string
+  }) => {
+    const ok = useWallet.getState().redpacketOut(characterId, character.name, payload.amount, payload.note)
+    if (!ok) {
+      push('余额不足，请先在 设置 → 聊天参数 → 钱包 充值', 'error')
+      return
+    }
+    addLocal({
+      role: 'user',
+      type: 'redpacket',
+      content: `[红包 ¥${payload.amount.toFixed(2)}]`,
+      data: {
+        amount: payload.amount,
+        note: payload.note,
+        kind: payload.kind,
+        password: payload.password,
+        cover: payload.cover,
+        claimState: 'open',
+      },
+    })
+    useToast.getState().push('红包已发出')
+  }
+
+  const claimRedpacket = (m: ChatMessage) => {
+    const d = m.data ?? {}
+    if (d.claimState !== 'open') return
+    updateLocal(m.id, { data: { ...d, claimState: 'claimed', claimedBy: character.name, claimAmount: d.amount, claimedAt: Date.now() } })
+    useWallet.getState().characterClaim(characterId, character.name, 0, 'redpacket-in', `${character.name} 领取了红包`)
+    runGeneration(
+      `（系统指令：用户给你发了一个${d.kind === 'password' ? `口令为"${d.password}"的` : ''}红包（${(d.amount ?? 0).toFixed(2)} 元），你点击领取了。根据你的人设决定怎么回应（收下并道谢 / 嫌少 / 退回态度等）。只输出消息本身。）`
+    )
+  }
+
+  const runCheckin = () => {
+    setCheckinOpen(false)
+    if (!preset?.baseUrl) {
+      push('请先配置聊天 API', 'error')
+      return
+    }
+    useSchedule.getState().addReport({ characterId, kind: 'checkin', text: `查岗：${act.label} ${act.progress}%` })
+    runGeneration(
+      `（系统指令：用户正在查岗。你正在进行：${act.label}（进度 ${act.progress}%）。用角色的口吻发一条报备消息，说说你正在做什么、状态如何。只输出消息本身。）`
+    )
+  }
+
+  const poke = () => {
+    addLocal({ role: 'user', type: 'system', content: `你戳了戳 ${character.name}` })
+    if (!preset?.baseUrl) return
+    runGeneration(
+      `（系统指令：用户戳了戳你（戳一戳）。用角色的口吻对被戳做出反应。只输出消息本身。）`
+    )
+  }
+
+  const submitReport = (p: { kind: 'image' | 'text' | 'voice'; imageId?: string; voiceId?: string; seconds?: number; text: string }) => {
+    const desc = p.kind === 'image' ? '[图片报备]' : p.kind === 'voice' ? `[语音报备 ${p.seconds}"]` : p.text
+    addLocal({
+      role: 'user',
+      type: p.kind === 'image' ? 'image' : p.kind === 'voice' ? 'voice' : 'text',
+      content: p.kind === 'text' ? p.text : desc,
+      imageId: p.imageId,
+      data: p.voiceId ? { voiceId: p.voiceId, seconds: p.seconds } : undefined,
+    })
+    useSchedule.getState().addReport({ characterId, kind: 'reverse', text: p.text || desc })
+    runGeneration(
+      `（系统指令：用户向你报备了自己的近况：${p.kind === 'image' ? '发来一张图片' : p.kind === 'voice' ? '发来一段语音' : `说：${p.text}`}${p.text && p.kind !== 'text' ? `，留言：${p.text}` : ''}。用角色的口吻回应你的报备。只输出消息本身。）`
+    )
+  }
+
+  const startTomato = (seconds: number, noise: boolean, accompany: boolean) => {
+    setTomatoOpen(false)
+    setTomato({ seconds, noise, accompany })
+    if (accompany && preset?.baseUrl) {
+      runGeneration(
+        `（系统指令：用户和你开启了番茄钟专注（${Math.round(seconds / 60)} 分钟），你会全程陪伴。发一条简短的陪伴开场消息。只输出消息本身。）`
+      )
+    }
+  }
+
+  const finishTomato = (completed: boolean) => {
+    setTomato(null)
+    if (completed && preset?.baseUrl) {
+      runGeneration(
+        `（系统指令：番茄钟专注结束了，用户完成了 ${Math.round((tomato?.seconds ?? 1500) / 60)} 分钟专注。发一条简短的鼓励消息。只输出消息本身。）`
+      )
+    }
+  }
+
+  const createBranchFrom = (m: ChatMessage) => {
+    setActionMsg(null)
+    setBranchNaming(m)
+    setBranchName('')
+  }
+
+  const confirmBranch = () => {
+    if (!branchNaming) return
+    const idx = messages.findIndex((x) => x.id === branchNaming.id)
+    if (idx < 0) return
+    useBranches.getState().createBranch({
+      sessionId,
+      name: branchName.trim() || `分支 ${useBranches.getState().branches.filter((b) => b.sessionId === sessionId).length + 1}`,
+      parentMessageId: branchNaming.id,
+      messages: messages.slice(0, idx + 1).map((m) => ({ ...m })),
+    })
+    push('已从此处分叉')
+    setBranchNaming(null)
+    setBranchName('')
   }
 
   const recall = (m: ChatMessage) => {
-    chats.updateMessage(sessionId, m.id, { recalled: true })
+    updateLocal(m.id, { recalled: true })
     setActionMsg(null)
   }
-
   const deleteMsg = (m: ChatMessage) => {
-    chats.removeMessage(sessionId, m.id)
+    removeLocal(m.id)
     setActionMsg(null)
   }
-
   const copyMsg = (m: ChatMessage) => {
     navigator.clipboard?.writeText(m.content).then(
       () => push('已复制'),
@@ -166,6 +411,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     )
     setActionMsg(null)
   }
+
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -183,158 +429,300 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         <button className="pressable" onClick={onExit} style={{ color: 'var(--text-secondary)', padding: 4 }}>
           <ChevronLeft size={22} />
         </button>
-        <Avatar imageId={character.avatarId} name={character.name} size={34} />
+        <span onDoubleClick={poke} style={{ cursor: 'pointer' }}>
+          <Avatar imageId={character.avatarId} name={character.name} size={34} badgeImageId={appearance.badgeImageId} />
+        </span>
         <span className="nav-title fs-h3" style={{ color: 'var(--text-primary)', flex: 1 }}>{character.name}</span>
+        <button className="pressable" onClick={() => setMindOpen(true)} style={{ color: 'var(--text-secondary)', padding: 5 }} title="心声">
+          <Heart size={18} />
+        </button>
+        <button
+          className="pressable"
+          onClick={() => setView((v) => (v === 'schedule' ? 'chat' : 'schedule'))}
+          style={{ color: view === 'schedule' ? 'var(--accent-color)' : 'var(--text-secondary)', padding: 5 }}
+          title="日程"
+        >
+          <CalendarDays size={18} />
+        </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {messages.length === 0 && !streamText && (
-          <div className="page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 }}>
-            <Avatar imageId={character.avatarId} name={character.name} size={72} />
-            <div className="fs-h3" style={{ color: 'var(--text-primary)' }}>{character.name}</div>
-            {preset?.baseUrl ? (
-              <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>
-                发出第一条消息，开始你们的对话
-              </div>
-            ) : (
-              <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.7 }}>
-                角色已就绪。
-                <br />
-                前往 设置 → API 配置 添加聊天 API 后，即可开始对话。
+      <button
+        className="pressable"
+        onClick={() => setCheckinOpen(true)}
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '7px 14px',
+          background: 'rgba(255,255,255,0.04)',
+          borderBottom: '1px solid rgba(255,255,255,0.05)',
+          textAlign: 'left',
+        }}
+      >
+        <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>正在：{act.label}</span>
+        <span style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+          <span style={{ display: 'block', width: `${act.progress}%`, height: '100%', background: 'var(--accent-color)', transition: 'width 0.5s' }} />
+        </span>
+        <span className="fs-micro mono" style={{ color: 'var(--text-disabled)' }}>{act.progress}%</span>
+      </button>
+
+      {branch && (
+        <button
+          className="pressable"
+          onClick={() => useBranches.getState().setActive(sessionId, null)}
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 14px',
+            background: 'rgba(122,184,245,0.1)',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+          }}
+        >
+          <GitBranch size={13} color="#7ab8f5" />
+          <span className="fs-micro" style={{ color: '#7ab8f5', flex: 1, textAlign: 'left' }}>分支模式：{branch.name}（点击回到主线）</span>
+        </button>
+      )}
+
+      {view === 'schedule' ? (
+        <ScheduleView characterId={characterId} />
+      ) : (
+        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+          <WallpaperLayer imageId={settings.wallpapers.chat} fx={settings.wallpaperFx.chat} />
+          <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {messages.length === 0 && !streamText && (
+              <div className="page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 }}>
+                <Avatar imageId={character.avatarId} name={character.name} size={72} />
+                <div className="fs-h3" style={{ color: 'var(--text-primary)' }}>{character.name}</div>
+                {preset?.baseUrl ? (
+                  <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                    发出第一条消息，开始你们的对话
+                  </div>
+                ) : (
+                  <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.7 }}>
+                    角色已就绪。
+                    <br />
+                    前往 设置 → API 配置 添加聊天 API 后，即可开始对话。
+                  </div>
+                )}
               </div>
             )}
+
+            {messages.map((m, i) => {
+              const prev = messages[i - 1]
+              const showDivider = appearance.simpleMode && (!prev || m.role !== prev.role)
+              return (
+                <div key={m.id}>
+                  {showDivider && <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '8px 0' }}><span style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.08)' }} /></div>}
+                  <MessageRow
+                    m={m}
+                    characterName={character.name}
+                    avatarId={m.role === 'user' ? null : character.avatarId}
+                    appearance={appearance}
+                    onLongPress={() => setActionMsg(m)}
+                    onOpenImage={openViewer}
+                    onPoke={poke}
+                    onClaim={() => claimRedpacket(m)}
+                  />
+                </div>
+              )
+            })}
+
+            {streamText !== null && (
+              <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
+                <div className="bubble bubble-left fs-body ksc-bubble" style={{ whiteSpace: 'pre-wrap', ...bubbleOverrides(appearance) }}>
+                  {streamText}
+                  <span className="stream-cursor">▍</span>
+                </div>
+              </div>
+            )}
+
+            {typing && (
+              <div style={{ alignSelf: 'flex-start' }}>
+                <TypingIndicator name={character.name} />
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
-        )}
+        </div>
+      )}
 
-        {messages.map((m) => (
-          <MessageRow
-            key={m.id}
-            m={m}
-            characterName={character.name}
-            avatarId={m.role === 'user' ? null : character.avatarId}
-            onLongPress={() => setActionMsg(m)}
-            onOpenImage={(url) => openViewer(url)}
-          />
-        ))}
-
-        {streamText !== null && (
-          <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
-            <div className="bubble bubble-left fs-body" style={{ whiteSpace: 'pre-wrap' }}>
-              {streamText}
-              <span className="stream-cursor">▍</span>
-            </div>
-          </div>
-        )}
-
-        {typing && (
-          <div style={{ alignSelf: 'flex-start' }}>
-            <TypingIndicator name={character.name} />
-          </div>
-        )}
-        <div ref={bottomRef} />
-      </div>
-
-      {awaitingManual && (
+      {awaitingManual && view === 'chat' && (
         <div style={{ padding: '0 14px 6px', flexShrink: 0 }}>
-          <button className="btn btn-accent" style={{ width: '100%' }} onClick={runGeneration}>
+          <button className="btn btn-accent" style={{ width: '100%' }} onClick={() => runGeneration()}>
             生成回复
           </button>
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 10px 10px', flexShrink: 0 }}>
-        <button
-          className="pressable"
-          onClick={() => {
-            setPlusOpen((v) => !v)
-            setStickerOpen(false)
-          }}
-          style={{ color: plusOpen ? 'var(--accent-color)' : 'var(--text-secondary)', padding: 8 }}
-        >
-          <Plus size={22} />
-        </button>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && params.enterToSend) {
-              e.preventDefault()
-              send()
-            }
-          }}
-          placeholder="说点什么…"
-          rows={1}
-          style={{ flex: 1, resize: 'none', maxHeight: 96, lineHeight: 1.5, borderRadius: 14 }}
-        />
-        {streamText !== null ? (
-          <button
-            className="pressable"
-            onClick={() => abortRef.current?.abort()}
-            style={{ color: 'var(--text-secondary)', padding: 8 }}
-            title="停止生成"
-          >
-            <StopCircle size={22} />
-          </button>
-        ) : (
-          <button
-            className="pressable"
-            onClick={() => {
-              setStickerOpen((v) => !v)
-              setPlusOpen(false)
-            }}
-            style={{ color: stickerOpen ? 'var(--accent-color)' : 'var(--text-secondary)', padding: 8 }}
-          >
-            <Smile size={22} />
-          </button>
-        )}
-        <button className="pressable" onClick={send} style={{ color: 'var(--accent-color)', padding: 8 }}>
-          <Send size={22} />
-        </button>
-      </div>
+      {view === 'chat' && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 10px 10px', flexShrink: 0 }}>
+            <button
+              className="pressable"
+              onClick={() => {
+                setPlusOpen((v) => !v)
+                setStickerOpen(false)
+              }}
+              style={{ color: plusOpen ? 'var(--accent-color)' : 'var(--text-secondary)', padding: 8 }}
+            >
+              <Plus size={22} />
+            </button>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey && params.enterToSend) {
+                  e.preventDefault()
+                  send()
+                }
+              }}
+              placeholder="说点什么…"
+              rows={1}
+              style={{ flex: 1, resize: 'none', maxHeight: 96, lineHeight: 1.5, borderRadius: 14 }}
+            />
+            {streamText !== null ? (
+              <button className="pressable" onClick={() => abortRef.current?.abort()} style={{ color: 'var(--text-secondary)', padding: 8 }} title="停止生成">
+                <StopCircle size={22} />
+              </button>
+            ) : (
+              <button
+                className="pressable"
+                onClick={() => {
+                  setStickerOpen((v) => !v)
+                  setPlusOpen(false)
+                }}
+                style={{ color: stickerOpen ? 'var(--accent-color)' : 'var(--text-secondary)', padding: 8 }}
+              >
+                <Smile size={22} />
+              </button>
+            )}
+            <button className="pressable" onClick={send} style={{ color: 'var(--accent-color)', padding: 8 }}>
+              <Send size={22} />
+            </button>
+          </div>
 
-      {plusOpen && (
-        <div className="page-enter" style={{ display: 'flex', gap: 18, padding: '10px 18px 14px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <PlusAction icon={<ImageIcon size={20} />} label="图片" onClick={sendImage} />
-          {params.allowOoc && <PlusAction icon={<Braces size={20} />} label="OOC 指令" onClick={sendOoc} />}
-        </div>
-      )}
-
-      {stickerOpen && (
-        <div className="page-enter" style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: 12, maxHeight: 200, overflowY: 'auto' }}>
-          {stickers.length === 0 ? (
-            <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: 12 }}>
-              表情包为空，去 设置 → 聊天参数 添加
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
-              {stickers.map((st) => (
-                <StickerCell key={st.id} imageId={st.imageId} onClick={() => sendSticker(st.imageId)} />
-              ))}
+          {plusOpen && (
+            <div className="page-enter" style={{ display: 'flex', gap: 14, padding: '10px 14px 14px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+              <PlusAction icon={<ImageIcon size={19} />} label="图片" onClick={sendImage} />
+              <PlusAction icon={<Mic size={19} />} label="语音" onClick={sendVoice} />
+              {params.allowOoc && <PlusAction icon={<Braces size={19} />} label="OOC" onClick={sendOoc} />}
+              <PlusAction icon={<Banknote size={19} />} label="转账" onClick={() => { setPlusOpen(false); setTransferOpen(true) }} />
+              <PlusAction icon={<Gift size={19} />} label="红包" onClick={() => { setPlusOpen(false); setRedpacketOpen(true) }} />
+              <PlusAction icon={<ClipboardCheck size={19} />} label="报备" onClick={() => { setPlusOpen(false); setReportOpen(true) }} />
+              <PlusAction icon={<Timer size={19} />} label="一起专注" onClick={() => { setPlusOpen(false); setTomatoOpen(true) }} />
             </div>
           )}
-        </div>
+
+          {stickerOpen && (
+            <div className="page-enter" style={{ flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', padding: 12, maxHeight: 200, overflowY: 'auto' }}>
+              {stickers.length === 0 ? (
+                <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: 12 }}>
+                  表情包为空，去 设置 → 聊天参数 添加
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+                  {stickers.map((st) => (
+                    <StickerCell key={st.id} imageId={st.imageId} onClick={() => sendSticker(st.imageId)} />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
       )}
 
       {actionMsg && (
-        <div
-          onClick={() => setActionMsg(null)}
-          style={{ position: 'absolute', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end' }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="page-enter"
-            style={{ width: '100%', padding: '10px 14px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}
-          >
+        <div onClick={() => setActionMsg(null)} style={{ position: 'absolute', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={(e) => e.stopPropagation()} className="page-enter" style={{ width: '100%', padding: '10px 14px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
             {actionMsg.type === 'text' && (
               <SheetBtn icon={<Copy size={17} />} label="复制" onClick={() => copyMsg(actionMsg)} />
             )}
             {actionMsg.role === 'user' && params.allowRecall && !actionMsg.recalled && (
               <SheetBtn icon={<Undo2 size={17} />} label="撤回" onClick={() => recall(actionMsg)} />
             )}
+            <SheetBtn icon={<GitBranch size={17} />} label="从此处分叉" onClick={() => createBranchFrom(actionMsg)} />
             <SheetBtn icon={<Trash2 size={17} />} label="删除" onClick={() => deleteMsg(actionMsg)} />
             <button className="btn" onClick={() => setActionMsg(null)}>取消</button>
           </div>
         </div>
+      )}
+
+      <Modal open={checkinOpen} onClose={() => setCheckinOpen(false)} title="查岗">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="fs-body" style={{ color: 'var(--text-primary)' }}>
+            {character.name} 正在：{act.label}
+          </div>
+          <div style={{ height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+            <div style={{ width: `${act.progress}%`, height: '100%', background: 'var(--accent-color)' }} />
+          </div>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>进度 {act.progress}% · 让 TA 报备一下？</div>
+          <button className="btn btn-accent" onClick={runCheckin}>生成报备消息</button>
+        </div>
+      </Modal>
+
+      <Modal open={sleepOpen} onClose={() => setSleepOpen(false)} title="昏睡模式">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="fs-body" style={{ color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BedDouble size={18} color="var(--accent-color)" />
+            {character.name} 正在「{act.label}」，消息会延迟回复
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" style={{ flex: 1 }} onClick={() => setSleepOpen(false)}>不打扰</button>
+            <button
+              className="btn btn-accent"
+              style={{ flex: 1 }}
+              onClick={() => {
+                awakeUntilRef.current = Date.now() + 5 * 60 * 1000
+                addLocal({ role: 'user', type: 'system', content: `你把 ${character.name} 叫醒了` })
+                setSleepOpen(false)
+              }}
+            >
+              叫醒 TA
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <TransferModal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        targets={[{ id: characterId, name: character.name }]}
+        onSend={doTransfer}
+      />
+      <RedPacketModal
+        open={redpacketOpen}
+        onClose={() => setRedpacketOpen(false)}
+        targets={[{ id: characterId, name: character.name }]}
+        onSend={doRedpacket}
+      />
+      <ReverseReportModal open={reportOpen} onClose={() => setReportOpen(false)} onSubmit={submitReport} />
+      <Modal open={tomatoOpen} onClose={() => setTomatoOpen(false)} title="一起专注">
+        <TomatoConfig onStart={startTomato} />
+      </Modal>
+
+      <Modal open={!!branchNaming} onClose={() => setBranchNaming(null)} title="创建分支">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>将复制这条消息之前的全部对话到新分支</div>
+          <input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="分支名称（可选）" maxLength={16} autoFocus />
+          <button className="btn btn-accent" onClick={confirmBranch}>创建</button>
+        </div>
+      </Modal>
+
+      {tomato && (
+        <TomatoOverlay
+          characterName={character.name}
+          seconds={tomato.seconds}
+          noise={tomato.noise}
+          onFinish={finishTomato}
+          onCancel={() => setTomato(null)}
+        />
+      )}
+
+      {mindOpen && (
+        <MindPanel character={character} history={messages} onClose={() => setMindOpen(false)} />
       )}
 
       {viewer}
@@ -342,10 +730,59 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   )
 }
 
+function bubbleOverrides(a: ReturnType<typeof useChatAppearance.getState>): React.CSSProperties {
+  switch (a.bubbleStyle) {
+    case 'pill':
+      return { borderRadius: 999 }
+    case 'minimal':
+      return { background: 'transparent', border: 'none', padding: '2px 4px', boxShadow: 'none', backdropFilter: 'none' }
+    case 'flat':
+      return { background: '#1A1A1A', border: 'none', boxShadow: 'none', backdropFilter: 'none' }
+    case 'glass':
+      return { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)' }
+    default:
+      return {}
+  }
+}
+
+function TomatoConfig({ onStart }: { onStart: (seconds: number, noise: boolean, accompany: boolean) => void }) {
+  const [minutes, setMinutes] = useState(25)
+  const [noise, setNoise] = useState(false)
+  const [accompany, setAccompany] = useState(true)
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div>
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>时长</div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[15, 25, 45, 60].map((m) => (
+            <button
+              key={m}
+              className="btn pressable"
+              style={{ flex: 1, padding: '6px 0', background: minutes === m ? 'rgba(255,255,255,0.16)' : 'rgba(255,255,255,0.05)', color: minutes === m ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+              onClick={() => setMinutes(m)}
+            >
+              {m}分
+            </button>
+          ))}
+        </div>
+      </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input type="checkbox" checked={noise} onChange={(e) => setNoise(e.target.checked)} />
+        <span className="fs-body" style={{ color: 'var(--text-secondary)' }}>白噪音</span>
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input type="checkbox" checked={accompany} onChange={(e) => setAccompany(e.target.checked)} />
+        <span className="fs-body" style={{ color: 'var(--text-secondary)' }}>角色陪伴（开场与鼓励消息）</span>
+      </label>
+      <button className="btn btn-accent" onClick={() => onStart(minutes * 60, noise, accompany)}>开始专注</button>
+    </div>
+  )
+}
+
 function PlusAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button className="pressable" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+    <button className="pressable" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 58 }}>
+      <span style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
         {icon}
       </span>
       <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
@@ -371,73 +808,136 @@ function StickerCell({ imageId, onClick }: { imageId: string; onClick: () => voi
   )
 }
 
+
 function MessageRow({
   m,
   characterName,
   avatarId,
+  appearance,
   onLongPress,
   onOpenImage,
+  onPoke,
+  onClaim,
 }: {
   m: ChatMessage
   characterName: string
   avatarId: string | null
+  appearance: ReturnType<typeof useChatAppearance.getState>
   onLongPress: () => void
   onOpenImage: (url: string) => void
+  onPoke: () => void
+  onClaim: () => void
 }) {
+  const isUser = m.role === 'user'
+  const fontPx = 14 * appearance.fontSize
+
   if (m.recalled) {
     return (
       <div style={{ alignSelf: 'center', padding: '4px 0' }}>
         <span className="fs-micro" style={{ color: 'var(--text-disabled)' }}>
-          {m.role === 'user' ? '你撤回了一条消息' : `${characterName} 撤回了一条消息`}
+          {isUser ? '你撤回了一条消息' : `${characterName} 撤回了一条消息`}
         </span>
+      </div>
+    )
+  }
+  if (m.type === 'system') {
+    return (
+      <div style={{ alignSelf: 'center', padding: '3px 0' }}>
+        <span className="fs-micro" style={{ color: 'var(--text-disabled)' }}>{m.content}</span>
       </div>
     )
   }
   if (m.type === 'ooc') {
     return (
       <div style={{ alignSelf: 'center', maxWidth: '86%', padding: '4px 0' }}>
-        <div
-          className="fs-micro"
-          style={{
-            color: 'var(--text-tertiary)',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: 10,
-            padding: '6px 12px',
-            fontStyle: 'italic',
-          }}
-        >
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '6px 12px', fontStyle: 'italic' }}>
           OOC：{m.content}
         </div>
       </div>
     )
   }
-  const isUser = m.role === 'user'
+
+  const avatarEl = (
+    <span onDoubleClick={onPoke} style={{ cursor: 'pointer' }}>
+      <Avatar imageId={avatarId} name={isUser ? '我' : characterName} size={appearance.avatarSize} shape={appearance.avatarShape} badgeImageId={isUser ? undefined : appearance.badgeImageId} />
+    </span>
+  )
+
   return (
     <div style={{ display: 'flex', flexDirection: isUser ? 'row-reverse' : 'row', gap: 8, alignItems: 'flex-start' }}>
-      <Avatar imageId={avatarId} name={isUser ? '我' : characterName} size={32} />
+      {avatarEl}
       <div style={{ maxWidth: '76%', display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start', gap: 2 }}>
-        {m.type === 'image' || m.type === 'sticker' ? (
-          <ImageBubble imageId={m.imageId} sticker={m.type === 'sticker'} onOpen={onOpenImage} onLongPress={onLongPress} />
-        ) : (
-          <div
-            onContextMenu={(e) => {
-              e.preventDefault()
-              onLongPress()
-            }}
-            onDoubleClick={onLongPress}
-            className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body`}
-            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-          >
-            {m.content}
-          </div>
-        )}
-        <TimeText ts={m.timestamp} />
+        {renderBody(m, isUser, appearance, fontPx, onLongPress, onOpenImage, onClaim, characterName)}
+        {appearance.timestampStyle === 'outside' && <TimeText ts={m.timestamp} />}
       </div>
     </div>
   )
 }
 
-function ImageBubble({
+function renderBody(
+  m: ChatMessage,
+  isUser: boolean,
+  appearance: ReturnType<typeof useChatAppearance.getState>,
+  fontPx: number,
+  onLongPress: () => void,
+  onOpenImage: (url: string) => void,
+  onClaim: () => void,
+  characterName: string
+): React.ReactNode {
+  const commonHandlers = {
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault()
+      onLongPress()
+    },
+    onDoubleClick: onLongPress,
+  }
+  if (m.type === 'image' || m.type === 'sticker') {
+    return <ImageBubble2 imageId={m.imageId} sticker={m.type === 'sticker'} onOpen={onOpenImage} onLongPress={onLongPress} />
+  }
+  if (m.type === 'voice') {
+    return (
+      <div
+        {...commonHandlers}
+        className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`}
+        style={{ padding: '4px 6px', ...bubbleOverrides(appearance) }}
+      >
+        <VoiceBubble voiceId={m.data?.voiceId} seconds={m.data?.seconds} />
+      </div>
+    )
+  }
+  if (m.type === 'transfer') {
+    return (
+      <div {...commonHandlers}>
+        <TransferCard data={m.data ?? {}} mine={isUser} />
+      </div>
+    )
+  }
+  if (m.type === 'redpacket') {
+    return (
+      <div {...commonHandlers}>
+        <RedPacketCard data={m.data ?? {}} mine={isUser} ts={m.timestamp} characterName={isUser ? '你' : characterName} onClaim={onClaim} />
+      </div>
+    )
+  }
+  if (m.type === 'dice') {
+    return (
+      <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`} style={bubbleOverrides(appearance)}>
+        <DiceCard value={m.data?.value} />
+      </div>
+    )
+  }
+  return (
+    <div
+      {...commonHandlers}
+      className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body ksc-bubble`}
+      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: fontPx, ...bubbleOverrides(appearance) }}
+    >
+      {m.content}
+    </div>
+  )
+}
+
+function ImageBubble2({
   imageId,
   sticker,
   onOpen,

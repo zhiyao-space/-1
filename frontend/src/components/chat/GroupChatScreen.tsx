@@ -15,6 +15,13 @@ import {
   Crown,
   MicOff,
   X,
+  Mic,
+  Banknote,
+  Gift,
+  Dices,
+  Link2,
+  Eye,
+  Sparkles,
 } from 'lucide-react'
 import { useGroups, type GroupChat, type GroupMember, type GroupMessage } from '../../store/groups'
 import { useCharacters } from '../../store/characters'
@@ -22,13 +29,26 @@ import { useChatParams } from '../../store/chatParams'
 import { useStickers } from '../../store/stickers'
 import { getDefaultChatPreset, getPresetById } from '../../store/apiPresets'
 import { useToast } from '../../store/ui'
+import { useSettings } from '../../store/settings'
+import { useWallet } from '../../store/interact'
 import { useBlobURL } from '../WallpaperLayer'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
 import { buildGroupChatMessages, splitReply, randomTypingDelay } from '../../lib/chatEngine'
-import { streamChat, type ChatApiMessage } from '../../lib/api'
+import { streamChat } from '../../lib/api'
 import Avatar from './Avatar'
 import { TypingIndicator, TimeText, useImageViewer } from './ChatParts'
+import { TransferCard, RedPacketCard, VoiceBubble, DiceCard, recordVoice } from './Cards'
+import { TransferModal, RedPacketModal, beep } from './PayAndTools'
+import { WallpaperLayer } from '../WallpaperLayer'
+import { Modal } from '../common'
+
+interface ScheduleOpts {
+  forceIds?: string[]
+  instruction?: string
+  maxN?: number
+  onParts?: (member: GroupMember, parts: string[]) => void
+}
 
 export default function GroupChatScreen({ groupId, onExit }: { groupId: string; onExit: () => void }) {
   const group = useGroups((s) => s.groups.find((g) => g.id === groupId))
@@ -37,6 +57,7 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
   const params = useChatParams()
   const push = useToast((s) => s.push)
   const stickers = useStickers((s) => s.stickers)
+  const settings = useSettings()
 
   const [input, setInput] = useState('')
   const [plusOpen, setPlusOpen] = useState(false)
@@ -46,12 +67,19 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
   const [streamText, setStreamText] = useState<string | null>(null)
   const [actionMsg, setActionMsg] = useState<GroupMessage | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [transferOpen, setTransferOpen] = useState(false)
+  const [redpacketOpen, setRedpacketOpen] = useState(false)
+  const [chainOpen, setChainOpen] = useState(false)
+  const [chainSeed, setChainSeed] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [firework, setFirework] = useState(0)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const [viewer, openViewer] = useImageViewer()
 
   const messages = group?.messages ?? []
   const chatPreset = getDefaultChatPreset()
+  const userIsOwner = group?.includeSelf ?? false
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -67,99 +95,137 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
     )
   }
 
-  const userIsOwner = group.includeSelf
-  const userIsAdmin = group.includeSelf
-
   const charName = (cid?: string) =>
     group.members.find((m) => m.characterId === cid)?.groupNickname || characters.find((c) => c.id === cid)?.name || '某人'
 
-  const runScheduling = async (atNames: string[]) => {
+  const addLocal = (base: Omit<GroupMessage, 'id' | 'timestamp'>): GroupMessage => {
+    return groupsStore.addGroupMessage(groupId, base)
+  }
+
+  const updateLocal = (msgId: string, patch: Partial<GroupMessage>) => {
+    groupsStore.updateGroupMessage(groupId, msgId, patch)
+  }
+
+  const removeLocal = (msgId: string) => {
+    groupsStore.removeGroupMessage(groupId, msgId)
+  }
+
+  const runScheduling = async (atNames: string[], opts: ScheduleOpts = {}) => {
     if (!chatPreset || !chatPreset.baseUrl) {
       push('请先在 设置 → API 配置 中添加默认聊天 API 预设', 'error')
       return
     }
-    const history = groupsStore.groups.find((g) => g.id === groupId)?.messages ?? []
-    const atIds = group.members
-      .filter((m) => atNames.some((n) => m.groupNickname === n))
-      .map((m) => m.characterId)
+    if (busy) return
+    setBusy(true)
+    try {
+      const history = groupsStore.groups.find((g) => g.id === groupId)?.messages ?? []
+      const atIds = group.members
+        .filter((m) => atNames.some((n) => m.groupNickname === n))
+        .map((m) => m.characterId)
 
-    const candidates = group.members
-      .filter((m) => !m.muted)
-      .filter((m) => atIds.includes(m.characterId) || Math.random() * 100 < m.willingness)
-      .sort(() => Math.random() - 0.5)
-      .slice(0, Math.max(1, group.maxRepliesPerRound))
+      const force = new Set([...(opts.forceIds ?? []), ...atIds])
+      const cap = opts.maxN ?? group.maxRepliesPerRound
+      const candidates = group.members
+        .filter((m) => !m.muted)
+        .filter((m) => force.has(m.characterId) || Math.random() * 100 < m.willingness)
+        .sort(() => Math.random() - 0.5)
+        .slice(0, Math.max(1, cap))
 
-    if (candidates.length === 0) {
-      push('没有成员想接话', 'error')
-      return
-    }
-
-    const extraContext: ChatApiMessage[] = []
-    for (const member of candidates) {
-      const character = characters.find((c) => c.id === member.characterId)
-      if (!character) continue
-      const preset = character.apiPresetId ? getPresetById(character.apiPresetId) ?? chatPreset : chatPreset
-      setTypingName(member.groupNickname)
-      await new Promise((r) => setTimeout(r, randomTypingDelay()))
-      setTypingName(null)
-      const apiMessages = buildGroupChatMessages(member, character, group, history, preset, extraContext)
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      try {
-        let full = ''
-        if (params.streamOutput) {
-          setStreamText('')
-          await streamChat(preset, apiMessages, {
-            onDelta: (d) => {
-              full += d
-              setStreamText(full)
-            },
-            signal: ctrl.signal,
-          })
-          setStreamText(null)
-        } else {
-          full = await streamChat(preset, apiMessages, { onDelta: () => {}, signal: ctrl.signal })
-        }
-        for (const part of splitReply(full)) {
-          groupsStore.addGroupMessage(groupId, {
-            senderType: 'character',
-            senderId: member.characterId,
-            senderName: member.groupNickname,
-            type: 'text',
-            content: part,
-          })
-          extraContext.push({
-            role: 'user',
-            content: `${member.groupNickname}: ${part}`,
-          })
-        }
-      } catch (err) {
-        setStreamText(null)
-        if ((err as Error).name !== 'AbortError') push(`生成失败：${(err as Error).message}`, 'error')
-        break
-      } finally {
-        abortRef.current = null
+      if (candidates.length === 0) {
+        push('没有成员想接话', 'error')
+        return
       }
+
+      const extraContext: Parameters<typeof buildGroupChatMessages>[5] = []
+      for (const member of candidates) {
+        const character = characters.find((c) => c.id === member.characterId)
+        if (!character) continue
+        const preset = character.apiPresetId ? getPresetById(character.apiPresetId) ?? chatPreset : chatPreset
+        setTypingName(member.groupNickname)
+        await new Promise((r) => setTimeout(r, randomTypingDelay()))
+        setTypingName(null)
+        const apiMessages = buildGroupChatMessages(member, character, group, history, preset, extraContext)
+        if (opts.instruction) {
+          apiMessages.push(
+            preset.injectMode === 'merge-user'
+              ? { role: 'user', content: opts.instruction }
+              : { role: 'user', content: opts.instruction }
+          )
+        }
+        const ctrl = new AbortController()
+        abortRef.current = ctrl
+        try {
+          let full = ''
+          if (params.streamOutput) {
+            setStreamText('')
+            await streamChat(preset, apiMessages, {
+              onDelta: (d) => {
+                full += d
+                setStreamText(full)
+              },
+              signal: ctrl.signal,
+            })
+            setStreamText(null)
+          } else {
+            full = await streamChat(preset, apiMessages, { onDelta: () => {}, signal: ctrl.signal })
+          }
+          const parts = splitReply(full)
+          if (parts.length > 0) {
+            extraContext.push({ role: 'user', content: `${member.groupNickname}: ${parts.join(' ')}` })
+            opts.onParts?.(member, parts)
+            for (const part of parts) {
+              groupsStore.addGroupMessage(groupId, {
+                senderType: 'character',
+                senderId: member.characterId,
+                senderName: member.groupNickname,
+                type: 'text',
+                content: part,
+              })
+            }
+          }
+        } catch (err) {
+          setStreamText(null)
+          if ((err as Error).name !== 'AbortError') push(`生成失败：${(err as Error).message}`, 'error')
+          break
+        } finally {
+          abortRef.current = null
+        }
+      }
+    } finally {
+      setBusy(false)
     }
+  }
+
+  const extractAtNames = (text: string): string[] => {
+    const names: string[] = []
+    if (text.includes('@全体成员') || text.includes('@所有人')) {
+      group.members.forEach((m) => names.push(m.groupNickname))
+      return names
+    }
+    for (const m of group.members) {
+      if (text.includes(`@${m.groupNickname}`)) names.push(m.groupNickname)
+    }
+    return [...new Set(names)]
   }
 
   const send = () => {
     const text = input.trim()
     if (!text) return
-    const atNames = extractAtNames(text, group)
-    groupsStore.addGroupMessage(groupId, { senderType: 'user', type: 'text', content: text })
+    const atNames = extractAtNames(text)
+    addLocal({ senderType: 'user', type: 'text', content: text })
     setInput('')
     setPlusOpen(false)
+    if (text.includes('烟花')) setFirework((n) => n + 1)
     runScheduling(atNames)
   }
 
   const sendOoc = () => {
     const text = input.trim()
     if (!text) return
-    groupsStore.addGroupMessage(groupId, { senderType: 'user', type: 'ooc', content: text })
+    addLocal({ senderType: 'user', type: 'ooc', content: text })
     setInput('')
     setPlusOpen(false)
-    runScheduling([])
+    runScheduling([], { instruction: `（系统指令：用户发布了导演指令（OOC）：${text}。请按照指令内容调整接下来的互动。只输出你角色要说的话。）` })
   }
 
   const sendImage = () => {
@@ -171,29 +237,147 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
       if (!file) return
       const compressed = await compressImage(file, 1280)
       const id = await putBlob(compressed)
-      groupsStore.addGroupMessage(groupId, { senderType: 'user', type: 'image', content: '[图片]', imageId: id })
+      addLocal({ senderType: 'user', type: 'image', content: '[图片]', imageId: id })
       setPlusOpen(false)
       runScheduling([])
     }
     inputEl.click()
   }
 
+  const sendVoice = async () => {
+    setPlusOpen(false)
+    const r = await recordVoice()
+    if (!r) {
+      push('无法访问麦克风', 'error')
+      return
+    }
+    const id = await putBlob(r.blob)
+    addLocal({ senderType: 'user', type: 'voice', content: `[语音 ${r.seconds}"]`, data: { voiceId: id, seconds: r.seconds } })
+    runScheduling([], { instruction: '（系统指令：用户在群里发了一条语音消息。用你的角色口吻自然回应。只输出你要说的话。）' })
+  }
+
   const sendSticker = (imageId: string) => {
-    groupsStore.addGroupMessage(groupId, { senderType: 'user', type: 'sticker', content: '[表情]', imageId })
+    addLocal({ senderType: 'user', type: 'sticker', content: '[表情]', imageId })
     setStickerOpen(false)
     runScheduling([])
   }
 
+  const rollDice = () => {
+    setPlusOpen(false)
+    const value = 1 + Math.floor(Math.random() * 6)
+    addLocal({ senderType: 'user', type: 'dice', content: `[掷骰子 ${value} 点]`, data: { value } })
+    runScheduling([], { instruction: `（系统指令：用户掷骰子得到了 ${value} 点。用你的角色口吻对结果做出反应。只输出你要说的话。）` })
+  }
+
+  const startChain = () => {
+    if (!chainSeed.trim()) {
+      push('请填写接龙首词', 'error')
+      return
+    }
+    addLocal({ senderType: 'system', type: 'system', content: `接龙开始：${chainSeed.trim()}` })
+    setChainOpen(false)
+    setChainSeed('')
+    runScheduling([], { instruction: `（系统指令：群里开始了文字接龙，首词是"${chainSeed.trim() || '…'}"。用你的角色口吻接一个词或一句话继续接龙。只输出你要说的话。）` })
+  }
+
+  const doTransfer = (targetId: string, targetName: string, amount: number, note: string) => {
+    const member = group.members.find((m) => m.characterId === targetId)
+    if (!member) return
+    const ok = useWallet.getState().transferOut(targetId, member.groupNickname, amount, note)
+    if (!ok) {
+      push('余额不足，请先在 设置 → 聊天参数 → 钱包 充值', 'error')
+      return
+    }
+    addLocal({ senderType: 'user', type: 'transfer', content: `[转账 ¥${amount.toFixed(2)}]`, data: { amount, note } })
+    push('转账成功')
+    runScheduling([member.groupNickname], {
+      forceIds: [targetId],
+      instruction: `（系统指令：用户向你转账了 ${amount.toFixed(2)} 元${note ? `，备注：${note}` : ''}。用你的角色口吻回应这笔转账。只输出你要说的话。）`,
+    })
+  }
+
+  const doRedpacket = (payload: {
+    targetId?: string
+    targetName: string
+    amount: number
+    note: string
+    kind: 'exclusive' | 'normal' | 'password'
+    password?: string
+    cover: string
+  }) => {
+    const ok = useWallet.getState().redpacketOut(payload.targetId ?? null, payload.targetName || group.name, payload.amount, payload.note)
+    if (!ok) {
+      push('余额不足，请先在 设置 → 聊天参数 → 钱包 充值', 'error')
+      return
+    }
+    addLocal({
+      senderType: 'user',
+      type: 'redpacket',
+      content: `[红包 ¥${payload.amount.toFixed(2)}]`,
+      data: {
+        amount: payload.amount,
+        note: payload.note,
+        kind: payload.kind,
+        password: payload.password,
+        cover: payload.cover,
+        claimState: 'open',
+        claimedBy: payload.kind === 'exclusive' ? payload.targetName : undefined,
+      },
+    })
+    push('红包已发出')
+  }
+
+  const claimGroupRedpacket = (m: GroupMessage) => {
+    const d = m.data ?? {}
+    if (d.claimState !== 'open' || busy) return
+    const forceIds =
+      d.kind === 'exclusive'
+        ? group.members.filter((mm) => mm.groupNickname === d.claimedBy).map((mm) => mm.characterId)
+        : []
+    const grabbers: { name: string; share: number }[] = []
+    runScheduling(forceIds, {
+      instruction: `（系统指令：用户发了一个红包（${(d.amount ?? 0).toFixed(2)} 元）${d.kind === 'password' ? `，这是口令红包，说出"${d.password}"才能领取` : ''}。根据你的人设决定抢不抢、怎么抢（手快/矜持/吐槽等）。只输出你要说的话。）`,
+      maxN: d.kind === 'exclusive' ? 1 : group.maxRepliesPerRound,
+      onParts: (member, parts) => {
+        const text = parts.join(' ')
+        if (d.kind === 'password' && d.password && !text.includes(d.password)) return
+        grabbers.push({ name: member.groupNickname, share: 0 })
+        if (text.includes('烟花')) setFirework((n) => n + 1)
+      },
+    }).then(() => {
+      if (grabbers.length === 0) {
+        updateLocal(m.id, { data: { ...d, claimState: 'expired' } })
+        return
+      }
+      let remain = d.amount ?? 0
+      grabbers.forEach((g, i) => {
+        if (i === grabbers.length - 1) g.share = Math.round(remain * 100) / 100
+        else {
+          g.share = Math.round(remain * (0.3 + Math.random() * 0.5) * 100) / 100
+          remain -= g.share
+        }
+      })
+      updateLocal(m.id, {
+        data: {
+          ...d,
+          claimState: 'claimed',
+          claimedBy: grabbers.map((g) => `${g.name} ¥${g.share.toFixed(2)}`).join('、'),
+          claimAmount: d.amount,
+          claimedAt: Date.now(),
+        },
+      })
+      useWallet.getState().characterClaim('', group.name, 0, 'redpacket-in', `红包被领取：${grabbers.map((g) => g.name).join('、')}`)
+    })
+  }
+
   const recall = (m: GroupMessage) => {
-    groupsStore.updateGroupMessage(groupId, m.id, { recalled: true, content: '' })
+    updateLocal(m.id, { recalled: true, content: '' })
     setActionMsg(null)
   }
-
   const deleteMsg = (m: GroupMessage) => {
-    groupsStore.removeGroupMessage(groupId, m.id)
+    removeLocal(m.id)
     setActionMsg(null)
   }
-
   const copyMsg = (m: GroupMessage) => {
     navigator.clipboard?.writeText(m.content).then(
       () => push('已复制'),
@@ -202,8 +386,28 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
     setActionMsg(null)
   }
 
-  const canRecallOthers = (m: GroupMessage) =>
-    m.senderType === 'character' && (userIsOwner || userIsAdmin)
+  const canRecallOthers = (m: GroupMessage) => m.senderType === 'character' && userIsOwner
+
+  const spectateSend = () => {
+    const text = input.trim()
+    if (!text) return
+    const speakerId = (window as unknown as { __spectateId?: string }).__spectateId
+    if (speakerId) {
+      const member = group.members.find((m) => m.characterId === speakerId)
+      if (member) {
+        addLocal({ senderType: 'character', senderId: member.characterId, senderName: member.groupNickname, type: 'text', content: text })
+        setInput('')
+        return
+      }
+    }
+    push('请先选择发言身份', 'error')
+  }
+
+  const autoRun = () => {
+    runScheduling([], {
+      instruction: '（系统指令：群里正在自由运转，请根据最近的对话氛围自然地继续聊天、推进话题。只输出你要说的话。）',
+    })
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -225,7 +429,7 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
         <button className="pressable" onClick={() => setSettingsOpen(true)} style={{ flex: 1, textAlign: 'left', display: 'flex', flexDirection: 'column' }}>
           <span className="nav-title fs-h3" style={{ color: 'var(--text-primary)' }}>{group.name}</span>
           <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>
-            {group.members.length + (group.includeSelf ? 1 : 0)} 人
+            {group.members.length + (group.includeSelf ? 1 : 0)} 人{group.spectate ? ' · 旁观模式' : ''}
           </span>
         </button>
         <button className="pressable" onClick={() => setSettingsOpen(true)} style={{ color: 'var(--text-secondary)', padding: 6 }}>
@@ -233,49 +437,53 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-        {messages.length === 0 && !streamText && (
-          <div className="page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 }}>
-            <Avatar imageId={group.avatarId} name={group.name} size={72} shape="rounded" />
-            <div className="fs-h3" style={{ color: 'var(--text-primary)' }}>{group.name}</div>
-            {group.announcement && (
-              <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.7 }}>
-                公告：{group.announcement}
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
+        <WallpaperLayer imageId={settings.wallpapers.chat} fx={settings.wallpaperFx.chat} />
+        <div style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '14px 14px 8px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {messages.length === 0 && !streamText && (
+            <div className="page-enter" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: 24 }}>
+              <Avatar imageId={group.avatarId} name={group.name} size={72} shape="rounded" />
+              <div className="fs-h3" style={{ color: 'var(--text-primary)' }}>{group.name}</div>
+              {group.announcement && (
+                <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.7 }}>
+                  公告：{group.announcement}
+                </div>
+              )}
+              <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>
+                发出第一条消息
               </div>
-            )}
-            <div className="fs-body" style={{ color: 'var(--text-tertiary)', textAlign: 'center' }}>
-              发出第一条消息
             </div>
-          </div>
-        )}
+          )}
 
-        {messages.map((m) => (
-          <GroupMessageRow
-            key={m.id}
-            m={m}
-            group={group}
-            avatarId={m.senderType === 'user' ? null : characters.find((c) => c.id === m.senderId)?.avatarId ?? null}
-            onLongPress={() => setActionMsg(m)}
-            onOpenImage={openViewer}
-          />
-        ))}
+          {messages.map((m) => (
+            <GroupMessageRow
+              key={m.id}
+              m={m}
+              group={group}
+              avatarId={m.senderType === 'user' ? null : characters.find((c) => c.id === m.senderId)?.avatarId ?? null}
+              onLongPress={() => setActionMsg(m)}
+              onOpenImage={openViewer}
+              onClaim={() => claimGroupRedpacket(m)}
+            />
+          ))}
 
-        {streamText !== null && (
-          <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
-            <div className="bubble bubble-left fs-body" style={{ whiteSpace: 'pre-wrap' }}>
-              <span className="fs-micro" style={{ color: 'var(--text-tertiary)', display: 'block', marginBottom: 2 }}>…</span>
-              {streamText}
-              <span className="stream-cursor">▍</span>
+          {streamText !== null && (
+            <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
+              <div className="bubble bubble-left fs-body" style={{ whiteSpace: 'pre-wrap' }}>
+                {streamText}
+                <span className="stream-cursor">▍</span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {typingName && (
-          <div style={{ alignSelf: 'flex-start' }}>
-            <TypingIndicator name={typingName} />
-          </div>
-        )}
-        <div ref={bottomRef} />
+          {typingName && (
+            <div style={{ alignSelf: 'flex-start' }}>
+              <TypingIndicator name={typingName} />
+            </div>
+          )}
+          <div ref={bottomRef} />
+        </div>
+        {firework > 0 && <Firework key={firework} onDone={() => setFirework(0)} />}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, padding: '8px 10px 10px', flexShrink: 0 }}>
@@ -289,19 +497,36 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
         >
           <Plus size={22} />
         </button>
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && params.enterToSend) {
-              e.preventDefault()
-              send()
-            }
-          }}
-          placeholder={group.includeSelf ? '说点什么…' : '以观察者身份发言…'}
-          rows={1}
-          style={{ flex: 1, resize: 'none', maxHeight: 96, lineHeight: 1.5, borderRadius: 14 }}
-        />
+        {group.spectate ? (
+          <SpectateInput
+            group={group}
+            input={input}
+            setInput={setInput}
+            onDirector={() => {
+              const text = input.trim()
+              if (!text) return
+              addLocal({ senderType: 'system', type: 'system', content: `剧情走向：${text}` })
+              setInput('')
+              runScheduling([], { instruction: `（系统指令：剧情走向调整为：${text}。请按照新的走向自然继续群聊。只输出你要说的话。）` })
+            }}
+            onSendAs={spectateSend}
+            onAutoRun={autoRun}
+          />
+        ) : (
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && params.enterToSend) {
+                e.preventDefault()
+                send()
+              }
+            }}
+            placeholder={group.includeSelf ? '说点什么…' : '以观察者身份发言…'}
+            rows={1}
+            style={{ flex: 1, resize: 'none', maxHeight: 96, lineHeight: 1.5, borderRadius: 14 }}
+          />
+        )}
         {streamText !== null ? (
           <button className="pressable" onClick={() => abortRef.current?.abort()} style={{ color: 'var(--text-secondary)', padding: 8 }}>
             <StopCircle size={22} />
@@ -321,15 +546,21 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
         >
           <Smile size={22} />
         </button>
-        <button className="pressable" onClick={send} style={{ color: 'var(--accent-color)', padding: 8 }}>
+        <button className="pressable" onClick={group.spectate ? spectateSend : send} style={{ color: 'var(--accent-color)', padding: 8 }}>
           <Send size={22} />
         </button>
       </div>
 
       {plusOpen && (
-        <div className="page-enter" style={{ display: 'flex', gap: 18, padding: '10px 18px 14px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <PlusAction icon={<ImageIcon size={20} />} label="图片" onClick={sendImage} />
-          {params.allowOoc && <PlusAction icon={<Braces size={20} />} label="OOC 指令" onClick={sendOoc} />}
+        <div className="page-enter" style={{ display: 'flex', gap: 14, padding: '10px 14px 14px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
+          <PlusAction icon={<ImageIcon size={19} />} label="图片" onClick={sendImage} />
+          <PlusAction icon={<Mic size={19} />} label="语音" onClick={sendVoice} />
+          {params.allowOoc && <PlusAction icon={<Braces size={19} />} label="OOC" onClick={sendOoc} />}
+          <PlusAction icon={<Banknote size={19} />} label="转账" onClick={() => { setPlusOpen(false); setTransferOpen(true) }} />
+          <PlusAction icon={<Gift size={19} />} label="红包" onClick={() => { setPlusOpen(false); setRedpacketOpen(true) }} />
+          <PlusAction icon={<Dices size={19} />} label="骰子" onClick={rollDice} />
+          <PlusAction icon={<Link2 size={19} />} label="接龙" onClick={() => { setPlusOpen(false); setChainOpen(true) }} />
+          <PlusAction icon={<Sparkles size={19} />} label="放烟花" onClick={() => { setPlusOpen(false); setFirework((n) => n + 1) }} />
         </div>
       )}
 
@@ -384,6 +615,25 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
         </div>
       )}
 
+      <TransferModal
+        open={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        targets={group.members.map((m) => ({ id: m.characterId, name: m.groupNickname }))}
+        onSend={doTransfer}
+      />
+      <RedPacketModal
+        open={redpacketOpen}
+        onClose={() => setRedpacketOpen(false)}
+        targets={group.members.map((m) => ({ id: m.characterId, name: m.groupNickname }))}
+        onSend={doRedpacket}
+      />
+      <Modal open={chainOpen} onClose={() => setChainOpen(false)} title="文字接龙">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <input value={chainSeed} onChange={(e) => setChainSeed(e.target.value)} placeholder="接龙首词 / 题目" maxLength={20} autoFocus />
+          <button className="btn btn-accent" onClick={startChain}>开始接龙</button>
+        </div>
+      </Modal>
+
       {settingsOpen && <GroupSettingsSheet group={group} onClose={() => setSettingsOpen(false)} />}
 
       {viewer}
@@ -391,22 +641,83 @@ export default function GroupChatScreen({ groupId, onExit }: { groupId: string; 
   )
 }
 
-function extractAtNames(text: string, group: GroupChat): string[] {
-  const names: string[] = []
-  if (text.includes('@全体成员') || text.includes('@所有人')) {
-    group.members.forEach((m) => names.push(m.groupNickname))
-    return names
-  }
-  for (const m of group.members) {
-    if (text.includes(`@${m.groupNickname}`)) names.push(m.groupNickname)
-  }
-  return [...new Set(names)]
+function SpectateInput({
+  group,
+  input,
+  setInput,
+  onDirector,
+  onSendAs,
+  onAutoRun,
+}: {
+  group: GroupChat
+  input: string
+  setInput: (v: string) => void
+  onDirector: () => void
+  onSendAs: () => void
+  onAutoRun: () => void
+}) {
+  const [speakerId, setSpeakerId] = useState('')
+  useEffect(() => {
+    ;(window as unknown as { __spectateId?: string }).__spectateId = speakerId
+  }, [speakerId])
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <select value={speakerId} onChange={(e) => setSpeakerId(e.target.value)} style={{ flex: 1, fontSize: 11, padding: '3px 6px' }}>
+          <option value="">选择发言身份（导演）</option>
+          {group.members.map((m) => (
+            <option key={m.characterId} value={m.characterId}>{m.groupNickname}</option>
+          ))}
+        </select>
+        <button className="btn" style={{ padding: '3px 10px', fontSize: 11 }} onClick={onAutoRun}>
+          <Eye size={12} style={{ marginRight: 3 }} />自动运转
+        </button>
+      </div>
+      <textarea
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={speakerId ? `以该身份发言…（留空用上方按钮推进剧情）` : '先选身份；或直接输入剧情走向'}
+        rows={1}
+        style={{ width: '100%', resize: 'none', maxHeight: 60, lineHeight: 1.5, borderRadius: 12, fontSize: 13 }}
+      />
+      <button className="btn" style={{ padding: '3px 0', fontSize: 11 }} onClick={onDirector}>
+        推进剧情走向
+      </button>
+      <button className="btn" style={{ padding: '3px 0', fontSize: 11 }} onClick={onSendAs} disabled={!speakerId || !input.trim()}>
+        以所选身份发送
+      </button>
+    </div>
+  )
+}
+
+function Firework({ onDone }: { onDone: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, 1800)
+    return () => clearTimeout(t)
+  }, [onDone])
+  const bursts = Array.from({ length: 5 })
+  return (
+    <div style={{ position: 'absolute', inset: 0, zIndex: 400, pointerEvents: 'none', overflow: 'hidden' }}>
+      {bursts.map((_, i) => (
+        <div
+          key={i}
+          className="fw-burst"
+          style={{
+            left: `${12 + i * 19}%`,
+            top: `${14 + (i % 3) * 22}%`,
+            background: ['#ff6b6b', '#ffd166', '#7ab8f5', '#7ee2a8', '#f59ab8'][i],
+            animationDelay: `${i * 0.18}s`,
+          }}
+        />
+      ))}
+    </div>
+  )
 }
 
 function PlusAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
   return (
-    <button className="pressable" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-      <span style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+    <button className="pressable" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 58 }}>
+      <span style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
         {icon}
       </span>
       <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>{label}</span>
@@ -435,12 +746,14 @@ function GroupMessageRow({
   avatarId,
   onLongPress,
   onOpenImage,
+  onClaim,
 }: {
   m: GroupMessage
   group: GroupChat
   avatarId: string | null
   onLongPress: () => void
   onOpenImage: (url: string) => void
+  onClaim: () => void
 }) {
   if (m.recalled) {
     return (
@@ -473,23 +786,66 @@ function GroupMessageRow({
             ) : null}
           </span>
         )}
-        {m.type === 'image' || m.type === 'sticker' ? (
-          <GroupImageBubble imageId={m.imageId} sticker={m.type === 'sticker'} onOpen={onOpenImage} onLongPress={onLongPress} />
-        ) : (
-          <div
-            onContextMenu={(e) => {
-              e.preventDefault()
-              onLongPress()
-            }}
-            onDoubleClick={onLongPress}
-            className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body`}
-            style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-          >
-            {m.type === 'ooc' ? `OOC：${m.content}` : m.content}
-          </div>
-        )}
+        {renderGroupBody(m, isUser, onLongPress, onOpenImage, onClaim, group)}
         <TimeText ts={m.timestamp} />
       </div>
+    </div>
+  )
+}
+
+function renderGroupBody(
+  m: GroupMessage,
+  isUser: boolean,
+  onLongPress: () => void,
+  onOpenImage: (url: string) => void,
+  onClaim: () => void,
+  group: GroupChat
+): React.ReactNode {
+  const commonHandlers = {
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault()
+      onLongPress()
+    },
+    onDoubleClick: onLongPress,
+  }
+  if (m.type === 'image' || m.type === 'sticker') {
+    return <GroupImageBubble imageId={m.imageId} sticker={m.type === 'sticker'} onOpen={onOpenImage} onLongPress={onLongPress} />
+  }
+  if (m.type === 'voice') {
+    return (
+      <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'}`} style={{ padding: '4px 6px' }}>
+        <VoiceBubble voiceId={m.data?.voiceId} seconds={m.data?.seconds} />
+      </div>
+    )
+  }
+  if (m.type === 'transfer') {
+    return (
+      <div {...commonHandlers}>
+        <TransferCard data={m.data ?? {}} mine={isUser} />
+      </div>
+    )
+  }
+  if (m.type === 'redpacket') {
+    return (
+      <div {...commonHandlers}>
+        <RedPacketCard data={m.data ?? {}} mine={isUser} ts={m.timestamp} characterName={isUser ? '你' : m.senderName || group.name} onClaim={isUser ? undefined : onClaim} />
+      </div>
+    )
+  }
+  if (m.type === 'dice') {
+    return (
+      <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'}`}>
+        <DiceCard value={m.data?.value} />
+      </div>
+    )
+  }
+  return (
+    <div
+      {...commonHandlers}
+      className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body`}
+      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+    >
+      {m.type === 'ooc' ? `OOC：${m.content}` : m.content}
     </div>
   )
 }
@@ -596,6 +952,22 @@ function GroupSettingsSheet({ group, onClose }: { group: GroupChat; onClose: () 
             <X size={18} />
           </button>
         </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={!!group.spectate}
+            onChange={(e) => {
+              groupsStore.updateGroup(group.id, { spectate: e.target.checked })
+              push(e.target.checked ? '旁观模式已开启：你以导演身份存在' : '旁观模式已关闭')
+            }}
+          />
+          <span style={{ flex: 1 }}>
+            <span className="fs-body" style={{ display: 'block', color: 'var(--text-primary)' }}>旁观模式</span>
+            <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>你不入群，可自定义剧情走向、以任意角色身份发言、让群里自动运转</span>
+          </span>
+          <Eye size={16} color="var(--text-tertiary)" />
+        </label>
 
         <div>
           <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>群公告</div>
