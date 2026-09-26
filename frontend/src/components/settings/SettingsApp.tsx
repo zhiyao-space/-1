@@ -23,6 +23,8 @@ import FontPage from './FontPage'
 import WallpaperPage from './WallpaperPage'
 import ComponentsPage from './ComponentsPage'
 import IconsPage from './IconsPage'
+import ApiConfigPage from './ApiConfigPage'
+import ChatParamsPage from './ChatParamsPage'
 
 type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'components' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'data'
 
@@ -37,8 +39,8 @@ export default function SettingsApp() {
       {page === 'wallpaper' && <PageShell title="壁纸设置" onBack={() => setPage('home')}><WallpaperPage /></PageShell>}
       {page === 'components' && <PageShell title="桌面组件管理" onBack={() => setPage('home')}><ComponentsPage /></PageShell>}
       {page === 'icons' && <PageShell title="图标设置" onBack={() => setPage('home')}><IconsPage /></PageShell>}
-      {page === 'api' && <PageShell title="API 配置" onBack={() => setPage('home')}><ComingSoon batch={2} /></PageShell>}
-      {page === 'chatparams' && <PageShell title="聊天参数" onBack={() => setPage('home')}><ComingSoon batch={2} /></PageShell>}
+      {page === 'api' && <PageShell title="API 配置" onBack={() => setPage('home')}><ApiConfigPage /></PageShell>}
+      {page === 'chatparams' && <PageShell title="聊天参数" onBack={() => setPage('home')}><ChatParamsPage /></PageShell>}
       {page === 'worldbook' && <PageShell title="世界书管理" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}
       {page === 'rules' && <PageShell title="角色运行规则" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}
       {page === 'data' && <PageShell title="数据管理" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}

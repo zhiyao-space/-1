@@ -4,6 +4,8 @@ import Desktop from './Desktop'
 import SettingsApp from './settings/SettingsApp'
 import AboutApp from './settings/AboutApp'
 import PlaceholderApp from './PlaceholderApp'
+import ContactsApp from './chat/ContactsApp'
+import MessagesApp from './chat/MessagesApp'
 import { useSettings } from '../store/settings'
 
 export default function PhoneHome() {
@@ -31,7 +33,9 @@ export default function PhoneHome() {
         >
           {activeApp === 'settings' && <SettingsApp />}
           {activeApp === 'about' && <AboutApp />}
-          {['contacts', 'messages', 'forum', 'moments', 'music'].includes(activeApp) && (
+          {activeApp === 'contacts' && <ContactsApp />}
+          {activeApp === 'messages' && <MessagesApp />}
+          {['forum', 'moments', 'music'].includes(activeApp) && (
             <PlaceholderApp appId={activeApp as AppId} />
           )}
         </div>

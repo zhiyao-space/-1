@@ -30,6 +30,26 @@ Entries discovered by the Agent during task execution should follow this format:
 
 ## Entries
 
+[架构约束：纯前端项目]
+- Date: 2026-09-26
+- Context: 批次2开发时用户明确指示
+- Instructions:
+  - 空蚀纪是纯前端项目，不写任何后端/Node 服务
+  - LLM API 请求由浏览器直接 fetch 目标 API（用户自填 BaseURL/Key），经 Vite 代理到本地后端（localhost:3001）的方案已废弃
+  - /workspace/backend 目录与 start.sh 中的后端启动段已作废
+
+[项目构建方式：空蚀纪前端]
+- Date: 2026-09-26
+- Context: Agent 完成批次1开发后验证构建与预览
+- Category: Build Methods
+- Instructions:
+  - 前端位于 /workspace/frontend（Vite+React18+TS+Zustand），dev 端口 5173，已配置 allowedHosts
+  - 类型检查：`cd /workspace/frontend && npx tsc -b`
+  - 构建验证：`cd /workspace/frontend && npm run build`
+  - 预览启动：`cd /workspace/frontend && npm run dev`（后台终端运行）
+  - 数据持久化：设置/桌面布局走 zustand persist（localStorage，前缀 ksc:），图片/音频/字体文件存 IndexedDB（库名 kongshiji-db）
+  - GitHub 仓库：https://github.com/zhiyao-space/-1，主分支 main，每批次完成后提交推送
+
 [开发协作方式：小手机 App 项目]
 - Date: 2026-09-26
 - Context: 用户启动"空蚀纪"小手机 App 开发，提供了 6 份需求 HTML（缓存于 .monkeycode-tmp-files/）
