@@ -6,6 +6,7 @@ import { useSettings } from '../store/settings'
 import { useSchedule, currentActivity } from '../store/schedule'
 import { useMinds } from '../store/interact'
 import { buildForumMemory } from './forumEngine'
+import { displayUserName, buildUserPersona } from '../store/profile'
 import type { ApiPreset } from '../store/apiPresets'
 import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
@@ -49,7 +50,11 @@ function nowLine(): string {
 }
 
 function userName(): string {
-  return useSettings.getState().phoneName || '我'
+  return displayUserName(useSettings.getState().phoneName || '我')
+}
+
+export function userPersonaBlock(): string {
+  return buildUserPersona(useSettings.getState().phoneName || '我')
 }
 
 function historyToApi(
@@ -76,7 +81,8 @@ export function buildSingleChatMessages(
   extraUserInstruction?: string
 ): ChatApiMessage[] {
   const forumMem = useChatParams.getState().forumMemory ? buildForumMemory(character.id) : null
-  const sys = `${buildCharacterPrompt(character)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}${forumMem ? `\n\n${forumMem}` : ''}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
+  const persona = userPersonaBlock()
+  const sys = `${buildCharacterPrompt(character)}${persona ? `\n\n${persona}` : ''}\n\n${nowLine()}\n${buildScheduleContext(character.id)}${forumMem ? `\n\n${forumMem}` : ''}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
   const historyApi = historyToApi(history).slice(-preset.contextCount)
   const instruction: ChatApiMessage | null = extraUserInstruction
     ? { role: 'user', content: extraUserInstruction }
@@ -115,7 +121,7 @@ export function buildGroupChatMessages(
   preset: ApiPreset,
   extraContext: ChatApiMessage[] = []
 ): ChatApiMessage[] {
-  const sys = `${buildGroupMemberPrompt(member, character, group)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}`
+  const sys = `${buildGroupMemberPrompt(member, character, group)}\n\n${userPersonaBlock()}\n\n${nowLine()}\n${buildScheduleContext(character.id)}`
   const historyApi = historyToApi(history).slice(-preset.contextCount)
   if (preset.injectMode === 'merge-user') {
     return [{ role: 'user', content: `[系统设定]\n${sys}` }, ...historyApi, ...extraContext]

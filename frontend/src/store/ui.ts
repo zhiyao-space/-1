@@ -9,6 +9,7 @@ export type AppId =
   | 'moments'
   | 'music'
   | 'notifications'
+  | 'profile'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

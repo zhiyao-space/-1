@@ -11,6 +11,7 @@ import MessagesApp from './chat/MessagesApp'
 import ForumApp from './forum/ForumApp'
 import MomentsApp from './moments/MomentsApp'
 import NotificationCenterApp from './NotificationCenterApp'
+import ProfileApp from './profile/ProfileApp'
 import Avatar from './chat/Avatar'
 import { useSettings } from '../store/settings'
 import { useCharacters } from '../store/characters'
@@ -47,6 +48,7 @@ export default function PhoneHome() {
           {activeApp === 'forum' && <ForumApp />}
           {activeApp === 'moments' && <MomentsApp />}
           {activeApp === 'notifications' && <NotificationCenterApp />}
+          {activeApp === 'profile' && <ProfileApp />}
           {activeApp === 'music' && <PlaceholderApp />}
         </div>
       )}
@@ -65,6 +67,7 @@ export function useAppTitle(): string {
     forum: '论坛',
     moments: '朋友圈',
     notifications: '通知中心',
+    profile: '主页',
     music: '音乐',
   }
   return activeApp ? names[activeApp] : ''

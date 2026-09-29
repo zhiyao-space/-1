@@ -1,9 +1,10 @@
-import { MessagesSquare, BookUser, Globe, Camera, Bell, Music, Settings, Smartphone } from 'lucide-react'
+import { CircleUserRound, MessagesSquare, BookUser, Globe, Camera, Bell, Music, Settings, Smartphone } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
 import { WallpaperLayer } from './WallpaperLayer'
 
 const APPS: { id: AppId; name: string; icon: typeof Bell }[] = [
+  { id: 'profile', name: '主页', icon: CircleUserRound },
   { id: 'messages', name: '信息', icon: MessagesSquare },
   { id: 'contacts', name: '通讯录', icon: BookUser },
   { id: 'forum', name: '论坛', icon: Globe },
