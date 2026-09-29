@@ -3,6 +3,7 @@ import { useSettings, themeToCssVars } from './store/settings'
 import { useUI } from './store/ui'
 import { getBlob } from './lib/idb'
 import { runProactiveTick } from './lib/proactive'
+import { runForumTick } from './lib/forumScheduler'
 import { ToastHost } from './components/common'
 import LockScreen from './components/LockScreen'
 import PhoneHome from './components/PhoneHome'
@@ -38,7 +39,13 @@ export default function App() {
     const timer = setInterval(() => {
       void runProactiveTick()
     }, 60_000)
-    return () => clearInterval(timer)
+    const forumTimer = setInterval(() => {
+      void runForumTick()
+    }, 45_000)
+    return () => {
+      clearInterval(timer)
+      clearInterval(forumTimer)
+    }
   }, [])
 
   const vars = themeToCssVars(settings) as React.CSSProperties

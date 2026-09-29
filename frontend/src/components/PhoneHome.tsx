@@ -8,6 +8,9 @@ import AboutApp from './settings/AboutApp'
 import PlaceholderApp from './PlaceholderApp'
 import ContactsApp from './chat/ContactsApp'
 import MessagesApp from './chat/MessagesApp'
+import ForumApp from './forum/ForumApp'
+import MomentsApp from './moments/MomentsApp'
+import NotificationCenterApp from './NotificationCenterApp'
 import Avatar from './chat/Avatar'
 import { useSettings } from '../store/settings'
 import { useCharacters } from '../store/characters'
@@ -41,9 +44,10 @@ export default function PhoneHome() {
           {activeApp === 'about' && <AboutApp />}
           {activeApp === 'contacts' && <ContactsApp />}
           {activeApp === 'messages' && <MessagesApp />}
-          {['forum', 'moments', 'music'].includes(activeApp) && (
-            <PlaceholderApp appId={activeApp as AppId} />
-          )}
+          {activeApp === 'forum' && <ForumApp />}
+          {activeApp === 'moments' && <MomentsApp />}
+          {activeApp === 'notifications' && <NotificationCenterApp />}
+          {activeApp === 'music' && <PlaceholderApp />}
         </div>
       )}
     </div>
@@ -60,6 +64,7 @@ export function useAppTitle(): string {
     messages: '信息',
     forum: '论坛',
     moments: '朋友圈',
+    notifications: '通知中心',
     music: '音乐',
   }
   return activeApp ? names[activeApp] : ''

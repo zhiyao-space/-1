@@ -18,7 +18,7 @@ export default function IconsPage() {
           sub="2px 描边 · 圆角端点 · 禁用 emoji"
           right={<Check size={16} color="var(--accent)" />}
         />
-        <Row label="自定义图标包导入" sub="在桌面快捷组件编辑中上传自定义图标" />
+        <Row label="自定义图标包导入" sub="后续批次开放" />
       </SectionCard>
 
       <SectionCard title="图标大小">

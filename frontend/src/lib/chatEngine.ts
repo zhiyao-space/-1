@@ -5,6 +5,7 @@ import { useChatParams } from '../store/chatParams'
 import { useSettings } from '../store/settings'
 import { useSchedule, currentActivity } from '../store/schedule'
 import { useMinds } from '../store/interact'
+import { buildForumMemory } from './forumEngine'
 import type { ApiPreset } from '../store/apiPresets'
 import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
@@ -74,7 +75,8 @@ export function buildSingleChatMessages(
   preset: ApiPreset,
   extraUserInstruction?: string
 ): ChatApiMessage[] {
-  const sys = `${buildCharacterPrompt(character)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
+  const forumMem = useChatParams.getState().forumMemory ? buildForumMemory(character.id) : null
+  const sys = `${buildCharacterPrompt(character)}\n\n${nowLine()}\n${buildScheduleContext(character.id)}${forumMem ? `\n\n${forumMem}` : ''}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
   const historyApi = historyToApi(history).slice(-preset.contextCount)
   const instruction: ChatApiMessage | null = extraUserInstruction
     ? { role: 'user', content: extraUserInstruction }

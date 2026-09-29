@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Upload, Trash2, Check } from 'lucide-react'
 import { useSettings } from '../../store/settings'
 import { useToast } from '../../store/ui'
-import { SectionCard, SliderRow, Toggle } from '../common'
+import { SectionCard, SliderRow } from '../common'
 import { WallpaperLayer, useBlobURL } from '../WallpaperLayer'
 import { compressImage, cropImage, CropState } from '../../lib/image'
 import { putBlob } from '../../lib/idb'
@@ -53,16 +53,6 @@ export default function WallpaperPage() {
             }}
           />
         ))}
-      </SectionCard>
-
-      <SectionCard title="效果">
-        <div className="row-item">
-          <div>
-            <div className="fs-body" style={{ color: 'var(--text-primary)' }}>视差滚动</div>
-            <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>切换桌面页时壁纸轻微移动</div>
-          </div>
-          <Toggle checked={settings.parallax} onChange={(v) => settings.setParallax(v)} />
-        </div>
       </SectionCard>
 
       {cropFor && (

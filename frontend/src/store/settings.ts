@@ -44,7 +44,6 @@ export interface SettingsState {
   customFontEnId: string | null
   wallpapers: { desktop: string | null; lock: string | null; chat: string | null }
   wallpaperFx: { desktop: WallpaperFx; lock: WallpaperFx; chat: WallpaperFx }
-  parallax: boolean
   desktopIconSize: 24 | 32 | 40
   navIconSize: 20 | 24
   favorites: string[]
@@ -57,7 +56,6 @@ export interface SettingsState {
   setCustomFont: (lang: 'cn' | 'en', id: string | null) => void
   setWallpaper: (target: 'desktop' | 'lock' | 'chat', id: string | null) => void
   setWallpaperFx: (target: 'desktop' | 'lock' | 'chat', fx: Partial<WallpaperFx>) => void
-  setParallax: (v: boolean) => void
   setDesktopIconSize: (v: 24 | 32 | 40) => void
   setNavIconSize: (v: 20 | 24) => void
   toggleFavorite: (name: string) => void
@@ -200,7 +198,6 @@ export const useSettings = create<SettingsState>()(
         lock: { dark: 0.35, blur: 0 },
         chat: { dark: 0.35, blur: 0 },
       },
-      parallax: true,
       desktopIconSize: 32,
       navIconSize: 24,
       favorites: [],
@@ -218,7 +215,6 @@ export const useSettings = create<SettingsState>()(
         set((s) => ({
           wallpaperFx: { ...s.wallpaperFx, [target]: { ...s.wallpaperFx[target], ...fx } },
         })),
-      setParallax: (parallax) => set({ parallax }),
       setDesktopIconSize: (desktopIconSize) => set({ desktopIconSize }),
       setNavIconSize: (navIconSize) => set({ navIconSize }),
       toggleFavorite: (name) =>

@@ -3,18 +3,15 @@ import { useUI } from '../../store/ui'
 import { useToast } from '../../store/ui'
 import { SectionCard, Row } from '../common'
 import { useBlobURL } from '../WallpaperLayer'
-import { Lock, Pencil, UserRound, Smartphone, Cpu, Layers3 } from 'lucide-react'
+import { Lock, Pencil, UserRound, Smartphone, Cpu } from 'lucide-react'
 import { useState } from 'react'
 import { Modal } from '../common'
-import { useDesktop } from '../../store/desktop'
 
 export default function AboutApp() {
   const settings = useSettings()
   const lock = useUI((s) => s.lock)
   const openApp = useUI((s) => s.openApp)
   const push = useToast((s) => s.push)
-  const pages = useDesktop((s) => s.pages)
-  const widgetCount = pages.reduce((acc, p) => acc + p.widgets.length, 0)
   const avatarUrl = useBlobURL(settings.avatarId)
   const [renameOpen, setRenameOpen] = useState(false)
   const [draft, setDraft] = useState('')
@@ -65,11 +62,6 @@ export default function AboutApp() {
         </SectionCard>
 
         <SectionCard title="本机状态">
-          <Row
-            label="桌面数据"
-            sub={`共 ${pages.length} 页 · ${widgetCount} 个组件`}
-            right={<Layers3 size={15} color="var(--text-secondary)" />}
-          />
           <Row
             label="外观系统"
             sub="主题 / 字体 / 壁纸 / 图标"

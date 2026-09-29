@@ -21,12 +21,11 @@ import { compressImage } from '../../lib/image'
 import ThemePage from './ThemePage'
 import FontPage from './FontPage'
 import WallpaperPage from './WallpaperPage'
-import ComponentsPage from './ComponentsPage'
 import IconsPage from './IconsPage'
 import ApiConfigPage from './ApiConfigPage'
 import ChatParamsPage from './ChatParamsPage'
 
-type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'components' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'data'
+type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'data'
 
 export default function SettingsApp() {
   const [page, setPage] = useState<SubPage>('home')
@@ -37,7 +36,6 @@ export default function SettingsApp() {
       {page === 'theme' && <PageShell title="主题与配色" onBack={() => setPage('home')}><ThemePage /></PageShell>}
       {page === 'font' && <PageShell title="字体设置" onBack={() => setPage('home')}><FontPage /></PageShell>}
       {page === 'wallpaper' && <PageShell title="壁纸设置" onBack={() => setPage('home')}><WallpaperPage /></PageShell>}
-      {page === 'components' && <PageShell title="桌面组件管理" onBack={() => setPage('home')}><ComponentsPage /></PageShell>}
       {page === 'icons' && <PageShell title="图标设置" onBack={() => setPage('home')}><IconsPage /></PageShell>}
       {page === 'api' && <PageShell title="API 配置" onBack={() => setPage('home')}><ApiConfigPage /></PageShell>}
       {page === 'chatparams' && <PageShell title="聊天参数" onBack={() => setPage('home')}><ChatParamsPage /></PageShell>}
@@ -113,7 +111,7 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
 
   const entries: { key: SubPage; icon: React.ReactNode; label: string; sub: string }[] = [
     { key: 'api', icon: <Plug size={18} />, label: 'API 配置', sub: '聊天 / 生图 / 语音 / 识图' },
-    { key: 'theme', icon: <Palette size={18} />, label: '美化与字体', sub: '主题 · 配色 · 壁纸 · 组件' },
+    { key: 'theme', icon: <Palette size={18} />, label: '美化与字体', sub: '主题 · 配色 · 壁纸 · 图标' },
     { key: 'chatparams', icon: <MessageSquare size={18} />, label: '聊天参数', sub: '响应模式 · 主动消息 · 表情包' },
     { key: 'worldbook', icon: <BookOpen size={18} />, label: '世界书管理', sub: '全局 / 局部 · 三态挂载' },
     { key: 'rules', icon: <BrainCircuit size={18} />, label: '角色运行规则', sub: '思维链 · 输出规则 · 自检' },
@@ -219,13 +217,6 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
 
         <SectionCard>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="btn"
-              style={{ flex: 1 }}
-              onClick={() => onNavigate('components')}
-            >
-              组件管理
-            </button>
             <button
               className="btn"
               style={{ flex: 1 }}

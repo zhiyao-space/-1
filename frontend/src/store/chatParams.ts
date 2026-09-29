@@ -13,6 +13,8 @@ export interface ChatParams {
   proactivePerDay: number
   quietStart: string
   quietEnd: string
+  forumMemory: boolean
+  forumMemoryDays: number
 }
 
 interface ProactiveCounter {
@@ -44,6 +46,8 @@ export const useChatParams = create<ChatParamsState>()(
       proactivePerDay: 3,
       quietStart: '00:00',
       quietEnd: '08:00',
+      forumMemory: true,
+      forumMemoryDays: 3,
       date: '',
       count: 0,
       lastSentAt: 0,
