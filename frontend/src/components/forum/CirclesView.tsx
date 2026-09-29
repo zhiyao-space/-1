@@ -392,7 +392,7 @@ function MemberRow({ avatar, name, sub, onKick }: { avatar: React.ReactNode; nam
 
 function ManageSheet({ circle, onClose }: { circle: ForumCircle; onClose: () => void }) {
   const updateCircle = useForum((s) => s.updateCircle)
-  const posts = useForum((s) => s.posts.filter((p) => p.circleId === circle.id))
+  const posts = useForum((s) => s.posts).filter((p) => p.circleId === circle.id)
   const updatePost = useForum((s) => s.updatePost)
   const push = useToast((s) => s.push)
   const [rules, setRules] = useState(circle.rules)

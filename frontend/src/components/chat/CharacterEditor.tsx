@@ -61,7 +61,7 @@ export default function CharacterEditor({
   const updateCharacter = useCharacters((s) => s.updateCharacter)
   const push = useToast((s) => s.push)
   const avatarUrl = useBlobURL(draft.avatarId)
-  const chatPresets = useApiPresets((s) => s.presets.filter((p) => p.category === 'chat'))
+  const chatPresets = useApiPresets((s) => s.presets).filter((p) => p.category === 'chat')
 
   useEffect(() => {
     if (open) setDraft(character ? toDraft(character) : emptyDraft)

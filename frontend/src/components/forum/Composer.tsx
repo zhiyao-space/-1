@@ -11,7 +11,7 @@ import { Modal } from '../common'
 type PostType = 'text' | 'image' | 'poll' | 'relay'
 
 export default function Composer({ open, onClose, quoteOf, defaultCircleId }: { open: boolean; onClose: () => void; quoteOf: ForumPost | null; defaultCircleId: string | null }) {
-  const circles = useForum((s) => s.circles.filter((c) => c.userJoined))
+  const circles = useForum((s) => s.circles).filter((c) => c.userJoined)
   const aliases = useForum((s) => s.aliases)
   const activeAliasId = useForum((s) => s.activeAliasId)
   const addPost = useForum((s) => s.addPost)
