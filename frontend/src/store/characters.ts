@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useRuntimeRules } from './runtimeRules'
 
 export interface CustomField {
   id: string
@@ -51,3 +52,9 @@ export const useCharacters = create<CharacterState>()(
     { name: 'ksc:characters' }
   )
 )
+
+// 角色删除后同步清理各关联 store（思维链/总结/世界书绑定等）
+export function removeCharacterEverywhere(id: string): void {
+  useCharacters.getState().removeCharacter(id)
+  useRuntimeRules.getState().cleanupCharacter(id)
+}

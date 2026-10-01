@@ -24,8 +24,12 @@ import WallpaperPage from './WallpaperPage'
 import IconsPage from './IconsPage'
 import ApiConfigPage from './ApiConfigPage'
 import ChatParamsPage from './ChatParamsPage'
+import WorldbookPage from './WorldbookPage'
+import RuntimeRulesPage from './RuntimeRulesPage'
+import ChainSettingsPage from './ChainSettingsPage'
+import DataPage from './DataPage'
 
-type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'data'
+type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'chain' | 'data'
 
 export default function SettingsApp() {
   const [page, setPage] = useState<SubPage>('home')
@@ -39,23 +43,10 @@ export default function SettingsApp() {
       {page === 'icons' && <PageShell title="图标设置" onBack={() => setPage('home')}><IconsPage /></PageShell>}
       {page === 'api' && <PageShell title="API 配置" onBack={() => setPage('home')}><ApiConfigPage /></PageShell>}
       {page === 'chatparams' && <PageShell title="聊天参数" onBack={() => setPage('home')}><ChatParamsPage /></PageShell>}
-      {page === 'worldbook' && <PageShell title="世界书管理" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}
-      {page === 'rules' && <PageShell title="角色运行规则" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}
-      {page === 'data' && <PageShell title="数据管理" onBack={() => setPage('home')}><ComingSoon batch={5} /></PageShell>}
-    </div>
-  )
-}
-
-function ComingSoon({ batch }: { batch: number }) {
-  return (
-    <div style={{ padding: 20 }}>
-      <SectionCard>
-        <div className="fs-body" style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-          该模块将在批次 {batch} 开放。
-          <br />
-          当前批次（1）聚焦手机底座与外观系统。
-        </div>
-      </SectionCard>
+      {page === 'worldbook' && <WorldbookPage onBackHome={() => setPage('home')} />}
+      {page === 'rules' && <RuntimeRulesPage onBack={() => setPage('home')} onOpenChain={() => setPage('chain')} />}
+      {page === 'chain' && <ChainSettingsPage onBack={() => setPage('rules')} />}
+      {page === 'data' && <DataPage onBack={() => setPage('home')} />}
     </div>
   )
 }

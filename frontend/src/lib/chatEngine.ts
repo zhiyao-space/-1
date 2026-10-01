@@ -7,6 +7,9 @@ import { useSchedule, currentActivity } from '../store/schedule'
 import { useMinds } from '../store/interact'
 import { buildForumMemory } from './forumEngine'
 import { displayUserName, buildUserPersona } from '../store/profile'
+import { matchWorldbook } from './worldbookEngine'
+import { buildRuntimeSections } from './runtimeEngine'
+import { useRuntimeRules } from '../store/runtimeRules'
 import type { ApiPreset } from '../store/apiPresets'
 import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
@@ -82,17 +85,45 @@ export function buildSingleChatMessages(
 ): ChatApiMessage[] {
   const forumMem = useChatParams.getState().forumMemory ? buildForumMemory(character.id) : null
   const persona = userPersonaBlock()
-  const sys = `${buildCharacterPrompt(character)}${persona ? `\n\n${persona}` : ''}\n\n${nowLine()}\n${buildScheduleContext(character.id)}${forumMem ? `\n\n${forumMem}` : ''}\n对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
-  const historyApi = historyToApi(history).slice(-preset.contextCount)
+  const lastUser = [...history].reverse().find((m) => ('senderType' in m ? m.senderType === 'user' : m.role === 'user'))
+  const wb = matchWorldbook(character.id, lastUser?.content ?? '')
+  const rs = buildRuntimeSections(character.id)
+  const timeStr = rs.timeBlock === '__NOW__' ? nowLine() : rs.timeBlock
+  const chainInSys = rs.chainInjectPos === 'system' ? rs.chainBlock : rs.chainInjectPos === 'preset' ? '' : ''
+  const chainPreset = rs.chainInjectPos === 'preset' ? rs.chainBlock : ''
+  const ctxCount = useRuntimeRules.getState().contextCountOverride > 0 ? useRuntimeRules.getState().contextCountOverride : preset.contextCount
+  const historyApi = historyToApi(history).slice(-ctxCount)
   const instruction: ChatApiMessage | null = extraUserInstruction
     ? { role: 'user', content: extraUserInstruction }
     : null
-  const body = instruction ? [...historyApi, instruction] : historyApi
-  if (preset.injectMode === 'merge-user') {
-    const sysAsUser: ChatApiMessage = { role: 'user', content: `[系统设定]\n${sys}` }
-    return [sysAsUser, ...body]
+  let body = instruction ? [...historyApi, instruction] : historyApi
+  if (rs.perTurnChain && body.length > 0) {
+    const lastIdx = body.length - 1
+    const lastMsg = body[lastIdx]
+    if (lastMsg.role === 'user') body = [...body.slice(0, lastIdx), { ...lastMsg, content: `${lastMsg.content}\n（${rs.perTurnChain}）` }]
   }
-  return [{ role: 'system', content: sys }, ...body]
+  const sys = [
+    chainPreset.trim(),
+    buildCharacterPrompt(character),
+    chainInSys.trim(),
+    wb.systemBlock,
+    wb.contextBlock,
+    persona,
+    timeStr,
+    buildScheduleContext(character.id),
+    rs.outputBlock,
+    rs.rulesBlock,
+    rs.memoryBlock,
+    forumMem,
+    `对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+  const messages: ChatApiMessage[] = preset.injectMode === 'merge-user' ? [{ role: 'user', content: `[系统设定]\n${sys}` }] : [{ role: 'system', content: sys }]
+  if (wb.userBlock) messages.push({ role: 'user', content: wb.userBlock })
+  messages.push(...body)
+  if (rs.selfCheckItems.length > 0) useRuntimeRules.getState().pushSelfCheckLog(character.id, rs.selfCheckItems)
+  return messages
 }
 
 export function buildGroupMemberPrompt(
@@ -121,12 +152,31 @@ export function buildGroupChatMessages(
   preset: ApiPreset,
   extraContext: ChatApiMessage[] = []
 ): ChatApiMessage[] {
-  const sys = `${buildGroupMemberPrompt(member, character, group)}\n\n${userPersonaBlock()}\n\n${nowLine()}\n${buildScheduleContext(character.id)}`
+  const lastUser = [...history].reverse().find((m) => m.senderType === 'user')
+  const wb = matchWorldbook(character.id, lastUser?.content ?? '')
+  const rs = buildRuntimeSections(character.id)
+  const timeStr = rs.timeBlock === '__NOW__' ? nowLine() : rs.timeBlock
+  const sys = [
+    buildGroupMemberPrompt(member, character, group),
+    rs.chainInjectPos === 'system' || rs.chainInjectPos === 'preset' ? rs.chainBlock.trim() : '',
+    wb.systemBlock,
+    wb.contextBlock,
+    userPersonaBlock(),
+    timeStr,
+    buildScheduleContext(character.id),
+    rs.outputBlock,
+    rs.rulesBlock,
+    rs.memoryBlock,
+  ]
+    .filter(Boolean)
+    .join('\n\n')
   const historyApi = historyToApi(history).slice(-preset.contextCount)
+  const withWb: ChatApiMessage[] = wb.userBlock ? [{ role: 'user', content: wb.userBlock }, ...historyApi] : historyApi
+  if (rs.selfCheckItems.length > 0) useRuntimeRules.getState().pushSelfCheckLog(character.id, rs.selfCheckItems)
   if (preset.injectMode === 'merge-user') {
-    return [{ role: 'user', content: `[系统设定]\n${sys}` }, ...historyApi, ...extraContext]
+    return [{ role: 'user', content: `[系统设定]\n${sys}` }, ...withWb, ...extraContext]
   }
-  return [{ role: 'system', content: sys }, ...historyApi, ...extraContext]
+  return [{ role: 'system', content: sys }, ...withWb, ...extraContext]
 }
 
 export function splitReply(text: string): string[] {

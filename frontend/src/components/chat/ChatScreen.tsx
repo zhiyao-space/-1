@@ -40,6 +40,7 @@ import {
   isSleeping,
 } from '../../lib/chatEngine'
 import { streamChat } from '../../lib/api'
+import { maybeAutoSummarize } from '../../lib/runtimeEngine'
 import Avatar from './Avatar'
 import { Modal } from '../common'
 import { TypingIndicator, TimeText, useImageViewer } from './ChatParts'
@@ -210,6 +211,10 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         addLocal({ role: 'assistant', type: 'text', content: p })
       }, i * 250)
     })
+    const freshHistory = branch
+      ? useBranches.getState().branches.find((b) => b.id === branch.id)?.messages ?? messages
+      : useChats.getState().sessions.find((s) => s.id === sessionId)?.messages ?? messages
+    void maybeAutoSummarize(character, freshHistory)
   }
 
   const afterUserMsg = () => {

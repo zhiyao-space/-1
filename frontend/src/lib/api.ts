@@ -1,4 +1,5 @@
 import type { ApiPreset } from '../store/apiPresets'
+import { useRuntimeRules } from '../store/runtimeRules'
 
 export interface ChatApiMessage {
   role: 'system' | 'user' | 'assistant'
@@ -79,7 +80,8 @@ export async function streamChat(
     body: JSON.stringify({
       model: preset.model,
       messages,
-      temperature: preset.temperature,
+      temperature: useRuntimeRules.getState().temperature ?? preset.temperature,
+      max_tokens: useRuntimeRules.getState().maxReplyLength > 0 ? Math.ceil(useRuntimeRules.getState().maxReplyLength * 2.2) : undefined,
       stream,
     }),
   })

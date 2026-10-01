@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, Users, ChevronRight, Pencil, Trash2, MessageCircle, X } from 'lucide-react'
-import { useCharacters, type Character } from '../../store/characters'
+import { useCharacters, removeCharacterEverywhere, type Character } from '../../store/characters'
 import { useGroups } from '../../store/groups'
 import { useToast, useUI } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
@@ -113,7 +113,7 @@ export default function ContactsApp() {
             setDetail(null)
           }}
           onDelete={() => {
-            useCharacters.getState().removeCharacter(detail.id)
+            removeCharacterEverywhere(detail.id)
             useToast.getState().push('角色已删除')
             setDetail(null)
           }}
