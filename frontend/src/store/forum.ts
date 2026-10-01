@@ -137,6 +137,7 @@ export interface ForumProfile {
   username: string
   signature: string
   bannerId: string | null
+  avatarId: string | null
 }
 
 interface ForumState {
@@ -204,7 +205,7 @@ export const useForum = create<ForumState>()(
       npcs: [],
       aliases: [],
       activeAliasId: null,
-      profile: { username: '', signature: '', bannerId: null },
+      profile: { username: '', signature: '', bannerId: null, avatarId: null },
       following: [],
       followers: [],
       karma: { post: 0, comment: 0 },
@@ -360,7 +361,13 @@ export const useForum = create<ForumState>()(
         set((s) => ({ dms: s.dms.map((d) => (d.id === dmId ? { ...d, ...patch } : d)) })),
       removeDm: (dmId) => set((s) => ({ dms: s.dms.filter((d) => d.id !== dmId) })),
     }),
-    { name: 'ksc:forum' }
+    { name: 'ksc:forum', migrate: (persisted) => {
+      const s = persisted as Partial<ForumState>
+      return {
+        ...s,
+        profile: { username: '', signature: '', bannerId: null, avatarId: null, ...s.profile },
+      } as ForumState
+    } }
   )
 )
 

@@ -38,8 +38,8 @@ export default function ProfileApp() {
       <Banner />
 
       <div style={{ padding: '0 16px' }}>
-        {/* 头像 + 名字 */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -32 }}>
+        {/* 头像 + 名字（保持正常文档流，避免背景图折叠遮挡头像栏） */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 14 }}>
           <AvatarPick />
           <div style={{ flex: 1, minWidth: 0, paddingBottom: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

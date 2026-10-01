@@ -6,9 +6,8 @@ import { SectionCard, SliderRow } from '../common'
 import { putBlob, getBlob } from '../../lib/idb'
 
 const CN_OPTIONS = [
-  { key: 'system', name: '系统默认' },
+  { key: 'puhui', name: '阿里巴巴普惠体（项目默认）' },
   { key: 'wenquanyi', name: '文泉驿' },
-  { key: 'puhui', name: '阿里巴巴普惠体' },
   { key: 'custom', name: '自定义字体文件' },
 ] as const
 
@@ -52,7 +51,7 @@ export default function FontPage() {
 
   const clearCustomFont = (lang: 'cn' | 'en') => {
     settings.setCustomFont(lang, null)
-    if (lang === 'cn') settings.setFonts({ cnFont: 'system' })
+    if (lang === 'cn') settings.setFonts({ cnFont: 'puhui' })
     else settings.setFonts({ enFont: 'inter' })
     push('已清除自定义字体', 'info')
   }

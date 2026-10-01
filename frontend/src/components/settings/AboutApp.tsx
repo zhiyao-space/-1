@@ -1,20 +1,15 @@
-import { useSettings } from '../../store/settings'
-import { useUI } from '../../store/ui'
-import { useToast } from '../../store/ui'
+import { useUI, useToast } from '../../store/ui'
 import { SectionCard, Row } from '../common'
-import { useBlobURL } from '../WallpaperLayer'
-import { Lock, Pencil, UserRound, Smartphone, Cpu } from 'lucide-react'
-import { useState } from 'react'
-import { Modal } from '../common'
+import { Lock, Smartphone, Cpu, Sparkles } from 'lucide-react'
+
+// 关于页品牌信息锁死，与用户主页资料完全隔离，任何主页修改都不会同步到这里
+const MULIN_NAME = '✧･ﾟmulin小手机･ﾟ✧'
+const MULIN_SUB = '｡ﾟ+︎  coquettish black & white  ｡ﾟ+︎'
+const MULIN_SIGNATURE = '˗ˏˋ 黑白灰的小世界 ˎˊ˗'
 
 export default function AboutApp() {
-  const settings = useSettings()
   const lock = useUI((s) => s.lock)
-  const openApp = useUI((s) => s.openApp)
   const push = useToast((s) => s.push)
-  const avatarUrl = useBlobURL(settings.avatarId)
-  const [renameOpen, setRenameOpen] = useState(false)
-  const [draft, setDraft] = useState('')
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -26,36 +21,46 @@ export default function AboutApp() {
               height: 72,
               borderRadius: '50%',
               overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.15)',
-              background: 'rgba(255,255,255,0.06)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'linear-gradient(145deg, #1c1c1c, #000)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              boxShadow: '0 0 18px rgba(255,255,255,0.06)',
             }}
           >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <UserRound size={28} color="var(--text-tertiary)" />
-            )}
+            <Smartphone size={28} color="#e5e5e5" strokeWidth={1.5} />
           </div>
-          <button
-            className="pressable"
-            onClick={() => {
-              setDraft(settings.phoneName)
-              setRenameOpen(true)
+          <div
+            className="app-name"
+            style={{
+              fontSize: 'calc(26px * var(--fs-scale))',
+              letterSpacing: '0.06em',
+              background: 'linear-gradient(90deg, #9c9c9c 0%, #ffffff 45%, #6f6f6f 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 0 14px rgba(255,255,255,0.12)',
             }}
-            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
-            <span className="app-name" style={{ fontSize: 'calc(30px * var(--fs-scale))' }}>{settings.phoneName}</span>
-            <Pencil size={13} color="var(--text-tertiary)" />
-          </button>
-          {settings.signature && (
-            <div className="fs-aux" style={{ color: 'var(--text-secondary)' }}>{settings.signature}</div>
-          )}
+            {MULIN_NAME}
+          </div>
+          <div className="mono fs-micro" style={{ color: '#8a8a8a', letterSpacing: '0.14em' }}>
+            {MULIN_SUB}
+          </div>
+          <div className="fs-aux" style={{ color: '#a8a8a8' }}>
+            {MULIN_SIGNATURE}
+          </div>
         </div>
 
         <SectionCard title="版本信息">
+          <Row
+            label="机型"
+            right={
+              <span className="fs-aux" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#d4d4d4' }}>
+                <Sparkles size={12} color="#8a8a8a" /> mulin 小手机 · 锁定版
+              </span>
+            }
+          />
           <Row label="版本" right={<span className="mono fs-aux" style={{ color: 'var(--text-secondary)' }}>v0.1.0 · 批次 1</span>} />
           <Row label="开发者" right={<span className="fs-aux" style={{ color: 'var(--text-secondary)' }}>MonkeyCode AI</span>} />
           <Row label="设计语言" right={<span className="fs-aux" style={{ color: 'var(--text-secondary)' }}>液态玻璃 · 高级黑灰白</span>} />
@@ -87,21 +92,6 @@ export default function AboutApp() {
           </button>
         </SectionCard>
       </div>
-
-      <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="修改手机名称">
-        <input value={draft} onChange={(e) => setDraft(e.target.value)} maxLength={20} autoFocus />
-        <button
-          className="btn btn-accent"
-          style={{ width: '100%', marginTop: 14 }}
-          onClick={() => {
-            settings.setPhoneName(draft)
-            setRenameOpen(false)
-            push('名称已保存')
-          }}
-        >
-          保存
-        </button>
-      </Modal>
     </div>
   )
 }

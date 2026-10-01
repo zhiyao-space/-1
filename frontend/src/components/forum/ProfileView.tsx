@@ -55,10 +55,9 @@ export default function ProfileView({ onOpenPost }: { onOpenPost: (id: string) =
       </div>
 
       <div style={{ padding: '0 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -24 }}>
-          <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px solid var(--bg-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <span className="fs-h1" style={{ color: 'var(--text-primary)' }}>{(phoneName || '我').slice(0, 1)}</span>
-          </div>
+        {/* 头像栏保持正常文档流，背景图不再折叠遮挡头像 */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 12 }}>
+          <AvatarPick />
           <div style={{ flex: 1, minWidth: 0, paddingBottom: 4 }}>
             <div className="fs-h2" style={{ color: 'var(--text-primary)' }}>{phoneName || '我'}</div>
             <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>@{forum.profile.username || 'user'}</div>
@@ -221,6 +220,58 @@ export default function ProfileView({ onOpenPost }: { onOpenPost: (id: string) =
       <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
       {npcOpen && <NpcEditor npc={npcOpen === 'new' ? null : npcOpen} onClose={() => setNpcOpen(null)} />}
     </div>
+  )
+}
+
+function AvatarPick() {
+  const avatarId = useForum((s) => s.profile.avatarId)
+  const updateProfile = useForum((s) => s.updateProfile)
+  const phoneName = useSettings((s) => s.phoneName)
+  const push = useToast((s) => s.push)
+  const avatarUrl = useBlobURL(avatarId)
+
+  const upload = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = async () => {
+      const f = input.files?.[0]
+      if (!f) return
+      try {
+        const compressed = await compressImage(f, 512)
+        updateProfile({ avatarId: await putBlob(compressed) })
+        push('论坛头像已更新')
+      } catch {
+        push('图片读取失败', 'error')
+      }
+    }
+    input.click()
+  }
+
+  return (
+    <button
+      className="pressable"
+      onClick={upload}
+      title="从相册导入头像"
+      style={{
+        width: 64,
+        height: 64,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        flexShrink: 0,
+        background: 'rgba(255,255,255,0.1)',
+        border: '2px solid rgba(255,255,255,0.15)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      {avatarUrl ? (
+        <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <span className="fs-h1" style={{ color: 'var(--text-primary)' }}>{(phoneName || '我').slice(0, 1)}</span>
+      )}
+    </button>
   )
 }
 

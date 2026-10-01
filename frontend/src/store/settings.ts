@@ -19,7 +19,7 @@ export interface ThemeColors {
 }
 
 export interface FontConfig {
-  cnFont: 'system' | 'wenquanyi' | 'puhui' | 'custom'
+  cnFont: 'wenquanyi' | 'puhui' | 'custom'
   enFont: 'inter' | 'jetbrains' | 'dela' | 'custom'
   scale: number
   lsEn: number
@@ -80,7 +80,7 @@ export const defaultColors: ThemeColors = {
 }
 
 const defaultFonts: FontConfig = {
-  cnFont: 'system',
+  cnFont: 'puhui',
   enFont: 'inter',
   scale: 1,
   lsEn: 0.02,
@@ -138,11 +138,16 @@ export const colorPresets: ColorPreset[] = [
   },
 ]
 
-export const CN_FONT_STACKS: Record<FontConfig['cnFont'], string> = {
-  system: "'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif",
+// 中文字体锁定为项目设定字体栈，移除"系统默认"，避免读取用户手机系统字体
+export const CN_FONT_STACKS: Record<Exclude<FontConfig['cnFont'], never>, string> = {
   wenquanyi: "'WenQuanYi Micro Hei', 'WenQuanYi Zen Hei', 'Noto Sans SC', sans-serif",
   puhui: "'Alibaba PuHuiTi 3.0', 'Alibaba PuHuiTi', 'Noto Sans SC', sans-serif",
-  custom: "'KSCustomCN', 'PingFang SC', 'Noto Sans SC', sans-serif",
+  custom: "'KSCustomCN', 'Noto Sans SC', sans-serif",
+}
+
+// 兼容旧持久化数据中可能残留的 'system' 值
+export function cnFontStack(key: FontConfig['cnFont'] | 'system'): string {
+  return CN_FONT_STACKS[key as FontConfig['cnFont']] ?? CN_FONT_STACKS.puhui
 }
 
 export const EN_FONT_STACKS: Record<FontConfig['enFont'], string> = {
@@ -171,8 +176,8 @@ export function themeToCssVars(s: SettingsState): Record<string, string> {
     '--glass-border-alpha': String(Math.min(0.3, c.glassOpacity + 0.04)),
     '--glass-blur': `${c.glassBlur}px`,
     '--wallpaper-dark': String(c.wallpaperDark),
-    '--font-body': CN_FONT_STACKS[f.cnFont],
-    '--font-nav': `'${f.enFont === 'jetbrains' ? 'JetBrains Mono' : 'Inter'}', ${CN_FONT_STACKS[f.cnFont]}`,
+    '--font-body': cnFontStack(f.cnFont),
+    '--font-nav': `'${f.enFont === 'jetbrains' ? 'JetBrains Mono' : 'Inter'}', ${cnFontStack(f.cnFont)}`,
     '--fs-scale': String(f.scale),
     '--ls-cn': `${f.lsCn}em`,
     '--ls-en': `${f.lsEn}em`,
@@ -229,6 +234,13 @@ export const useSettings = create<SettingsState>()(
       },
       resetTheme: () => set({ colors: { ...defaultColors }, fonts: { ...defaultFonts } }),
     }),
-    { name: 'ksc:settings' }
+    { name: 'ksc:settings', version: 1, migrate: (persisted) => {
+      const s = persisted as Partial<SettingsState>
+      const fonts = s.fonts as { cnFont?: string } | undefined
+      if (fonts && fonts.cnFont === 'system') {
+        s.fonts = { ...fonts, cnFont: 'puhui' } as FontConfig
+      }
+      return s as SettingsState
+    } }
   )
 )

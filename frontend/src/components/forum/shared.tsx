@@ -29,7 +29,8 @@ export function useAuthorDisplay(a: ForumAuthor): { name: string; url: string | 
 
 export function AuthorAvatar({ author, size = 36 }: { author: ForumAuthor; size?: number }) {
   const info = useAuthorDisplay(author)
-  const url = useBlobURL(author.avatarId)
+  const myAvatarId = useForum((s) => s.profile.avatarId)
+  const url = useBlobURL(author.type === 'user' ? myAvatarId ?? null : author.avatarId)
   return (
     <div
       style={{
