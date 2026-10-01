@@ -14,7 +14,6 @@ export default function LockScreen() {
   const [dragY, setDragY] = useState(0)
   const startY = useRef<number | null>(null)
 
-  // dynamic text
   const lines = [
     '夜色缓步，不必急着回应。',
     '收起喧嚣，留一隅给自己。',
@@ -25,13 +24,11 @@ export default function LockScreen() {
   const [dynText, setDynText] = useState(lines[0])
   const dynIdx = useRef(1)
 
-  // particles canvas
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const rafRef = useRef<number | null>(null)
   const particlesRef = useRef<any[]>([])
 
   useEffect(() => {
-    // rotate dynamic text
     const preferReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
     if (!preferReduced) {
       const t = setInterval(() => {
@@ -40,7 +37,6 @@ export default function LockScreen() {
       }, 4000)
       return () => clearInterval(t)
     }
-    return
   }, [])
 
   useEffect(() => {
@@ -58,14 +54,13 @@ export default function LockScreen() {
     }
     window.addEventListener('resize', resize)
 
-    // init particles
-    const particles = Array.from({ length: 40 }).map(() => ({
+    const particles = Array.from({ length: 34 }).map(() => ({
       x: Math.random() * w,
       y: Math.random() * h,
-      r: 0.6 + Math.random() * 2.2,
+      r: 0.7 + Math.random() * 2.8,
       vx: (Math.random() - 0.5) * 0.2,
       vy: (Math.random() - 0.5) * 0.2,
-      alpha: 0.06 + Math.random() * 0.18,
+      alpha: 0.08 + Math.random() * 0.18,
     }))
     particlesRef.current = particles
 
@@ -114,7 +109,6 @@ export default function LockScreen() {
   const mm = String(now.getMinutes()).padStart(2, '0')
   const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 ${WEEKDAYS[now.getDay()]}`
 
-  // icon click effect
   const iconRef = useRef<HTMLImageElement | null>(null)
   const bumpIcon = () => {
     if (!iconRef.current) return
@@ -188,7 +182,7 @@ export default function LockScreen() {
             }}>
               <img
                 ref={iconRef}
-                src="/lock-icon.png"
+                src="/lock-icon.svg"
                 alt="锁屏图标"
                 style={{ width: 64, height: 64, filter: 'drop-shadow(0 6px 18px rgba(0,0,0,0.6))', transition: 'transform .45s cubic-bezier(.2,.9,.3,1)' }}
                 onClick={bumpIcon}
@@ -206,14 +200,12 @@ export default function LockScreen() {
           </div>
         </div>
 
-        {/* bottom hint */}
         <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 28, fontSize: 12, color: 'rgba(200,200,210,0.6)', display: 'flex', gap: 8, alignItems: 'center' }}>
           <div style={{ display: 'inline-block', width: 44, height: 10, borderRadius: 20, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.02)', boxShadow: 'inset 0 -6px 12px rgba(0,0,0,0.5)', position: 'relative' }}>
             <div style={{ width: 10, height: 10, borderRadius: 10, background: 'linear-gradient(90deg,#fff,#c6c8ff)', transform: 'translateX(0)', animation: 'swipe 2.4s infinite' }} />
           </div>
           <div>向上滑动解锁 · 轻触查看通知</div>
         </div>
-
       </div>
 
       <style>{`
