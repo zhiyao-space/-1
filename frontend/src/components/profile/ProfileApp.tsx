@@ -135,7 +135,7 @@ export default function ProfileApp() {
         />
       )}
 
-      <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
+      {editOpen && <EditProfileModal open onClose={() => setEditOpen(false)} />}
       {workTarget && <WorkModal target={workTarget} onClose={() => setWorkTarget(null)} />}
       {maskTarget && <MaskModal target={maskTarget} onClose={() => setMaskTarget(null)} />}
     </div>

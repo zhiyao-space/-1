@@ -48,7 +48,7 @@ export default function LockScreen() {
     let w = (canvas.width = window.innerWidth)
     let h = (canvas.height = window.innerHeight)
 
-    function resize() {
+    const resize = () => {
       w = canvas.width = window.innerWidth
       h = canvas.height = window.innerHeight
     }
@@ -64,7 +64,7 @@ export default function LockScreen() {
     }))
     particlesRef.current = particles
 
-    function tick() {
+    const tick = () => {
       ctx.clearRect(0, 0, w, h)
       for (const p of particlesRef.current) {
         p.x += p.vx
