@@ -30,6 +30,16 @@ Entries discovered by the Agent during task execution should follow this format:
 
 ## Entries
 
+[环境配置：GitHub 推送凭据]
+- Date: 2026-10-01
+- Context: Agent 推送代码到 github.com 时发现凭据助手不可用，后经设备码登录解决
+- Category: Environment Configuration
+- Instructions:
+  - 平台通过环境变量 GIT_CONFIG_COUNT 强制注入 credential.helper（优先级最高），对 github.com 返回空凭据或 500
+  - 解决方法：`gh auth login --hostname github.com --git-protocol https --web`（后台终端运行，从日志取一次性设备码让用户在 github.com/login/device 输入授权）
+  - 授权后必须在仓库 local 配置追加 helper 才能推送：`git config --replace-all credential.helper "!gh auth git-credential"`（git 依次尝试多 helper，平台助手返回空后由 gh 补上）
+  - 仓库级 git 身份使用 zhiyao-space <monkeycode-ai@chaitin.com>（已在 repo 内 config 配置）
+
 [架构约束：纯前端项目]
 - Date: 2026-09-26
 - Context: 批次2开发时用户明确指示
