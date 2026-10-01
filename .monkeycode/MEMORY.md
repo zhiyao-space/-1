@@ -32,13 +32,16 @@ Entries discovered by the Agent during task execution should follow this format:
 
 [环境配置：GitHub 推送凭据]
 - Date: 2026-10-01
-- Context: Agent 推送代码到 github.com 时发现凭据助手不可用，后经设备码登录解决
+- Context: 推送 github.com 时凭据助手不可用；后因重新克隆仓库，发现 gh 登录态与 repo 本地配置均会丢失，需整套重做
 - Category: Environment Configuration
 - Instructions:
   - 平台通过环境变量 GIT_CONFIG_COUNT 强制注入 credential.helper（优先级最高），对 github.com 返回空凭据或 500
-  - 解决方法：`gh auth login --hostname github.com --git-protocol https --web`（后台终端运行，从日志取一次性设备码让用户在 github.com/login/device 输入授权）
-  - 授权后必须在仓库 local 配置追加 helper 才能推送：`git config --replace-all credential.helper "!gh auth git-credential"`（git 依次尝试多 helper，平台助手返回空后由 gh 补上）
-  - 仓库级 git 身份使用 zhiyao-space <monkeycode-ai@chaitin.com>（已在 repo 内 config 配置）
+  - gh 登录（新环境必需）：`gh auth login --hostname github.com --git-protocol https --web`（后台终端运行，从日志取一次性设备码让用户在 github.com/login/device 输入授权）
+  - 重新克隆仓库后 repo 本地配置全部丢失，必须重配三项：
+    - `git config --replace-all credential.helper "!gh auth git-credential"`（平台助手返回空后由 gh 补上）
+    - `git config user.name "zhiyao-space"`
+    - `git config user.email "monkeycode-ai@chaitin.com"`
+  - GitHub 按 email 归属提交账号，作者名不影响归属；推送前若发现 author 不是 zhiyao-space，改 config 即可，勿强推改历史
 
 [架构约束：纯前端项目]
 - Date: 2026-09-26
