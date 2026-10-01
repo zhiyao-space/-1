@@ -189,7 +189,7 @@ export function themeToCssVars(s: SettingsState): Record<string, string> {
 export const useSettings = create<SettingsState>()(
   persist(
     (set) => ({
-      phoneName: '空蚀纪',
+      phoneName: '',
       signature: '',
       avatarId: null,
       colors: { ...defaultColors },
@@ -206,7 +206,7 @@ export const useSettings = create<SettingsState>()(
       desktopIconSize: 32,
       navIconSize: 24,
       favorites: [],
-      setPhoneName: (name) => set({ phoneName: name.trim() || '空蚀纪' }),
+      setPhoneName: (name) => set({ phoneName: name.trim() || '' }),
       setSignature: (signature) => set({ signature }),
       setAvatarId: (avatarId) => set({ avatarId }),
       setColors: (c) => set((s) => ({ colors: { ...s.colors, ...c } })),
