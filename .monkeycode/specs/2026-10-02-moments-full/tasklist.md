@@ -1,0 +1,39 @@
+# 需求实施计划 — 朋友圈完整功能
+
+- [ ] 1. 改造 store/moments.ts 数据层（对应需求 R3/R4/R14/R15/R17/R18）
+  - [ ] 1.1 扩展 MomentComment 增加 parentId 字段，MomentAuthor 的 type 扩展 'npc'，点赞键规则支持 'npc:<id>'（兼容存量数据）
+  - [ ] 1.2 Moment 增加 music / edited / visitors 字段，新增 actions：editMoment、recordVisitor、removeComment（级联删除楼中楼）、toggleLike 支持任意 authorKey
+  - [ ] 1.3 新增 setJumpTo/jumpTo 状态供聊天卡片跳转定位
+- [ ] 2. 用户头像全局通连（对应需求 R1）
+  - [ ] 2.1 新建 components/moments/AuthorAvatar.tsx：按 author.type 从 useProfile / useCharacters / useForum.npcs 解析头像与昵称，无图回退首字占位
+  - [ ] 2.2 ChatScreen.tsx 用户消息头像接入 profile.avatarId（修复 ChatScreen.tsx:527 写死 null）
+- [ ] 3. 改造 MomentsApp 时间线 UI（对应需求 R2/R3/R4/R5/R11/R12/R17/R18）
+  - [ ] 3.1 卡片改造：AuthorAvatar 接入、图片 >4 张折叠网格（+N 展开）、点赞头像行（最多 8 个 + 计数）、相对时间
+  - [ ] 3.2 评论区楼中楼渲染：按 parentId 分组、缩进展示、"回复"按钮预填回复对象
+  - [ ] 3.3 悬浮发布按钮（右下角固定）替代顶部通栏按钮，发布弹窗支持 9 图与音乐字段（歌名+歌手）
+  - [ ] 3.4 删除二次确认弹窗、自己动态"编辑"入口（仅改文字，保存后显示"已编辑"）、音乐卡片样式渲染
+- [ ] 4. 个人朋友圈页与访客记录（对应需求 R13/R15）
+  - [ ] 4.1 MomentsApp 增加 timeline/profile 双视图：点头像进入作者个人页（头像、昵称、该作者动态倒序），返回按钮回时间线
+  - [ ] 4.2 自己的个人页渲染最近访客头像列表（含时间）
+- [ ] 5. 转发到聊天（对应需求 R6）
+  - [ ] 5.1 store/chats.ts：MessageType 增加 'moment-card'，MessageData 增加 momentId
+  - [ ] 5.2 MomentsApp 转发入口 + ForwardPickerModal（列出会话、角色头像昵称、实时过滤已删除会话）
+  - [ ] 5.3 ChatScreen 渲染 moment-card 消息（作者、文字摘要、首图缩略图、朋友圈角标、已删除占位），点击跳转朋友圈并定位动态
+- [ ] 6. 检查点 - 确保类型检查通过
+  - 运行 `cd /workspace/frontend && npx tsc -b` 零错误，如有疑问请询问用户
+- [ ] 7. 角色生态与调度（对应需求 R7/R8/R9/R10/R15/R6 回应）
+  - [ ] 7.1 新建 lib/momentFallback.ts 内置文案池（≥24 条，{name} 插值）与 pickFallbackMoment
+  - [ ] 7.2 store/chatParams.ts 增加 momentAutoFreq（off/low/medium/high，默认 medium）+ ChatParamsPage 分段选择器 UI
+  - [ ] 7.3 forumScheduler.ambientMoment 接入频率配置与文案池兜底（R7）
+  - [ ] 7.4 用户动态互动改造：候选池=可见角色+未拉黑 NPC（R9），随机 1~3 人依次点赞/一级评论/楼中楼回复，间隔 0.6~1.8s（R10），未行动者 35% 概率记录访客（R15）
+  - [ ] 7.5 用户评论触发被回复角色楼中楼回应（R8），复用 forumEngine.generateMomentReply
+  - [ ] 7.6 新增 respondToForward：角色收到转发卡片后用 1~2 条聊天消息回应 + 50% 概率点赞该动态（R6）
+- [ ] 8. 检查点 - 确保类型检查通过
+  - 运行 `npx tsc -b` 零错误，如有疑问请询问用户
+- [ ] 9. 构建验证
+  - 运行 `cd /workspace/frontend && npm run build` 成功，修复暴露的问题
+- [ ]* 10. 无头冒烟测试（playwright）
+  - [ ]* 10.1 发布→点赞→取消→评论→楼中楼→删除确认→转发到聊天 全流程冒烟
+  - [ ]* 10.2 刷新后数据持久化验证（ksc:moments）
+- [ ] 11. 提交推送
+  - git add + commit + push 到 origin/main（遵循"所有改动实时推送"工作流）
