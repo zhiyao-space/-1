@@ -27,6 +27,10 @@ import { useStickers } from '../../store/stickers'
 import { getDefaultChatPreset, getPresetById } from '../../store/apiPresets'
 import { useToast } from '../../store/ui'
 import { useSettings } from '../../store/settings'
+import { useProfile } from '../../store/profile'
+import { useMoments } from '../../store/moments'
+import { useUI } from '../../store/ui'
+import { useUserDisplay } from '../moments/AuthorAvatar'
 import { useSchedule, currentActivity } from '../../store/schedule'
 import { useBranches, useChatAppearance, useWallet } from '../../store/interact'
 import { putBlob } from '../../lib/idb'
@@ -89,6 +93,9 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const awakeUntilRef = useRef(0)
   const [viewer, openViewer] = useImageViewer()
   const stickers = useStickers((s) => s.stickers)
+  const userAvatarId = useProfile(
+    (s) => s.profile.masks.find((m) => m.active)?.avatarId ?? s.profile.avatarId
+  )
 
   const preset = useMemo(() => {
     if (!character) return null
@@ -524,7 +531,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
                   <MessageRow
                     m={m}
                     characterName={character.name}
-                    avatarId={m.role === 'user' ? null : character.avatarId}
+                    avatarId={m.role === 'user' ? userAvatarId : character.avatarId}
                     appearance={appearance}
                     onLongPress={() => setActionMsg(m)}
                     onOpenImage={openViewer}
@@ -931,6 +938,13 @@ function renderBody(
       </div>
     )
   }
+  if (m.type === 'moment-card') {
+    return (
+      <div {...commonHandlers}>
+        <MomentCardBubble momentId={m.data?.momentId ?? null} content={m.content} />
+      </div>
+    )
+  }
   return (
     <div
       {...commonHandlers}
@@ -938,6 +952,52 @@ function renderBody(
       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: fontPx, ...bubbleOverrides(appearance) }}
     >
       {m.content}
+    </div>
+  )
+}
+
+function MomentCardBubble({ momentId, content }: { momentId: string | null; content: string }) {
+  const moment = useMoments((s) => (momentId ? s.moments.find((x) => x.id === momentId) : null))
+  const user = useUserDisplay()
+  const firstImageId = moment?.imageIds?.[0] ?? null
+  const url = useBlobURL(firstImageId)
+  const open = () => {
+    if (!moment) return
+    useUI.getState().openApp('moments')
+    useMoments.getState().setJumpTo(moment.id)
+  }
+  return (
+    <div
+      onClick={open}
+      className="bubble bubble-left ksc-bubble"
+      style={{ padding: 10, cursor: moment ? 'pointer' : 'default', maxWidth: 240, borderRadius: 14 }}
+    >
+      {moment ? (
+        <>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ color: 'var(--accent-color, #9b8cff)' }}>朋友圈</span>
+            <span>·</span>
+            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {moment.author.type === 'user' ? user.name : moment.author.name}
+            </span>
+          </div>
+          <div
+            className="fs-body"
+            style={{ marginTop: 4, color: 'var(--text-body)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+          >
+            {moment.content || '（图片动态）'}
+          </div>
+          {content && moment.content && content !== moment.content && (
+            <div className="fs-micro" style={{ marginTop: 2, color: 'var(--text-disabled)', display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+              {content}
+            </div>
+          )}
+          {url && <img src={url} alt="" style={{ marginTop: 6, width: '100%', height: 90, objectFit: 'cover', borderRadius: 8 }} />}
+          <div className="fs-micro" style={{ marginTop: 6, color: 'var(--text-tertiary)' }}>查看动态 ›</div>
+        </>
+      ) : (
+        <div className="fs-body" style={{ color: 'var(--text-tertiary)' }}>该动态已删除</div>
+      )}
     </div>
   )
 }

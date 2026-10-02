@@ -214,6 +214,19 @@ ${replyTo ? `你在回复 ${replyTo} 的评论，可用 @ 开头。` : ''}
   return raw ? raw.trim().slice(0, 150) : null
 }
 
+export async function generateForwardReaction(
+  moment: Moment,
+  author: ForumAuthor
+): Promise<string | null> {
+  const userName = useSettings.getState().phoneName || '用户'
+  const sys = `${authorPersona(author)}
+【转发回应任务】${userName} 把一条朋友圈转发到了和你的聊天里。请以聊天口吻自然回应这条朋友圈。
+动态内容：${moment.content.slice(0, 200)}
+只输出回应本身，40 字以内，口语化，符合人设。`
+  const raw = await callLLM(sys, '（系统指令：现在写出你对这条朋友圈的回应。只输出回应本身。）')
+  return raw ? raw.trim().slice(0, 120) : null
+}
+
 // ---------- 记忆互通 ----------
 
 export function buildForumMemory(characterId: string): string | null {

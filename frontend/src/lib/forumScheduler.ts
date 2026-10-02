@@ -16,9 +16,31 @@ import {
   npcAuthor,
 } from './forumEngine'
 import { splitReply } from './chatEngine'
+import { useChats } from '../store/chats'
+import { generateForwardReaction } from './forumEngine'
 
 let running = false
 const lastAt: Record<string, number> = {}
+
+// 用户把朋友圈转发到聊天后，对方角色的回应：先回消息，再按概率去点赞
+export async function respondToForward(sessionId: string, momentId: string): Promise<void> {
+  const moment = useMoments.getState().moments.find((m) => m.id === momentId)
+  const session = useChats.getState().sessions.find((s) => s.id === sessionId)
+  if (!moment || !session) return
+  const character = useCharacters.getState().characters.find((c) => c.id === session.characterId)
+  if (!character) return
+  await delay(1200 + Math.random() * 1800)
+  const reaction = await generateForwardReaction(moment, characterAuthor(character))
+  if (reaction) {
+    for (const part of splitReply(reaction).slice(0, 2)) {
+      useChats.getState().addMessage(sessionId, { role: 'assistant', type: 'text', content: part })
+      await delay(500)
+    }
+  }
+  if (Math.random() < 0.5) {
+    useMoments.getState().addLike(momentId, { type: 'character', id: character.id, name: character.name })
+  }
+}
 
 function cooled(key: string, minMs: number, maxMs: number): boolean {
   const now = Date.now()
@@ -140,7 +162,7 @@ async function tickInner(): Promise<void> {
       } else {
         const text = await generateMomentReply(myMoment, characterAuthor(c), null)
         if (text) {
-          momStore.addComment(myMoment.id, { author: { type: 'character', id: c.id, name: c.name }, content: text, replyToName: null })
+          momStore.addComment(myMoment.id, { author: { type: 'character', id: c.id, name: c.name }, content: text, parentId: null, replyToName: null })
           notify({ kind: 'moment-comment', title: '朋友圈', body: `${c.name} 评论：${text.slice(0, 30)}`, target: { app: 'moments' } })
         }
       }
@@ -254,6 +276,7 @@ async function ambientMoment(): Promise<void> {
     imageIds: [],
     visibility: 'all',
     visibleIds: [],
+    music: null,
   })
   if (useForum.getState().following.includes(`character:${c.id}`)) {
     notify({ kind: 'moment-post', title: '朋友圈', body: `${c.name}：${gen.content.slice(0, 30)}`, target: { app: 'moments' } })

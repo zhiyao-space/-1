@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice'
+export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card'
 
 export interface MessageData {
   amount?: number
@@ -16,6 +16,7 @@ export interface MessageData {
   seconds?: number
   value?: number
   cover?: string
+  momentId?: string
 }
 
 export interface ChatMessage {
