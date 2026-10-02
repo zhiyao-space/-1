@@ -30,6 +30,13 @@ Entries discovered by the Agent during task execution should follow this format:
 
 ## Entries
 
+[工作流：所有改动实时推送 GitHub]
+- Date: 2026-10-02
+- Context: 用户重新接入仓库时明确指示"以后不管写到哪，都要传输到仓库里"
+- Instructions:
+  - 任何文件写入/修改完成后，都要 git add + commit + push 到 origin/main，保持远程与工作区同步
+  - 仓库：https://github.com/zhiyao-space/-1，主分支 main
+
 [环境配置：GitHub 推送凭据]
 - Date: 2026-10-01
 - Context: 推送 github.com 时凭据助手不可用；后因重新克隆仓库，发现 gh 登录态与 repo 本地配置均会丢失，需整套重做
