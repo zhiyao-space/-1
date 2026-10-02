@@ -91,7 +91,7 @@ Updated: 2026-10-02
 
 #### Acceptance Criteria
 
-1. WHEN 调度器 tick 到期且存在可用角色，系统 SHALL 按随机间隔（默认 10~25 分钟）让一个角色发布一条动态。
+1. WHEN 调度器 tick 到期且存在可用角色，系统 SHALL 按用户配置的频率档位（关闭/悠闲 25~40 分钟/正常 10~25 分钟/高频 5~12 分钟，默认正常）让一个角色发布一条动态。
 2. IF 默认 LLM API 可用，系统 SHALL 调用 generateMomentContent 按角色人设生成内容。
 3. IF LLM API 不可用或生成失败，系统 SHALL 从内置文案池按角色随机抽取一条作为内容。
 4. WHEN 角色动态发布且用户关注该角色，系统 SHALL 推送通知。
