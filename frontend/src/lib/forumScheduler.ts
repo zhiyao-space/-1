@@ -3,7 +3,7 @@ import { useForum } from '../store/forum'
 import { useCharacters } from '../store/characters'
 import { getDefaultChatPreset } from '../store/apiPresets'
 import { useNotifications, type AppNotification } from '../store/notifications'
-import { useMoments } from '../store/moments'
+import { useMoments, type Moment, type MomentAuthor } from '../store/moments'
 import { useSettings } from '../store/settings'
 import {
   generateForumPost,
@@ -17,6 +17,8 @@ import {
 } from './forumEngine'
 import { splitReply } from './chatEngine'
 import { useChats } from '../store/chats'
+import { useChatParams } from '../store/chatParams'
+import { pickFallbackMoment } from './momentFallback'
 import { generateForwardReaction } from './forumEngine'
 
 let running = false
@@ -40,6 +42,46 @@ export async function respondToForward(sessionId: string, momentId: string): Pro
   if (Math.random() < 0.5) {
     useMoments.getState().addLike(momentId, { type: 'character', id: character.id, name: character.name })
   }
+}
+
+function forumAuthorOf(a: MomentAuthor): ForumAuthor {
+  return { type: a.type, id: a.id, name: a.name, avatarId: null }
+}
+
+// 朋友圈可见受众：可见范围内的角色 + 未拉黑 NPC
+function momentAudience(m: Moment): MomentAuthor[] {
+  const forum = useForum.getState()
+  const chars = useCharacters.getState().characters
+  const out: MomentAuthor[] = []
+  for (const c of chars) {
+    let ok = true
+    if (m.visibility === 'custom') ok = m.visibleIds.includes(c.id)
+    else if (m.visibility === 'friends') ok = forum.following.includes(`character:${c.id}`)
+    if (ok) out.push({ type: 'character', id: c.id, name: c.name })
+  }
+  if (m.visibility !== 'friends') {
+    for (const n of forum.npcs) {
+      if (forum.blockedNpcIds.includes(n.id)) continue
+      if (m.visibility === 'all' || m.visibleIds.includes(n.id)) {
+        out.push({ type: 'npc', id: n.id, name: n.name })
+      }
+    }
+  }
+  return out
+}
+
+const MOMENT_FREQ_WINDOWS: Record<string, [number, number]> = {
+  off: [0, 0],
+  low: [25 * 60_000, 40 * 60_000],
+  medium: [10 * 60_000, 25 * 60_000],
+  high: [5 * 60_000, 12 * 60_000],
+}
+
+function momentCooled(): boolean {
+  const freq = useChatParams.getState().momentAutoFreq
+  if (freq === 'off') return false
+  const [minMs, maxMs] = MOMENT_FREQ_WINDOWS[freq] ?? MOMENT_FREQ_WINDOWS.medium
+  return cooled('moment', minMs, maxMs)
 }
 
 function cooled(key: string, minMs: number, maxMs: number): boolean {
@@ -142,40 +184,92 @@ async function tickInner(): Promise<void> {
     return
   }
 
-  // 3) 用户朋友圈等待互动
+  // 3) 用户朋友圈等待互动（角色 + NPC，延时依次出现，未行动者可能成为访客）
   const myMoment = useMoments
     .getState()
     .moments.filter((m) => m.author.type === 'user' && now - m.createdAt < 30 * 60_000)
-    .filter((m) => m.likes.length === 0 && m.comments.filter((c) => c.author.type !== 'user').length === 0)
+    .filter(
+      (m) =>
+        m.likes.filter((k) => k !== 'user').length === 0 &&
+        m.comments.filter((c) => c.author.type !== 'user').length === 0
+    )
     .sort((a, b) => b.createdAt - a.createdAt)[0]
-  if (myMoment && Math.random() < 0.7) {
-    const actors = useCharacters
-      .getState()
-      .characters.slice()
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 1 + Math.floor(Math.random() * 2))
+  if (myMoment && Math.random() < 0.75) {
+    const shuffled = momentAudience(myMoment).sort(() => Math.random() - 0.5)
+    const actorCount = Math.min(shuffled.length, 1 + Math.floor(Math.random() * 3))
+    const actors = shuffled.slice(0, actorCount)
+    const spectators = shuffled.slice(actorCount)
     const momStore = useMoments.getState()
-    for (const c of actors) {
-      if (Math.random() < 0.6) {
-        momStore.addLike(myMoment.id, { type: 'character', id: c.id, name: c.name })
-        notify({ kind: 'moment-like', title: '朋友圈', body: `${c.name} 赞了你的动态`, target: { app: 'moments' } })
+    for (const a of actors) {
+      const fresh = useMoments.getState().moments.find((x) => x.id === myMoment.id)
+      if (!fresh) break
+      const nonUserComments = fresh.comments.filter((c) => c.author.type !== 'user').length
+      const roll = Math.random()
+      if (roll < 0.4 || (roll < 0.65 && nonUserComments === 0 && Math.random() < 0.5)) {
+        momStore.addLike(myMoment.id, a)
+        notify({ kind: 'moment-like', title: '朋友圈', body: `${a.name} 赞了你的动态`, target: { app: 'moments' } })
       } else {
-        const text = await generateMomentReply(myMoment, characterAuthor(c), null)
+        const text = await generateMomentReply(fresh, forumAuthorOf(a), null)
         if (text) {
-          momStore.addComment(myMoment.id, { author: { type: 'character', id: c.id, name: c.name }, content: text, parentId: null, replyToName: null })
-          notify({ kind: 'moment-comment', title: '朋友圈', body: `${c.name} 评论：${text.slice(0, 30)}`, target: { app: 'moments' } })
+          momStore.addComment(myMoment.id, {
+            author: a,
+            content: text,
+            parentId: null,
+            replyToName: null,
+          })
+          notify({ kind: 'moment-comment', title: '朋友圈', body: `${a.name} 评论：${text.slice(0, 30)}`, target: { app: 'moments' } })
         }
       }
-      await delay(600)
+      await delay(600 + Math.random() * 1200)
+    }
+    for (const s of spectators) {
+      if (s.type === 'character' && Math.random() < 0.35) {
+        momStore.recordVisitor(myMoment.id, { type: 'character', id: s.id, name: s.name, time: Date.now() })
+      }
     }
     return
+  }
+
+  // 3.5) 用户评论等待角色楼中楼回应
+  const pendingUserComment = (() => {
+    let found: { moment: Moment; commentId: string; authorName: string } | null = null
+    for (const m of useMoments.getState().moments) {
+      for (const c of m.comments) {
+        if (c.author.type !== 'user' || now - c.time > 10 * 60_000) continue
+        const answered = m.comments.some((r) => r.author.type !== 'user' && r.time > c.time)
+        if (!answered) found = { moment: m, commentId: c.id, authorName: c.author.name }
+      }
+    }
+    return found
+  })()
+  if (pendingUserComment && Math.random() < 0.75) {
+    const { moment: targetMoment, commentId, authorName } = pendingUserComment
+    const cur = useMoments.getState().moments.find((x) => x.id === targetMoment.id)
+    const userComment = cur?.comments.find((c) => c.id === commentId)
+    if (cur && userComment) {
+      const parentId = userComment.parentId ?? userComment.id
+      const parent = cur.comments.find((c) => c.id === parentId)
+      let replier: MomentAuthor | null = parent && parent.author.type !== 'user' ? parent.author : null
+      if (!replier) {
+        const pool = momentAudience(cur)
+        if (pool.length > 0) replier = pool[Math.floor(Math.random() * pool.length)]
+      }
+      if (replier) {
+        const text = await generateMomentReply(cur, forumAuthorOf(replier), authorName)
+        if (text) {
+          useMoments.getState().addComment(cur.id, { author: replier, content: text, parentId, replyToName: authorName })
+          notify({ kind: 'moment-comment', title: '朋友圈', body: `${replier.name} 回复了你的评论：${text.slice(0, 24)}`, target: { app: 'moments' } })
+          return
+        }
+      }
+    }
   }
 
   // 4) 随机生态
   const roll = Math.random()
   if (roll < 0.4 && cooled('post', 4 * 60_000, 8 * 60_000)) {
     await ambientPost()
-  } else if (roll < 0.55 && cooled('moment', 6 * 60_000, 12 * 60_000)) {
+  } else if (roll < 0.55 && momentCooled()) {
     await ambientMoment()
   } else if (roll < 0.7 && cooled('like', 3 * 60_000, 6 * 60_000)) {
     await ambientLike()
@@ -269,17 +363,17 @@ async function ambientMoment(): Promise<void> {
   if (chars.length === 0) return
   const c = chars[Math.floor(Math.random() * chars.length)]
   const gen = await generateMomentContent(characterAuthor(c))
-  if (!gen) return
+  const content = gen?.content || pickFallbackMoment(c.name)
   useMoments.getState().addCharacterMoment({
     author: { type: 'character', id: c.id, name: c.name },
-    content: gen.content,
+    content,
     imageIds: [],
     visibility: 'all',
     visibleIds: [],
     music: null,
   })
   if (useForum.getState().following.includes(`character:${c.id}`)) {
-    notify({ kind: 'moment-post', title: '朋友圈', body: `${c.name}：${gen.content.slice(0, 30)}`, target: { app: 'moments' } })
+    notify({ kind: 'moment-post', title: '朋友圈', body: `${c.name}：${content.slice(0, 30)}`, target: { app: 'moments' } })
   }
 }
 
