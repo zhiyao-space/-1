@@ -953,6 +953,33 @@ function GroupSettingsSheet({ group, onClose }: { group: GroupChat; onClose: () 
           </button>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            className="pressable"
+            onClick={async () => {
+              const input = document.createElement('input')
+              input.type = 'file'
+              input.accept = 'image/*'
+              input.onchange = async () => {
+                const f = input.files?.[0]
+                if (!f) return
+                const compressed = await compressImage(f, 512)
+                groupsStore.updateGroup(group.id, { avatarId: await putBlob(compressed) })
+                push('群头像已更新')
+              }
+              input.click()
+            }}
+            title="点击从相册导入群头像"
+            style={{ width: 56, height: 56, borderRadius: '28%', overflow: 'hidden', flexShrink: 0, background: 'rgba(255,255,255,0.06)', border: '1px dashed rgba(255,255,255,0.2)' }}
+          >
+            <Avatar imageId={group.avatarId} name={group.name} size={56} shape="rounded" />
+          </button>
+          <div>
+            <div className="fs-body" style={{ color: 'var(--text-primary)' }}>{group.name}</div>
+            <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>点击头像可从相册导入群头像</div>
+          </div>
+        </div>
+
         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
             type="checkbox"

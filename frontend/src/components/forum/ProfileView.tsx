@@ -7,7 +7,7 @@ import { useToast } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
-import { SectionCard, Modal } from '../common'
+import { SectionCard, Modal, ImageCropModal } from '../common'
 import { PostCard, AuthorAvatar, EmptyBlock, fmtCount } from './shared'
 
 type MyTab = 'posts' | 'replies' | 'favorites'
@@ -28,6 +28,18 @@ export default function ProfileView({ onOpenPost }: { onOpenPost: (id: string) =
   const favPosts = useMemo(() => forum.posts.filter((p) => p.myFavorite).sort((a, b) => b.createdAt - a.createdAt), [forum.posts])
   const likedReceived = myPosts.reduce((n, p) => n + p.upvotes, 0)
   const bannerUrl = useBlobURL(forum.profile.bannerId)
+  const [rawBanner, setRawBanner] = useState<Blob | null>(null)
+
+  const pickBanner = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const f = input.files?.[0]
+      if (f) setRawBanner(f)
+    }
+    input.click()
+  }
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '0 0 90px' }}>
@@ -35,19 +47,7 @@ export default function ProfileView({ onOpenPost }: { onOpenPost: (id: string) =
         {bannerUrl && <img src={bannerUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
         <button
           className="pressable"
-          onClick={async () => {
-            const input = document.createElement('input')
-            input.type = 'file'
-            input.accept = 'image/*'
-            input.onchange = async () => {
-              const f = input.files?.[0]
-              if (!f) return
-              const compressed = await compressImage(f, 960)
-              forum.updateProfile({ bannerId: await putBlob(compressed) })
-              push('主页横幅已更新')
-            }
-            input.click()
-          }}
+          onClick={pickBanner}
           style={{ position: 'absolute', top: 10, right: 10, color: '#fff', background: 'rgba(0,0,0,0.45)', borderRadius: 999, padding: '6px 12px' }}
         >
           <span className="fs-micro">更换横幅</span>
@@ -219,6 +219,18 @@ export default function ProfileView({ onOpenPost }: { onOpenPost: (id: string) =
 
       <EditProfileModal open={editOpen} onClose={() => setEditOpen(false)} />
       {npcOpen && <NpcEditor npc={npcOpen === 'new' ? null : npcOpen} onClose={() => setNpcOpen(null)} />}
+
+      <ImageCropModal
+        open={!!rawBanner}
+        src={rawBanner}
+        title="剪切论坛横幅"
+        onClose={() => setRawBanner(null)}
+        onConfirm={async (blob) => {
+          forum.updateProfile({ bannerId: await putBlob(blob) })
+          push('主页横幅已更新')
+          setRawBanner(null)
+        }}
+      />
     </div>
   )
 }

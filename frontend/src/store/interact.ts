@@ -194,9 +194,29 @@ export const useBranches = create<BranchState>()(
   )
 )
 
+export interface BubbleCustom {
+  meBg: string
+  meText: string
+  otherBg: string
+  otherText: string
+  radius: number
+  bordered: boolean
+}
+
+export const DEFAULT_BUBBLE_CUSTOM: BubbleCustom = {
+  meBg: '#f5f5f5',
+  meText: '#111111',
+  otherBg: '#262626',
+  otherText: '#f0f0f0',
+  radius: 16,
+  bordered: false,
+}
+
+export type BubbleStyle = 'default' | 'ink-white' | 'ink-black' | 'mono' | 'minimal' | 'pill' | 'glass' | 'flat' | 'custom'
+
 export interface ChatAppearance {
-  bubbleStyle: 'default' | 'minimal' | 'pill' | 'glass' | 'flat'
-  customBubbleCss: string
+  bubbleStyle: BubbleStyle
+  customBubble: BubbleCustom
   avatarShape: 'circle' | 'rounded'
   avatarSize: 28 | 32 | 40
   fontSize: number
@@ -213,7 +233,7 @@ export const useChatAppearance = create<AppearanceState>()(
   persist(
     (set) => ({
       bubbleStyle: 'default',
-      customBubbleCss: '',
+      customBubble: DEFAULT_BUBBLE_CUSTOM,
       avatarShape: 'circle',
       avatarSize: 32,
       fontSize: 1,

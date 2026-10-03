@@ -113,20 +113,6 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
   useEffect(() => () => abortRef.current?.abort(), [])
 
-  useEffect(() => {
-    let style = document.getElementById('ksc-chat-css')
-    if (appearance.customBubbleCss.trim()) {
-      if (!style) {
-        style = document.createElement('style')
-        style.id = 'ksc-chat-css'
-        document.head.appendChild(style)
-      }
-      style.textContent = appearance.customBubbleCss
-    } else if (style) {
-      style.textContent = ''
-    }
-  }, [appearance.customBubbleCss])
-
   if (!character) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -542,7 +528,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
             {streamText !== null && (
               <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
-                <div className="bubble bubble-left fs-body ksc-bubble" style={{ whiteSpace: 'pre-wrap', ...bubbleOverrides(appearance) }}>
+                <div className="bubble bubble-left fs-body ksc-bubble" style={{ whiteSpace: 'pre-wrap', ...bubbleOverrides(appearance, false) }}>
                   {streamText}
                   <span className="stream-cursor">▍</span>
                 </div>
@@ -740,8 +726,28 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   )
 }
 
-function bubbleOverrides(a: ReturnType<typeof useChatAppearance.getState>): React.CSSProperties {
+function bubbleOverrides(a: ReturnType<typeof useChatAppearance.getState>, isUser: boolean): React.CSSProperties {
   switch (a.bubbleStyle) {
+    case 'ink-white':
+      return { background: '#f5f5f5', color: '#111111', border: 'none', boxShadow: 'none', backdropFilter: 'none' }
+    case 'ink-black':
+      return { background: '#0d0d0d', color: '#f2f2f2', border: '1px solid #3a3a3a', boxShadow: 'none', backdropFilter: 'none' }
+    case 'mono':
+      return isUser
+        ? { background: '#e8e8e8', color: '#1a1a1a', border: 'none', boxShadow: 'none', backdropFilter: 'none' }
+        : { background: '#2e2e2e', color: '#e8e8e8', border: 'none', boxShadow: 'none', backdropFilter: 'none' }
+    case 'custom': {
+      const c = a.customBubble
+      const base: React.CSSProperties = {
+        background: isUser ? c.meBg : c.otherBg,
+        color: isUser ? c.meText : c.otherText,
+        borderRadius: c.radius,
+        boxShadow: 'none',
+        backdropFilter: 'none',
+        border: c.bordered ? '1px solid rgba(128,128,128,0.45)' : 'none',
+      }
+      return base
+    }
     case 'pill':
       return { borderRadius: 999 }
     case 'minimal':
@@ -909,7 +915,7 @@ function renderBody(
       <div
         {...commonHandlers}
         className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`}
-        style={{ padding: '4px 6px', ...bubbleOverrides(appearance) }}
+        style={{ padding: '4px 6px', ...bubbleOverrides(appearance, isUser) }}
       >
         <VoiceBubble voiceId={m.data?.voiceId} seconds={m.data?.seconds} />
       </div>
@@ -931,7 +937,7 @@ function renderBody(
   }
   if (m.type === 'dice') {
     return (
-      <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`} style={bubbleOverrides(appearance)}>
+      <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`} style={bubbleOverrides(appearance, isUser)}>
         <DiceCard value={m.data?.value} />
       </div>
     )
@@ -947,7 +953,7 @@ function renderBody(
     <div
       {...commonHandlers}
       className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body ksc-bubble`}
-      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: fontPx, ...bubbleOverrides(appearance) }}
+      style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: fontPx, ...bubbleOverrides(appearance, isUser) }}
     >
       {m.content}
     </div>

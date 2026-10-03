@@ -52,10 +52,9 @@ export default function PhoneHome() {
 
 export function useAppTitle(): string {
   const activeApp = useUI((s) => s.activeApp)
-  const phoneName = useSettings((s) => s.phoneName)
   const names: Record<AppId, string> = {
     settings: '设置',
-    about: `关于 ${phoneName}`,
+    about: '关于 mulin 小手机',
     chat: '聊天',
     forum: '论坛',
     notifications: '通知中心',

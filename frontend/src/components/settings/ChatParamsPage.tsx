@@ -291,11 +291,98 @@ function BranchSection() {
 
 const BUBBLE_STYLES: { value: ReturnType<typeof useChatAppearance.getState>['bubbleStyle']; label: string }[] = [
   { value: 'default', label: '默认' },
+  { value: 'ink-white', label: '白纸黑字' },
+  { value: 'ink-black', label: '黑纸白字' },
+  { value: 'mono', label: '灰阶' },
   { value: 'minimal', label: '极简' },
   { value: 'pill', label: '胶囊' },
   { value: 'glass', label: '玻璃' },
   { value: 'flat', label: '扁平' },
+  { value: 'custom', label: '自定义' },
 ]
+
+const BUBBLE_PREVIEWS: Record<string, React.CSSProperties> = {
+  default: {},
+  'ink-white': { background: '#f5f5f5', color: '#111111' },
+  'ink-black': { background: '#0d0d0d', color: '#f2f2f2', border: '1px solid #3a3a3a' },
+  mono: {},
+  minimal: { background: 'transparent', border: 'none' },
+  pill: { borderRadius: 999 },
+  glass: { background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.22)' },
+  flat: { background: '#1A1A1A' },
+}
+
+function BubblePreview({ style, custom, side }: { style: string; custom: ReturnType<typeof useChatAppearance.getState>['customBubble']; side: 'me' | 'other' }) {
+  const monoOther = { background: '#2e2e2e', color: '#e8e8e8' }
+  const monoMe = { background: '#e8e8e8', color: '#1a1a1a' }
+  const extra: React.CSSProperties =
+    style === 'custom'
+      ? {
+          background: side === 'me' ? custom.meBg : custom.otherBg,
+          color: side === 'me' ? custom.meText : custom.otherText,
+          borderRadius: custom.radius,
+          border: custom.bordered ? '1px solid rgba(128,128,128,0.45)' : 'none',
+        }
+      : style === 'mono'
+        ? side === 'me' ? monoMe : monoOther
+        : BUBBLE_PREVIEWS[style] ?? {}
+  return (
+    <div
+      style={{
+        padding: '5px 12px',
+        borderRadius: 12,
+        maxWidth: 150,
+        fontSize: 12,
+        lineHeight: 1.5,
+        ...extra,
+      }}
+    >
+      {side === 'me' ? '我的气泡预览' : '对方气泡预览'}
+    </div>
+  )
+}
+
+function BubbleCustomEditor({ app }: { app: ReturnType<typeof useChatAppearance.getState> }) {
+  const c = app.customBubble
+  const rows: ['meBg' | 'meText' | 'otherBg' | 'otherText', string][] = [
+    ['meBg', '我的气泡 · 背景'],
+    ['meText', '我的气泡 · 文字'],
+    ['otherBg', '对方气泡 · 背景'],
+    ['otherText', '对方气泡 · 文字'],
+  ]
+  return (
+    <div style={{ padding: '10px 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <BubblePreview style="custom" custom={c} side="other" />
+      </div>
+      <div style={{ display: 'flex', gap: 10 }}>
+        <BubblePreview style="custom" custom={c} side="me" />
+        <div style={{ flex: 1 }} />
+      </div>
+      {rows.map(([key, label]) => (
+        <div key={key} className="row-item">
+          <span className="fs-body" style={{ color: 'var(--text-primary)' }}>{label}</span>
+          <input
+            type="color"
+            value={c[key]}
+            onChange={(e) => app.update({ customBubble: { ...c, [key]: e.target.value } })}
+            style={{ width: 42, height: 28, padding: 0, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: 'transparent' }}
+          />
+        </div>
+      ))}
+      <SliderRow
+        label="气泡圆角"
+        min={0}
+        max={28}
+        step={1}
+        value={c.radius}
+        format={(v) => `${Math.round(v)}px`}
+        onChange={(v) => app.update({ customBubble: { ...c, radius: Math.round(v) } })}
+      />
+      <Row label="描边" right={<Toggle checked={c.bordered} onChange={(v) => app.update({ customBubble: { ...c, bordered: v } })} />} />
+    </div>
+  )
+}
 
 function AppearanceSection() {
   const app = useChatAppearance()
@@ -320,27 +407,35 @@ function AppearanceSection() {
   return (
     <SectionCard>
       <SectionTitle icon={<Palette size={14} />} title="聊天外观" />
-      <Row
-        label="气泡样式"
-        right={
-          <div style={{ display: 'flex', gap: 4 }}>
-            {BUBBLE_STYLES.map((s) => (
-              <button
-                key={s.value}
-                className="btn btn-sm pressable"
-                onClick={() => app.update({ bubbleStyle: s.value })}
-                style={{
-                  padding: '0 10px',
-                  background: app.bubbleStyle === s.value ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
-                  color: app.bubbleStyle === s.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                }}
-              >
-                {s.label}
-              </button>
-            ))}
+      <div style={{ padding: '8px 0' }}>
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 8 }}>气泡样式（内置黑白系方案）</div>
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {BUBBLE_STYLES.map((s) => (
+            <button
+              key={s.value}
+              className="btn btn-sm pressable"
+              onClick={() => app.update({ bubbleStyle: s.value })}
+              style={{
+                padding: '0 12px',
+                background: app.bubbleStyle === s.value ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                color: app.bubbleStyle === s.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <BubblePreview style={app.bubbleStyle} custom={app.customBubble} side="other" />
           </div>
-        }
-      />
+          <div style={{ display: 'flex', gap: 10 }}>
+            <BubblePreview style={app.bubbleStyle} custom={app.customBubble} side="me" />
+            <div style={{ flex: 1 }} />
+          </div>
+        </div>
+      </div>
+      {app.bubbleStyle === 'custom' && <BubbleCustomEditor app={app} />}
       <Row
         label="头像形状"
         right={
@@ -418,16 +513,6 @@ function AppearanceSection() {
         sub="隐藏气泡装饰，纯文本显示"
         right={<Toggle checked={app.simpleMode} onChange={(v) => app.update({ simpleMode: v })} />}
       />
-      <div style={{ padding: '8px 0' }}>
-        <div className="fs-body" style={{ color: 'var(--text-primary)', marginBottom: 6 }}>自定义气泡 CSS</div>
-        <textarea
-          value={app.customBubbleCss}
-          onChange={(e) => app.update({ customBubbleCss: e.target.value })}
-          placeholder={'可用类名：\n.ksc-bubble 所有气泡\n.bubble-left 对方气泡\n.bubble-right 我的气泡\n例：.bubble-right { background: #2b4c7e; }'}
-          rows={4}
-          style={{ resize: 'vertical', lineHeight: 1.5 }}
-        />
-      </div>
       <Row
         label="头像挂件"
         sub={app.badgeImageId ? '已设置挂件，显示在头像右下角' : '上传小图作为头像挂件'}

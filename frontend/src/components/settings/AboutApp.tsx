@@ -1,97 +1,107 @@
+import { Lock, Smartphone, Cpu, Database } from 'lucide-react'
 import { useUI, useToast } from '../../store/ui'
-import { SectionCard, Row } from '../common'
-import { Lock, Smartphone, Cpu, Sparkles } from 'lucide-react'
 
-// 关于页品牌信息锁死，与用户主页资料完全隔离，任何主页修改都不会同步到这里
-const MULIN_NAME = '✧･ﾟmulin小手机･ﾟ✧'
-const MULIN_SUB = '｡ﾟ+︎  coquettish black & white  ｡ﾟ+︎'
-const MULIN_SIGNATURE = '˗ˏˋ 黑白灰的小世界 ˎˊ˗'
+const FIXED_FONT = "'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif"
+const INK = '#f2f2f2'
+const GRAY = '#9a9a9a'
+const DIM = '#5c5c5c'
 
 export default function AboutApp() {
   const lock = useUI((s) => s.lock)
   const push = useToast((s) => s.push)
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: FIXED_FONT }}>
       <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 24px' }}>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '28px 0 20px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '30px 0 18px' }}>
           <div
             style={{
-              width: 72,
-              height: 72,
+              width: 76,
+              height: 76,
               borderRadius: '50%',
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.18)',
-              background: 'linear-gradient(145deg, #1c1c1c, #000)',
+              border: '1px solid #3a3a3a',
+              background: 'linear-gradient(160deg, #1c1c1c, #0d0d0d)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 0 18px rgba(255,255,255,0.06)',
+              boxShadow: '0 0 24px rgba(255,255,255,0.05) inset',
             }}
           >
-            <Smartphone size={28} color="#e5e5e5" strokeWidth={1.5} />
+            <Smartphone size={26} color="#d9d9d9" strokeWidth={1.4} />
           </div>
-          <div
-            className="app-name"
-            style={{
-              fontSize: 'calc(26px * var(--fs-scale))',
-              letterSpacing: '0.06em',
-              background: 'linear-gradient(90deg, #9c9c9c 0%, #ffffff 45%, #6f6f6f 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 0 14px rgba(255,255,255,0.12)',
-            }}
-          >
-            {MULIN_NAME}
+
+          <div style={{ textAlign: 'center', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>｡ﾟ+┈｡✧･ﾟ</div>
+            <div style={{ fontSize: 26, fontWeight: 700, color: INK, letterSpacing: 1, margin: '2px 0' }}>
+              <span style={{ fontSize: 17, color: GRAY, marginRight: 6 }}>♡･ﾟ:</span>
+              mulin 小手机
+              <span style={{ fontSize: 17, color: GRAY, marginLeft: 6 }}>:ﾟ･✧┈｡+ﾟ｡</span>
+            </div>
+            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>･✧･┈｡ﾟ+..｡ﾟ+┈✧･</div>
           </div>
-          <div className="mono fs-micro" style={{ color: '#8a8a8a', letterSpacing: '0.14em' }}>
-            {MULIN_SUB}
-          </div>
-          <div className="fs-aux" style={{ color: '#a8a8a8' }}>
-            {MULIN_SIGNATURE}
+
+          <div style={{ fontSize: 12, color: GRAY, letterSpacing: 0.5 }}>口袋里的一台玻璃小手机 · 黑灰白</div>
+        </div>
+
+        <div style={{ borderRadius: 14, border: '1px solid #2c2c2c', background: 'rgba(255,255,255,0.03)', padding: '4px 14px', marginBottom: 12 }}>
+          <FixedRow label="机型" value="mulin 小手机 · 液态玻璃" />
+          <FixedRow label="版本" value="v0.1.0" mono />
+          <FixedRow label="设计语言" value="高级黑灰白 · Monochrome" />
+          <FixedRow label="渲染字体" value="系统默认字重（锁定）" />
+        </div>
+
+        <div style={{ borderRadius: 14, border: '1px solid #2c2c2c', background: 'rgba(255,255,255,0.03)', padding: '4px 14px', marginBottom: 12 }}>
+          <FixedRow label="外观系统" value="主题 / 字体 / 壁纸 / 图标" icon={<Smartphone size={13} color={GRAY} />} />
+          <FixedRow label="数据存储" value="本机浏览器 · localStorage + IndexedDB" icon={<Database size={13} color={GRAY} />} />
+          <FixedRow label="运行内核" value="纯前端 · 浏览器直连" icon={<Cpu size={13} color={GRAY} />} />
+        </div>
+
+        <div style={{ borderRadius: 14, border: '1px solid #2c2c2c', background: 'rgba(255,255,255,0.03)', padding: 14, marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: DIM, lineHeight: 1.9 }}>
+            本机资料为设备铭牌，固定显示 mulin 小手机，与主页资料相互独立。头像、昵称、签名等个人信息在「主页」与「设置」中管理。
           </div>
         </div>
 
-        <SectionCard title="版本信息">
-          <Row
-            label="机型"
-            right={
-              <span className="fs-aux" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#d4d4d4' }}>
-                <Sparkles size={12} color="#8a8a8a" /> mulin 小手机 · 锁定版
-              </span>
-            }
-          />
-          <Row label="版本" right={<span className="mono fs-aux" style={{ color: 'var(--text-secondary)' }}>v0.1.0 · 批次 1</span>} />
-          <Row label="开发者" right={<span className="fs-aux" style={{ color: 'var(--text-secondary)' }}>MonkeyCode AI</span>} />
-          <Row label="设计语言" right={<span className="fs-aux" style={{ color: 'var(--text-secondary)' }}>液态玻璃 · 高级黑灰白</span>} />
-        </SectionCard>
+        <button
+          className="pressable"
+          style={{
+            width: '100%',
+            height: 46,
+            borderRadius: 14,
+            border: '1px solid #3a3a3a',
+            background: 'linear-gradient(160deg, #232323, #141414)',
+            color: INK,
+            fontFamily: FIXED_FONT,
+            fontSize: 14,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+          }}
+          onClick={() => {
+            lock()
+            push('已锁屏', 'info')
+          }}
+        >
+          <Lock size={14} color={INK} /> 锁定屏幕
+        </button>
 
-        <SectionCard title="本机状态">
-          <Row
-            label="外观系统"
-            sub="主题 / 字体 / 壁纸 / 图标"
-            right={<Smartphone size={15} color="var(--text-secondary)" />}
-          />
-          <Row
-            label="数据存储"
-            sub="localStorage + IndexedDB 本地保存"
-            right={<Cpu size={15} color="var(--text-secondary)" />}
-          />
-        </SectionCard>
-
-        <SectionCard>
-          <button
-            className="btn"
-            style={{ width: '100%' }}
-            onClick={() => {
-              lock()
-              push('已锁屏', 'info')
-            }}
-          >
-            <Lock size={14} /> 锁定屏幕
-          </button>
-        </SectionCard>
+        <div style={{ textAlign: 'center', marginTop: 22, fontSize: 11, color: DIM, letterSpacing: 1.5 }}>
+          ✧･ﾟ: *✧･ﾟ:* MULIN PHONE *:ﾟ･✧* :ﾟ･✧
+        </div>
       </div>
+    </div>
+  )
+}
+
+function FixedRow({ label, value, icon, mono }: { label: string; value: string; icon?: React.ReactNode; mono?: boolean }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 0', borderBottom: '1px solid #232323' }}>
+      <span style={{ fontSize: 13, color: GRAY, flexShrink: 0 }}>{label}</span>
+      <span style={{ flex: 1, textAlign: 'right', fontSize: 13, color: INK, fontFamily: mono ? "'JetBrains Mono', monospace" : FIXED_FONT, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+        {value}
+        {icon}
+      </span>
     </div>
   )
 }

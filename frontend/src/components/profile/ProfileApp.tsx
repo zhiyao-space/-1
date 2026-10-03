@@ -17,7 +17,7 @@ import { useToast } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
-import { Modal, EmptyState } from '../common'
+import { Modal, EmptyState, ImageCropModal } from '../common'
 
 export default function ProfileApp() {
   const profile = useProfile((s) => s.profile)
@@ -38,7 +38,7 @@ export default function ProfileApp() {
       <Banner />
 
       <div style={{ padding: '0 16px' }}>
-        {/* 头像 + 名字（保持正常文档流，避免背景图折叠遮挡头像栏） */}
+        {/* 头像 + 名字（位于背景下方，互不遮挡） */}
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: 14 }}>
           <AvatarPick />
           <div style={{ flex: 1, minWidth: 0, paddingBottom: 2 }}>
@@ -147,47 +147,60 @@ function Banner() {
   const updateProfile = useProfile((s) => s.updateProfile)
   const push = useToast((s) => s.push)
   const url = useBlobURL(backgroundId)
+  const [rawSrc, setRawSrc] = useState<Blob | null>(null)
 
-  const upload = () => {
+  const pick = () => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = 'image/*'
-    input.onchange = async () => {
+    input.onchange = () => {
       const file = input.files?.[0]
       if (!file) return
-      const compressed = await compressImage(file, 1080)
-      updateProfile({ backgroundId: await putBlob(compressed) })
-      push('主页背景已更新')
+      setRawSrc(file)
     }
     input.click()
   }
 
   return (
-    <button
-      className="pressable"
-      onClick={upload}
-      style={{ position: 'relative', width: '100%', height: 150, display: 'block', overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}
-    >
-      {url && <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-      {!url && (
-        <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-disabled)' }}>
-          <ImagePlus size={22} />
-        </span>
-      )}
-      {backgroundId && (
-        <span
-          className="pressable"
-          onClick={(e) => {
-            e.stopPropagation()
-            updateProfile({ backgroundId: null })
-            push('已清除主页背景', 'info')
-          }}
-          style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff8a8a' }}
-        >
-          <X size={14} />
-        </span>
-      )}
-    </button>
+    <>
+      <button
+        className="pressable"
+        onClick={pick}
+        style={{ position: 'relative', width: '100%', height: 150, display: 'block', overflow: 'hidden', background: 'rgba(255,255,255,0.04)' }}
+      >
+        {url && <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+        {!url && (
+          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-disabled)' }}>
+            <ImagePlus size={22} />
+          </span>
+        )}
+        {backgroundId && (
+          <span
+            className="pressable"
+            onClick={(e) => {
+              e.stopPropagation()
+              updateProfile({ backgroundId: null })
+              push('已清除主页背景', 'info')
+            }}
+            style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff8a8a' }}
+          >
+            <X size={14} />
+          </span>
+        )}
+      </button>
+
+      <ImageCropModal
+        open={!!rawSrc}
+        src={rawSrc}
+        title="剪切主页背景"
+        onClose={() => setRawSrc(null)}
+        onConfirm={async (blob) => {
+          updateProfile({ backgroundId: await putBlob(blob) })
+          push('主页背景已更新')
+          setRawSrc(null)
+        }}
+      />
+    </>
   )
 }
 

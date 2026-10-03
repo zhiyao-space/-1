@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Camera, ChevronDown } from 'lucide-react'
-import { Modal, SectionCard } from '../common'
+import { Plus, Trash2, Camera, ChevronDown, Image as ImageIcon } from 'lucide-react'
+import { Modal, SectionCard, ImageCropModal } from '../common'
 import { useCharacters, type Character } from '../../store/characters'
 import { useApiPresets } from '../../store/apiPresets'
 import { useToast } from '../../store/ui'
@@ -17,6 +17,7 @@ interface Draft {
   forbidden: string
   extraFields: { id: string; label: string; value: string }[]
   avatarId: string | null
+  bannerId: string | null
   apiPresetId: string | null
 }
 
@@ -29,6 +30,7 @@ const emptyDraft: Draft = {
   forbidden: '',
   extraFields: [],
   avatarId: null,
+  bannerId: null,
   apiPresetId: null,
 }
 
@@ -42,6 +44,7 @@ function toDraft(c: Character): Draft {
     forbidden: c.forbidden,
     extraFields: c.extraFields.map((f) => ({ ...f })),
     avatarId: c.avatarId,
+    bannerId: c.bannerId ?? null,
     apiPresetId: c.apiPresetId,
   }
 }
@@ -57,6 +60,7 @@ export default function CharacterEditor({
 }) {
   const [draft, setDraft] = useState<Draft>(emptyDraft)
   const [saving, setSaving] = useState(false)
+  const [bannerSrc, setBannerSrc] = useState<Blob | null>(null)
   const addCharacter = useCharacters((s) => s.addCharacter)
   const updateCharacter = useCharacters((s) => s.updateCharacter)
   const push = useToast((s) => s.push)
@@ -79,6 +83,17 @@ export default function CharacterEditor({
       const compressed = await compressImage(file, 512)
       const id = await putBlob(compressed)
       set({ avatarId: id })
+    }
+    input.click()
+  }
+
+  const pickBanner = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => {
+      const file = input.files?.[0]
+      if (file) setBannerSrc(file)
     }
     input.click()
   }
@@ -132,9 +147,19 @@ export default function CharacterEditor({
         </button>
         <div style={{ flex: 1 }}>
           <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 4 }}>
-            角色头像（可选）
+            角色头像（点击从相册导入）
           </div>
-          <div className="fs-micro" style={{ color: 'var(--text-disabled)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 6 }}>
+            <button className="btn btn-sm pressable" onClick={pickBanner}>
+              <ImageIcon size={12} /> {draft.bannerId ? '更换背景' : '导入背景'}
+            </button>
+            {draft.bannerId && (
+              <button className="btn btn-sm pressable" onClick={() => set({ bannerId: null })} style={{ color: '#ff8a8a' }}>
+                移除
+              </button>
+            )}
+          </div>
+          <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: 6 }}>
             全部字段由你填写，系统不提供任何预设
           </div>
         </div>
@@ -218,6 +243,17 @@ export default function CharacterEditor({
           {saving ? '保存中…' : character ? '保存修改' : '创建角色'}
         </button>
       </div>
+
+      <ImageCropModal
+        open={!!bannerSrc}
+        src={bannerSrc}
+        title="剪切角色背景"
+        onClose={() => setBannerSrc(null)}
+        onConfirm={async (blob) => {
+          set({ bannerId: await putBlob(blob) })
+          setBannerSrc(null)
+        }}
+      />
     </Modal>
   )
 }

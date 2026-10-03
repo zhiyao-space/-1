@@ -18,6 +18,7 @@ export interface Character {
   forbidden: string
   extraFields: CustomField[]
   avatarId: string | null
+  bannerId?: string | null
   apiPresetId: string | null
   createdAt: number
 }

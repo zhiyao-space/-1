@@ -1,6 +1,7 @@
-import { ReactNode, useEffect } from 'react'
+import { ReactNode, useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { useToast } from '../store/ui'
+import { cropImage, type CropState } from '../lib/image'
 
 export function Modal({
   open,
@@ -249,6 +250,118 @@ export function Row({
         )}
       </div>
       {right}
+    </div>
+  )
+}
+
+const CROP_ASPECTS: { value: number | null; label: string }[] = [
+  { value: null, label: '自由' },
+  { value: 3, label: '3:1 宽幅' },
+  { value: 16 / 7, label: '16:7' },
+  { value: 2, label: '2:1' },
+  { value: 1, label: '1:1' },
+]
+
+export function ImageCropModal({
+  open,
+  src,
+  title = '剪切背景图',
+  onConfirm,
+  onClose,
+}: {
+  open: boolean
+  src: Blob | null
+  title?: string
+  onConfirm: (blob: Blob) => void
+  onClose: () => void
+}) {
+  const [aspect, setAspect] = useState<number | null>(3)
+  const [scale, setScale] = useState(1)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+  const [preview, setPreview] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open || !src) return
+    let alive = true
+    const t = setTimeout(async () => {
+      try {
+        const blob = await cropImage(src, { aspect, scale, offsetX: offset.x, offsetY: offset.y }, 1280)
+        if (alive) setPreview(URL.createObjectURL(blob))
+      } catch {
+        if (alive) setPreview(null)
+      }
+    }, 120)
+    return () => {
+      alive = false
+      clearTimeout(t)
+    }
+  }, [open, src, aspect, scale, offset])
+
+  if (!open) return null
+
+  return (
+    <div
+      style={{ position: 'absolute', inset: 0, zIndex: 95, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+      onClick={onClose}
+    >
+      <div className="glass" style={{ borderRadius: 16, padding: 16, width: '100%' }} onClick={(e) => e.stopPropagation()}>
+        <div className="nav-title fs-h3" style={{ color: 'var(--text-primary)', marginBottom: 10 }}>{title}</div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12 }}>
+          <div
+            style={{
+              width: '100%',
+              aspectRatio: aspect ? String(aspect) : '4 / 3',
+              maxHeight: 180,
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: 'rgba(255,255,255,0.05)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            {preview ? <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'fill' }} /> : <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>生成预览中…</span>}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+          {CROP_ASPECTS.map((a) => (
+            <button
+              key={a.label}
+              className="btn btn-sm pressable"
+              onClick={() => setAspect(a.value)}
+              style={{
+                background: aspect === a.value ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
+                color: aspect === a.value ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              }}
+            >
+              {a.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 4 }}>缩放 {scale.toFixed(2)}x</div>
+        <input type="range" min={1} max={3} step={0.05} value={scale} onChange={(e) => setScale(Number(e.target.value))} style={{ width: '100%' }} />
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 4, marginTop: 8 }}>水平位置 {(offset.x * 100).toFixed(0)}%</div>
+        <input type="range" min={-0.5} max={0.5} step={0.02} value={offset.x} onChange={(e) => setOffset((o) => ({ ...o, x: Number(e.target.value) }))} style={{ width: '100%' }} />
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 4, marginTop: 8 }}>垂直位置 {(offset.y * 100).toFixed(0)}%</div>
+        <input type="range" min={-0.5} max={0.5} step={0.02} value={offset.y} onChange={(e) => setOffset((o) => ({ ...o, y: Number(e.target.value) }))} style={{ width: '100%' }} />
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
+          <button className="btn pressable" style={{ flex: 1 }} onClick={onClose}>取消</button>
+          <button
+            className="btn btn-accent pressable"
+            style={{ flex: 1 }}
+            onClick={async () => {
+              if (!src) return
+              const blob = await cropImage(src, { aspect, scale, offsetX: offset.x, offsetY: offset.y }, 1280)
+              onConfirm(blob)
+            }}
+          >
+            使用这张
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

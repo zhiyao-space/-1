@@ -264,7 +264,8 @@ function CharacterDetailSheet({
         className="page-enter"
         style={{ width: '100%', maxHeight: '78%', overflowY: 'auto', padding: '16px 16px 24px' }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+        {character.bannerId ? <CharacterBanner bannerId={character.bannerId} /> : null}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, marginTop: character.bannerId ? 12 : 0 }}>
           <BigAvatar imageId={character.avatarId} name={character.name} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="fs-h2" style={{ color: 'var(--text-primary)' }}>{character.name}</div>
@@ -299,6 +300,16 @@ function CharacterDetailSheet({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function CharacterBanner({ bannerId }: { bannerId: string }) {
+  const url = useBlobURL(bannerId)
+  if (!url) return null
+  return (
+    <div style={{ height: 96, borderRadius: 14, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
+      <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
     </div>
   )
 }

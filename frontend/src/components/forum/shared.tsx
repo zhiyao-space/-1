@@ -7,8 +7,7 @@ import { useBlobURL } from '../WallpaperLayer'
 import { useImageViewer } from '../chat/ChatParts'
 import { useToast } from '../../store/ui'
 
-export function useAuthorDisplay(a: ForumAuthor): { name: string; url: string | null; sub: string } {
-  const characters = useCharacters((s) => s.characters)
+export function useAuthorDisplay(a: ForumAuthor): { name: string; url: string | null; sub: string } {  const characters = useCharacters((s) => s.characters)
   const npcs = useForum((s) => s.npcs)
   const aliases = useForum((s) => s.aliases)
   const phoneName = useSettings((s) => s.phoneName)
@@ -27,10 +26,20 @@ export function useAuthorDisplay(a: ForumAuthor): { name: string; url: string | 
   }, [a, characters, npcs, aliases, phoneName])
 }
 
+export function useAuthorAvatarId(a: ForumAuthor): string | null {
+  const charAvatarId = useCharacters((s) => (a.type === 'character' ? s.characters.find((c) => c.id === a.id)?.avatarId ?? null : null))
+  const npcAvatarId = useForum((s) => (a.type === 'npc' ? s.npcs.find((n) => n.id === a.id)?.avatarId ?? null : null))
+  const userAvatarId = useForum((s) => (a.type === 'user' ? s.profile.avatarId : null))
+  if (a.type === 'character') return charAvatarId
+  if (a.type === 'npc') return npcAvatarId
+  if (a.type === 'user') return userAvatarId
+  return null
+}
+
 export function AuthorAvatar({ author, size = 36 }: { author: ForumAuthor; size?: number }) {
   const info = useAuthorDisplay(author)
-  const myAvatarId = useForum((s) => s.profile.avatarId)
-  const url = useBlobURL(author.type === 'user' ? myAvatarId ?? null : author.avatarId)
+  const avatarId = useAuthorAvatarId(author)
+  const url = useBlobURL(avatarId)
   return (
     <div
       style={{
