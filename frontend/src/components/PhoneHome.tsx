@@ -6,12 +6,9 @@ import Desktop from './Desktop'
 import SettingsApp from './settings/SettingsApp'
 import AboutApp from './settings/AboutApp'
 import PlaceholderApp from './PlaceholderApp'
-import ContactsApp from './chat/ContactsApp'
-import MessagesApp from './chat/MessagesApp'
+import ChatHub from './chat/ChatHub'
 import ForumApp from './forum/ForumApp'
-import MomentsApp from './moments/MomentsApp'
 import NotificationCenterApp from './NotificationCenterApp'
-import ProfileApp from './profile/ProfileApp'
 import Avatar from './chat/Avatar'
 import { useSettings } from '../store/settings'
 import { useCharacters } from '../store/characters'
@@ -43,12 +40,9 @@ export default function PhoneHome() {
         >
           {activeApp === 'settings' && <SettingsApp />}
           {activeApp === 'about' && <AboutApp />}
-          {activeApp === 'contacts' && <ContactsApp />}
-          {activeApp === 'messages' && <MessagesApp />}
+          {activeApp === 'chat' && <ChatHub />}
           {activeApp === 'forum' && <ForumApp />}
-          {activeApp === 'moments' && <MomentsApp />}
           {activeApp === 'notifications' && <NotificationCenterApp />}
-          {activeApp === 'profile' && <ProfileApp />}
           {activeApp === 'music' && <PlaceholderApp />}
         </div>
       )}
@@ -62,12 +56,9 @@ export function useAppTitle(): string {
   const names: Record<AppId, string> = {
     settings: '设置',
     about: `关于 ${phoneName}`,
-    contacts: '通讯录',
-    messages: '信息',
+    chat: '聊天',
     forum: '论坛',
-    moments: '朋友圈',
     notifications: '通知中心',
-    profile: '主页',
     music: '音乐',
   }
   return activeApp ? names[activeApp] : ''
@@ -93,7 +84,7 @@ function NotificationBanner() {
       onClick={() => {
         setBanner(null)
         setPendingChat({ kind: 'single', characterId: banner.characterId })
-        openApp('messages')
+        openApp('chat')
       }}
       style={{
         position: 'absolute',

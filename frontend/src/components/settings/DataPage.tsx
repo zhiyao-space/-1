@@ -17,7 +17,6 @@ const EXPORT_KEYS: KeyMeta[] = [
   { key: 'ksc:runtimeRules', label: '角色运行规则 / 思维链' },
   { key: 'ksc:profile', label: '主页与面具' },
   { key: 'ksc:forum', label: '论坛' },
-  { key: 'ksc:moments', label: '动态' },
   { key: 'ksc:notifications', label: '通知' },
   { key: 'ksc:stickers', label: '贴纸包' },
   { key: 'ksc:wallet', label: '钱包' },

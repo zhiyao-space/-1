@@ -3,7 +3,6 @@ import { useCharacters } from '../store/characters'
 import type { ForumAuthor, ForumCircle, ForumComment, ForumDM, ForumNPC, ForumPost, PlayStyle } from '../store/forum'
 import { PLAY_STYLE_LABEL } from '../store/forum'
 import { useForum } from '../store/forum'
-import { useMoments, type Moment } from '../store/moments'
 import { useChatParams } from '../store/chatParams'
 import { useSettings } from '../store/settings'
 import { getDefaultChatPreset } from '../store/apiPresets'
@@ -189,44 +188,6 @@ ${history ? `最近对话：\n${history}` : '你们还没有对话，由你自�
   return raw ? raw.trim().slice(0, 200) : null
 }
 
-export async function generateMomentContent(author: ForumAuthor): Promise<{ content: string; imageDesc: string } | null> {
-  const sys = `${authorPersona(author)}
-【朋友圈任务】以你的身份发一条朋友圈动态。内容贴近你的人设和当下的状态，口语化，60 字以内。可以配一张图。
-严格输出 JSON（无 markdown 代码块）：{"content":"动态文字","imageDesc":"配图内容描述，没有则空串"}`
-  const j = parseJson<{ content: string; imageDesc: string }>(
-    await callLLM(sys, '（系统指令：现在生成这条朋友圈。只输出 JSON。）')
-  )
-  if (!j?.content) return null
-  return { content: j.content.slice(0, 200), imageDesc: String(j.imageDesc || '').slice(0, 120) }
-}
-
-export async function generateMomentReply(
-  moment: Moment,
-  author: ForumAuthor,
-  replyTo: string | null
-): Promise<string | null> {
-  const sys = `${authorPersona(author)}
-【朋友圈评论任务】你在评论用户的朋友圈。
-动态内容：${moment.content.slice(0, 200)}
-${replyTo ? `你在回复 ${replyTo} 的评论，可用 @ 开头。` : ''}
-只输出评论内容本身，60 字以内，符合人设口吻。`
-  const raw = await callLLM(sys, '（系统指令：现在写出你的评论。只输出评论本身。）')
-  return raw ? raw.trim().slice(0, 150) : null
-}
-
-export async function generateForwardReaction(
-  moment: Moment,
-  author: ForumAuthor
-): Promise<string | null> {
-  const userName = useSettings.getState().phoneName || '用户'
-  const sys = `${authorPersona(author)}
-【转发回应任务】${userName} 把一条朋友圈转发到了和你的聊天里。请以聊天口吻自然回应这条朋友圈。
-动态内容：${moment.content.slice(0, 200)}
-只输出回应本身，40 字以内，口语化，符合人设。`
-  const raw = await callLLM(sys, '（系统指令：现在写出你对这条朋友圈的回应。只输出回应本身。）')
-  return raw ? raw.trim().slice(0, 120) : null
-}
-
 // ---------- 记忆互通 ----------
 
 export function buildForumMemory(characterId: string): string | null {
@@ -257,17 +218,6 @@ export function buildForumMemory(characterId: string): string | null {
     if (d.lastActive < cutoff) continue
     if (d.partner.type === 'character' && d.partner.id === characterId && d.messages.length > 0) {
       lines.push(`你和 ${userName} 最近私聊过`)
-    }
-  }
-  const moments = useMoments.getState().moments
-  for (const m of moments) {
-    if (m.createdAt < cutoff) continue
-    if (m.author.type === 'character' && m.author.id === characterId) {
-      lines.push(`你发了朋友圈：${m.content.slice(0, 40)}`)
-    } else if (m.author.type === 'user') {
-      if (m.comments.some((c) => c.author.type === 'character' && c.author.id === characterId)) {
-        lines.push(`你评论过 ${userName} 的朋友圈`)
-      }
     }
   }
   if (lines.length === 0) return null

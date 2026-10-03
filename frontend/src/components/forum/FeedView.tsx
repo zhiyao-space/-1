@@ -48,8 +48,13 @@ export default function FeedView({ onOpenPost, onCompose }: { onOpenPost: (id: s
 
   const doRefresh = async () => {
     setRefreshing(true)
-    await runForumTick()
+    const result = await runForumTick({ force: true })
     setRefreshing(false)
+    if (!result.ok) {
+      if (result.reason === 'no-api') push('尚未配置聊天 API，前往 设置 → API 配置 添加后才能生成内容', 'error')
+      else push('还没有角色可参与互动，先在聊天 → 通讯录创建角色', 'error')
+      return
+    }
     push('已刷新，看看有什么新东西')
   }
 

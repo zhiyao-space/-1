@@ -17,9 +17,6 @@ export type NotificationKind =
   | 'forum-essence'
   | 'forum-post'
   | 'dm'
-  | 'moment-like'
-  | 'moment-comment'
-  | 'moment-post'
   | 'chat'
   | 'system'
 

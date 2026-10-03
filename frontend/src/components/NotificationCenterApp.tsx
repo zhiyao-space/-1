@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Bell, CheckCheck, Trash2, MessageSquare, Heart, Star, UserPlus, Pin, Sparkles, Send, Camera, AtSign, Info } from 'lucide-react'
+import { Bell, CheckCheck, Trash2, MessageSquare, Heart, Star, UserPlus, Pin, Sparkles, Send, AtSign, Info } from 'lucide-react'
 import { useNotifications, type NotificationKind } from '../store/notifications'
 import { useUI } from '../store/ui'
 import { EmptyState } from './common'
@@ -14,9 +14,6 @@ const KIND_META: Record<NotificationKind, { icon: typeof Bell; label: string }> 
   'forum-essence': { icon: Sparkles, label: '加精' },
   'forum-post': { icon: AtSign, label: '新帖' },
   dm: { icon: Send, label: '私信' },
-  'moment-like': { icon: Heart, label: '赞' },
-  'moment-comment': { icon: MessageSquare, label: '评论' },
-  'moment-post': { icon: Camera, label: '动态' },
   chat: { icon: MessageSquare, label: '消息' },
   system: { icon: Info, label: '系统' },
 }
@@ -38,7 +35,7 @@ export default function NotificationCenterApp() {
     if (target.payload) {
       if ('kind' in target.payload) {
         setPendingChat(target.payload)
-        openApp('messages')
+        openApp('chat')
       } else {
         setPendingForum(target.payload)
         openApp('forum')
