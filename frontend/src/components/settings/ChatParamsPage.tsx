@@ -148,31 +148,6 @@ function ProactiveSection({ sentToday }: { sentToday: number }) {
       <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: -6 }}>
         时段内角色不会主动发消息；仅对已产生对话的角色生效，消息会先写入会话并弹出通知横幅
       </div>
-      <div style={{ padding: '10px 0 2px' }}>
-        <span className="fs-body" style={{ color: 'var(--text-primary)' }}>角色定时发朋友圈</span>
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          {(
-            [
-              ['off', '关闭'],
-              ['low', '悠闲'],
-              ['medium', '正常'],
-              ['high', '高频'],
-            ] as [ReturnType<typeof useChatParams.getState>['momentAutoFreq'], string][]
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              className="btn btn-sm pressable"
-              onClick={() => params.update({ momentAutoFreq: k })}
-              style={{ flex: 1, background: params.momentAutoFreq === k ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)' }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: 6 }}>
-          关闭 / 约25-40分钟一条 / 约10-25分钟一条 / 约5-12分钟一条；无 API 时自动使用内置文案池
-        </div>
-      </div>
     </SectionCard>
   )
 }

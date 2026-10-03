@@ -1,8 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MomentAutoFreq = 'off' | 'low' | 'medium' | 'high'
-
 export interface ChatParams {
   autoReply: boolean
   streamOutput: boolean
@@ -17,7 +15,6 @@ export interface ChatParams {
   quietEnd: string
   forumMemory: boolean
   forumMemoryDays: number
-  momentAutoFreq: MomentAutoFreq
 }
 
 interface ProactiveCounter {
@@ -51,7 +48,6 @@ export const useChatParams = create<ChatParamsState>()(
       quietEnd: '08:00',
       forumMemory: true,
       forumMemoryDays: 3,
-      momentAutoFreq: 'medium',
       date: '',
       count: 0,
       lastSentAt: 0,
