@@ -79,3 +79,11 @@ Entries discovered by the Agent during task execution should follow this format:
   - 桌面小组件系统已整体移除：store/desktop.ts、components/widgets.tsx、WidgetEditModal.tsx、settings/ComponentsPage.tsx 均已删除，settings 中的 parallax 字段同步移除
   - 桌面改为固定应用图标网格（信息/通讯录/论坛/朋友圈/通知中心/音乐/设置/关于），图标大小跟随 settings.desktopIconSize
   - 需求文档中若仍有"桌面组件可配置"相关描述，以用户此决定为准，勿按文档恢复小组件
+
+[UI 规范：底部导航与页面布局]
+- Date: 2026-10-03
+- Context: 用户发现聊天模块三tab（消息/通讯录/我）错位到顶部，明确要求"以后记住不要错位"
+- Instructions:
+  - 多标签切换的底部导航栏（如聊天的 消息/通讯录/我）必须固定在屏幕底部（图标+文字纵向排列，active 用 accent 色），内容区在上方 flex:1，参考 frontend/src/components/chat/ChatHub.tsx 的实现
+  - 应用打开时内容页 top 必须为 calc(var(--statusbar-height) + var(--nav-height))，保证 TopNav 返回按钮始终可见（见 PhoneHome.tsx）
+  - 锁屏解锁冒烟手势：mouse.move(240,700) → mouse.down() → move(240,200,steps) → mouse.up()，纯 move 拖动无法触发解锁
