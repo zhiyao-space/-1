@@ -1,15 +1,13 @@
-import { MessageCircle, Globe, Bell, Music, Settings, Smartphone } from 'lucide-react'
+import { MessageCircle, Globe, Music, Settings } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
 import { WallpaperLayer } from './WallpaperLayer'
 
-const APPS: { id: AppId; name: string; icon: typeof Bell }[] = [
+const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
   { id: 'chat', name: '聊天', icon: MessageCircle },
   { id: 'forum', name: '论坛', icon: Globe },
-  { id: 'notifications', name: '通知中心', icon: Bell },
   { id: 'music', name: '音乐', icon: Music },
   { id: 'settings', name: '设置', icon: Settings },
-  { id: 'about', name: '关于', icon: Smartphone },
 ]
 
 export default function Desktop() {

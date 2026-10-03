@@ -23,34 +23,47 @@ export default function ChatHub() {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <div style={{ display: 'flex', gap: 8, padding: '10px 16px 4px', flexShrink: 0 }}>
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {tab === 'messages' && <MessagesApp />}
+        {tab === 'contacts' && <ContactsApp />}
+        {tab === 'me' && <ProfileApp />}
+      </div>
+
+      <div
+        className="no-select"
+        style={{
+          flexShrink: 0,
+          display: 'flex',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          background: 'rgba(10,10,12,0.92)',
+          backdropFilter: 'blur(12px)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
         {TABS.map((t) => {
           const Icon = t.icon
+          const active = tab === t.key
           return (
             <button
               key={t.key}
-              className="btn pressable"
+              className="pressable"
               onClick={() => setTab(t.key)}
               style={{
                 flex: 1,
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                background: tab === t.key ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
-                color: tab === t.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                borderColor: tab === t.key ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.08)',
+                gap: 3,
+                padding: '8px 0 7px',
+                color: active ? 'var(--accent)' : 'var(--text-tertiary)',
               }}
             >
-              <Icon size={15} /> {t.label}
+              <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
+              <span className="fs-micro" style={{ letterSpacing: 1 }}>{t.label}</span>
             </button>
           )
         })}
       </div>
-
-      {tab === 'messages' && <MessagesApp />}
-      {tab === 'contacts' && <ContactsApp />}
-      {tab === 'me' && <ProfileApp />}
     </div>
   )
 }

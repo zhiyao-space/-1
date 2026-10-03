@@ -7,17 +7,9 @@ import {
   BookOpen,
   BrainCircuit,
   Database,
-  Camera,
-  Pencil,
-  UserRound,
+  Smartphone,
 } from 'lucide-react'
-import { useSettings } from '../../store/settings'
-import { useUI } from '../../store/ui'
-import { useToast } from '../../store/ui'
-import { Modal, SectionCard } from '../common'
-import { useBlobURL } from '../WallpaperLayer'
-import { putBlob } from '../../lib/idb'
-import { compressImage } from '../../lib/image'
+import { SectionCard } from '../common'
 import ThemePage from './ThemePage'
 import FontPage from './FontPage'
 import WallpaperPage from './WallpaperPage'
@@ -28,8 +20,9 @@ import WorldbookPage from './WorldbookPage'
 import RuntimeRulesPage from './RuntimeRulesPage'
 import ChainSettingsPage from './ChainSettingsPage'
 import DataPage from './DataPage'
+import AboutApp from './AboutApp'
 
-type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'chain' | 'data'
+type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'chain' | 'data' | 'about'
 
 export default function SettingsApp() {
   const [page, setPage] = useState<SubPage>('home')
@@ -47,6 +40,7 @@ export default function SettingsApp() {
       {page === 'rules' && <RuntimeRulesPage onBack={() => setPage('home')} onOpenChain={() => setPage('chain')} />}
       {page === 'chain' && <ChainSettingsPage onBack={() => setPage('rules')} />}
       {page === 'data' && <DataPage onBack={() => setPage('home')} />}
+      {page === 'about' && <PageShell title="关于 mulin 小手机" onBack={() => setPage('home')}><AboutApp /></PageShell>}
     </div>
   )
 }
@@ -77,29 +71,6 @@ function PageShell({ title, onBack, children }: { title: string; onBack: () => v
 }
 
 function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
-  const settings = useSettings()
-  const push = useToast((s) => s.push)
-  const avatarUrl = useBlobURL(settings.avatarId)
-  const [editNameOpen, setEditNameOpen] = useState(false)
-  const [editSignOpen, setEditSignOpen] = useState(false)
-  const [nameDraft, setNameDraft] = useState('')
-  const [signDraft, setSignDraft] = useState('')
-
-  const uploadAvatar = () => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file) return
-      const compressed = await compressImage(file, 512)
-      const id = await putBlob(compressed)
-      settings.setAvatarId(id)
-      push('头像已更新')
-    }
-    input.click()
-  }
-
   const entries: { key: SubPage; icon: React.ReactNode; label: string; sub: string }[] = [
     { key: 'api', icon: <Plug size={18} />, label: 'API 配置', sub: '聊天 / 生图 / 语音 / 识图' },
     { key: 'theme', icon: <Palette size={18} />, label: '美化与字体', sub: '主题 · 配色 · 壁纸 · 图标' },
@@ -107,79 +78,12 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
     { key: 'worldbook', icon: <BookOpen size={18} />, label: '世界书管理', sub: '全局 / 局部 · 三态挂载' },
     { key: 'rules', icon: <BrainCircuit size={18} />, label: '角色运行规则', sub: '思维链 · 输出规则 · 自检' },
     { key: 'data', icon: <Database size={18} />, label: '数据管理', sub: '导出 · 导入 · 备份' },
+    { key: 'about', icon: <Smartphone size={18} />, label: '关于 mulin 小手机', sub: '设备铭牌 · 锁定信息' },
   ]
 
   return (
     <>
-      <div style={{ padding: '8px 16px 4px', flexShrink: 0 }}>
-        <div className="glass" style={{ borderRadius: 'var(--radius-md)', padding: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
-          <button
-            className="pressable"
-            onClick={uploadAvatar}
-            style={{
-              width: 60,
-              height: 60,
-              borderRadius: '50%',
-              overflow: 'hidden',
-              background: 'rgba(255,255,255,0.07)',
-              border: '1px solid rgba(255,255,255,0.15)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : (
-              <UserRound size={24} color="var(--text-tertiary)" />
-            )}
-          </button>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span className="app-name" style={{ fontSize: 'calc(24px * var(--fs-scale))' }}>{settings.phoneName}</span>
-              <button
-                className="pressable"
-                onClick={() => {
-                  setNameDraft(settings.phoneName)
-                  setEditNameOpen(true)
-                }}
-                style={{ color: 'var(--text-tertiary)' }}
-              >
-                <Pencil size={13} />
-              </button>
-            </div>
-            <button
-              className="pressable"
-              onClick={() => {
-                setSignDraft(settings.signature)
-                setEditSignOpen(true)
-              }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                marginTop: 2,
-                color: settings.signature ? 'var(--text-secondary)' : 'var(--text-disabled)',
-                fontSize: 'calc(12px * var(--fs-scale))',
-              }}
-            >
-              {settings.signature || '点击设置个性签名'}
-              <Pencil size={11} />
-            </button>
-          </div>
-          <button
-            className="pressable"
-            onClick={uploadAvatar}
-            style={{ color: 'var(--text-tertiary)', padding: 6 }}
-            title="更换头像"
-          >
-            <Camera size={17} />
-          </button>
-        </div>
-      </div>
-
-      <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '10px 16px 24px' }}>
+      <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 24px' }}>
         <SectionCard>
           {entries.map((e) => (
             <button
@@ -225,36 +129,6 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
           </div>
         </SectionCard>
       </div>
-
-      <Modal open={editNameOpen} onClose={() => setEditNameOpen(false)} title="修改手机名称">
-        <input value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} maxLength={20} autoFocus />
-        <button
-          className="btn btn-accent"
-          style={{ width: '100%', marginTop: 14 }}
-          onClick={() => {
-            settings.setPhoneName(nameDraft)
-            setEditNameOpen(false)
-            push('名称已保存')
-          }}
-        >
-          保存
-        </button>
-      </Modal>
-
-      <Modal open={editSignOpen} onClose={() => setEditSignOpen(false)} title="修改个性签名">
-        <input value={signDraft} onChange={(e) => setSignDraft(e.target.value)} maxLength={30} autoFocus placeholder="锁屏界面显示的一句话" />
-        <button
-          className="btn btn-accent"
-          style={{ width: '100%', marginTop: 14 }}
-          onClick={() => {
-            settings.setSignature(signDraft.trim())
-            setEditSignOpen(false)
-            push('签名已保存')
-          }}
-        >
-          保存
-        </button>
-      </Modal>
     </>
   )
 }

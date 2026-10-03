@@ -4,13 +4,10 @@ import { useUI, AppId } from '../store/ui'
 import TopNav from './TopNav'
 import Desktop from './Desktop'
 import SettingsApp from './settings/SettingsApp'
-import AboutApp from './settings/AboutApp'
 import PlaceholderApp from './PlaceholderApp'
 import ChatHub from './chat/ChatHub'
 import ForumApp from './forum/ForumApp'
-import NotificationCenterApp from './NotificationCenterApp'
 import Avatar from './chat/Avatar'
-import { useSettings } from '../store/settings'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -28,7 +25,7 @@ export default function PhoneHome() {
           className="page-enter"
           style={{
             position: 'absolute',
-            top: 'var(--statusbar-height)',
+            top: 'calc(var(--statusbar-height) + var(--nav-height))',
             left: 0,
             right: 0,
             bottom: 0,
@@ -39,10 +36,8 @@ export default function PhoneHome() {
           }}
         >
           {activeApp === 'settings' && <SettingsApp />}
-          {activeApp === 'about' && <AboutApp />}
           {activeApp === 'chat' && <ChatHub />}
           {activeApp === 'forum' && <ForumApp />}
-          {activeApp === 'notifications' && <NotificationCenterApp />}
           {activeApp === 'music' && <PlaceholderApp />}
         </div>
       )}
@@ -54,10 +49,8 @@ export function useAppTitle(): string {
   const activeApp = useUI((s) => s.activeApp)
   const names: Record<AppId, string> = {
     settings: '设置',
-    about: '关于 mulin 小手机',
     chat: '聊天',
     forum: '论坛',
-    notifications: '通知中心',
     music: '音乐',
   }
   return activeApp ? names[activeApp] : ''

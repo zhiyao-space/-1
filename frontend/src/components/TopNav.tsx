@@ -46,7 +46,7 @@ export default function TopNav({ showBack = true }: { showBack?: boolean }) {
 
       <button
         className="pressable"
-        onClick={() => openApp('about')}
+        onClick={() => openApp('settings')}
         {...longPress}
         style={{
           position: 'absolute',

@@ -2,11 +2,9 @@ import { create } from 'zustand'
 
 export type AppId =
   | 'settings'
-  | 'about'
   | 'chat'
   | 'forum'
   | 'music'
-  | 'notifications'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'
