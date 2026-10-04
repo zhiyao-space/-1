@@ -1,26 +1,12 @@
-import { useState } from 'react'
-import { ArrowLeft, Lock, X } from 'lucide-react'
-import { useSettings } from '../store/settings'
+import { ArrowLeft, Lock } from 'lucide-react'
 import { useUI } from '../store/ui'
 import { useToast } from '../store/ui'
-import { useLongPress } from '../hooks'
-import { Modal } from './common'
 
 export default function TopNav({ showBack = true }: { showBack?: boolean }) {
-  const phoneName = useSettings((s) => s.phoneName)
-  const setPhoneName = useSettings((s) => s.setPhoneName)
-  const openApp = useUI((s) => s.openApp)
   const closeApp = useUI((s) => s.closeApp)
   const activeApp = useUI((s) => s.activeApp)
   const lock = useUI((s) => s.lock)
   const push = useToast((s) => s.push)
-  const [renameOpen, setRenameOpen] = useState(false)
-  const [draft, setDraft] = useState('')
-
-  const longPress = useLongPress(() => {
-    setDraft(phoneName)
-    setRenameOpen(true)
-  })
 
   return (
     <div
@@ -44,30 +30,6 @@ export default function TopNav({ showBack = true }: { showBack?: boolean }) {
         )}
       </div>
 
-      <button
-        className="pressable"
-        onClick={() => openApp('settings')}
-        {...longPress}
-        style={{
-          position: 'absolute',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '4px 14px',
-          borderRadius: 999,
-        }}
-      >
-        <span
-          className="app-name"
-          style={{ fontSize: 'calc(22px * var(--fs-scale))' }}
-          onMouseEnter={(e) => (e.currentTarget.style.filter = 'drop-shadow(0 0 6px rgba(255,255,255,0.35))')}
-          onMouseLeave={(e) => (e.currentTarget.style.filter = '')}
-        >
-          {phoneName}
-        </span>
-      </button>
-
       <div style={{ width: 76, display: 'flex', justifyContent: 'flex-end' }}>
         <button
           className="pressable"
@@ -81,32 +43,6 @@ export default function TopNav({ showBack = true }: { showBack?: boolean }) {
           <Lock size={18} />
         </button>
       </div>
-
-      <Modal open={renameOpen} onClose={() => setRenameOpen(false)} title="修改手机名称">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="输入新名称"
-          maxLength={20}
-          autoFocus
-        />
-        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-          <button className="btn" style={{ flex: 1 }} onClick={() => setRenameOpen(false)}>
-            <X size={15} /> 取消
-          </button>
-          <button
-            className="btn btn-accent"
-            style={{ flex: 1 }}
-            onClick={() => {
-              setPhoneName(draft)
-              setRenameOpen(false)
-              push('名称已保存')
-            }}
-          >
-            确认
-          </button>
-        </div>
-      </Modal>
     </div>
   )
 }
