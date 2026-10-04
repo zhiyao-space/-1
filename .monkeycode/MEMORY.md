@@ -72,6 +72,14 @@ Entries discovered by the Agent during task execution should follow this format:
   - Zustand 红线：selector 内禁止调用 filter/map/slice/sort 等返回新引用的方法（如 `useX((s) => s.arr.filter(...))`），会触发无限重渲染（Maximum update depth exceeded）整树卸载黑屏；必须选稳定引用后再在组件体里用 useMemo/普通调用派生（`useX((s) => s.arr).filter(...)`）；selector 里 .length 取数值安全
   - 排障手段：环境无浏览器，可 `npm i -g playwright --registry=https://registry.npmmirror.com` + `PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright npx playwright install chromium` + apt 安装系统库后跑无头冒烟测试（脚本参考 /tmp/opencode/smoke.mjs 思路：解锁手势为从 (240,680) 拖到 (240,240)）
 
+[环境配置：npm 须用 npmmirror 镜像]
+- Date: 2026-10-03
+- Context: 新环境 npm install 使用默认 registry 时 ECONNRESET 网络中断
+- Category: Environment Configuration
+- Instructions:
+  - npm 安装一律加 `--registry=https://registry.npmmirror.com`（或全局 `npm config set registry https://registry.npmmirror.com`）
+  - dev 服务器后台终端默认工作目录是 /workspace，启动 frontend 时命令需带 `cd /workspace/frontend`
+
 [产品决策：移除桌面小组件系统]
 - Date: 2026-09-29
 - Context: 批次4开发中用户明确要求"把组件全删了"（时间/天气/音乐等桌面小组件），保留锁屏等其余功能
