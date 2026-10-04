@@ -54,21 +54,10 @@ export default function TopNav({ showBack = true }: { showBack?: boolean }) {
           transform: 'translateX(-50%)',
           display: 'flex',
           alignItems: 'center',
-          gap: 7,
           padding: '4px 14px',
           borderRadius: 999,
         }}
       >
-        <span
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: '50%',
-            background: 'var(--accent)',
-            boxShadow: '0 0 8px var(--accent)',
-            animation: 'pulse 3s ease-in-out infinite',
-          }}
-        />
         <span
           className="app-name"
           style={{ fontSize: 'calc(22px * var(--fs-scale))' }}
