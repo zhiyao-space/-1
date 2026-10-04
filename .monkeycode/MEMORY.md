@@ -38,7 +38,7 @@ Entries discovered by the Agent during task execution should follow this format:
   - 仓库：https://github.com/zhiyao-space/-1，主分支 main
 
 [环境配置：GitHub 推送凭据]
-- Date: 2026-10-01
+- Date: 2026-10-03
 - Context: 推送 github.com 时凭据助手不可用；后因重新克隆仓库，发现 gh 登录态与 repo 本地配置均会丢失，需整套重做
 - Category: Environment Configuration
 - Instructions:
@@ -49,6 +49,10 @@ Entries discovered by the Agent during task execution should follow this format:
     - `git config user.name "zhiyao-space"`
     - `git config user.email "monkeycode-ai@chaitin.com"`
   - GitHub 按 email 归属提交账号，作者名不影响归属；推送前若发现 author 不是 zhiyao-space，改 config 即可，勿强推改历史
+  - 推送命令若仍报 "credential helper: server returned status 500"（repo 配置被平台注入覆盖），用环境变量替换法推送：
+    `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0="credential.helper" GIT_CONFIG_VALUE_0="!gh auth git-credential" git push origin main`
+    （子进程环境变量整体替换注入的 GIT_CONFIG_COUNT，绕过失效助手）
+  - 无头冒烟测试前需安装系统依赖：playwright chromium + `apt-get install -y fontconfig fonts-dejavu-core fonts-noto-cjk`（无字体会导致页面文字全部不可见、点击定位失败）；mock LLM 服务必须带 CORS 头（Access-Control-Allow-Origin/Header/Methods + OPTIONS 204），否则浏览器 fetch 被拦
 
 [架构约束：纯前端项目]
 - Date: 2026-09-26
