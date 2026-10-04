@@ -1,5 +1,5 @@
 import type { Character } from '../store/characters'
-import type { ChatMessage } from '../store/chats'
+import type { ChatMessage, ChatMode } from '../store/chats'
 import type { GroupChat, GroupMember } from '../store/groups'
 import { useChatParams } from '../store/chatParams'
 import { useSettings } from '../store/settings'
@@ -14,6 +14,7 @@ import type { ApiPreset } from '../store/apiPresets'
 import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
 import { BASE_STYLE_SPEC } from './basePrompt'
+import { buildOnlineModeBlock, buildOfflineModeBlock } from './offlineEngine'
 
 export function buildCharacterPrompt(c: Character): string {
   const lines: string[] = [BASE_STYLE_SPEC, '', '【你的角色设定】']
@@ -71,6 +72,9 @@ function historyToApi(
         const tag = m.type === 'ooc' ? '（OOC 导演指令）' : ''
         return { role: 'user', content: `${who}: ${m.content}${tag}` } as ChatApiMessage
       }
+      if (m.type === 'narration') {
+        return { role: 'user', content: `【旁白】${m.content}` }
+      }
       const tag = m.type === 'ooc' ? '（OOC 导演指令）' : ''
       if (m.role === 'user') return { role: 'user', content: `${userName()}: ${m.content}${tag}` }
       return { role: 'assistant', content: m.content }
@@ -81,7 +85,8 @@ export function buildSingleChatMessages(
   character: Character,
   history: ChatMessage[],
   preset: ApiPreset,
-  extraUserInstruction?: string
+  extraUserInstruction?: string,
+  mode: ChatMode = 'online'
 ): ChatApiMessage[] {
   const forumMem = useChatParams.getState().forumMemory ? buildForumMemory(character.id) : null
   const persona = userPersonaBlock()
@@ -102,6 +107,11 @@ export function buildSingleChatMessages(
     const lastMsg = body[lastIdx]
     if (lastMsg.role === 'user') body = [...body.slice(0, lastIdx), { ...lastMsg, content: `${lastMsg.content}\n（${rs.perTurnChain}）` }]
   }
+  const modeBlock = mode === 'offline' ? buildOfflineModeBlock(character.id) : buildOnlineModeBlock()
+  const closingLine =
+    mode === 'offline'
+      ? `对话对象是"${userName()}"（用户本人）。严格按【线下模式 · 小说体】规范输出，先【时间】【地点】标注，再展开正文。`
+      : `对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`
   const sys = [
     chainPreset.trim(),
     buildCharacterPrompt(character),
@@ -115,7 +125,8 @@ export function buildSingleChatMessages(
     rs.rulesBlock,
     rs.memoryBlock,
     forumMem,
-    `对话对象是"${userName()}"（用户本人）。只输出角色要说的话本身，不要输出动作提示、旁白标签、自己的名字前缀。`,
+    modeBlock,
+    closingLine,
   ]
     .filter(Boolean)
     .join('\n\n')

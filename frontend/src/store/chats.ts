@@ -1,7 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card'
+export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card' | 'narration'
+
+export type ChatMode = 'online' | 'offline'
 
 export interface MessageData {
   amount?: number
@@ -28,6 +30,7 @@ export interface ChatMessage {
   data?: MessageData
   timestamp: number
   recalled?: boolean
+  mode?: ChatMode
 }
 
 export interface ChatSession {

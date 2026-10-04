@@ -19,8 +19,12 @@ import {
   ClipboardCheck,
   Timer,
   BedDouble,
+  BookOpen,
+  MessageCircle,
+  Wand2,
+  SlidersHorizontal,
 } from 'lucide-react'
-import { useChats, type ChatMessage } from '../../store/chats'
+import { useChats, type ChatMessage, type ChatMode } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
 import { useChatParams } from '../../store/chatParams'
 import { useStickers } from '../../store/stickers'
@@ -31,6 +35,7 @@ import { useProfile } from '../../store/profile'
 import { useUI } from '../../store/ui'
 import { useSchedule, currentActivity } from '../../store/schedule'
 import { useBranches, useChatAppearance, useWallet } from '../../store/interact'
+import { useOfflineMode, OFFLINE_STYLES, OFFLINE_LENGTHS, OFFLINE_PERSONS, offlineSettingsFor } from '../../store/offlineMode'
 import { putBlob } from '../../lib/idb'
 import { compressImage } from '../../lib/image'
 import {
@@ -43,6 +48,13 @@ import {
 } from '../../lib/chatEngine'
 import { streamChat } from '../../lib/api'
 import { maybeAutoSummarize } from '../../lib/runtimeEngine'
+import {
+  summarizeForModeSwitch,
+  buildModeTransitionInstruction,
+  buildTimeGapInstruction,
+  parseNarrative,
+  fixNarrativeFormat,
+} from '../../lib/offlineEngine'
 import Avatar from './Avatar'
 import { Modal } from '../common'
 import { TypingIndicator, TimeText, useImageViewer } from './ChatParts'
@@ -64,6 +76,11 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const push = useToast((s) => s.push)
   const settings = useSettings()
   const appearance = useChatAppearance()
+  const chatMode: ChatMode = useOfflineMode((s) => s.modes[characterId]) ?? 'online'
+  const [inputMode, setInputMode] = useState<'dialogue' | 'narration'>('dialogue')
+  const [offlineCfgOpen, setOfflineCfgOpen] = useState(false)
+  const [fixing, setFixing] = useState(false)
+  const pendingGapRef = useRef(0)
   const sessionId = useMemo(() => (characterId ? chats.getOrCreateSession(characterId) : ''), [characterId])
   const session = useChats((s) => s.sessions.find((x) => x.id === sessionId))
   const activeBranchId = useBranches((s) => s.activeBranchId[sessionId] ?? null)
@@ -160,7 +177,21 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
   const doGenerate = async (extraInstruction?: string) => {
     if (!preset || !preset.baseUrl) return
-    const apiMessages = buildSingleChatMessages(character, messages, preset, extraInstruction)
+    const freshMessages = branch
+      ? useBranches.getState().branches.find((b) => b.id === branch.id)?.messages ?? messages
+      : useChats.getState().sessions.find((s) => s.id === sessionId)?.messages ?? messages
+    let extra = extraInstruction
+    const lastAssistant = [...freshMessages].reverse().find((m) => m.role === 'assistant')
+    if (lastAssistant && (lastAssistant.mode ?? 'online') !== chatMode) {
+      extra = extra ? `${extra}\n${buildModeTransitionInstruction(chatMode)}` : buildModeTransitionInstruction(chatMode)
+    }
+    const offCfg = offlineSettingsFor(character.id)
+    if (offCfg.timeAware && pendingGapRef.current >= offCfg.timeGapMinutes * 60000) {
+      const gapIns = buildTimeGapInstruction(chatMode, pendingGapRef.current)
+      extra = extra ? `${extra}\n${gapIns}` : gapIns
+    }
+    pendingGapRef.current = 0
+    const apiMessages = buildSingleChatMessages(character, freshMessages, preset, extra, chatMode)
     setTyping(true)
     setAwaitingManual(false)
     await new Promise((r) => setTimeout(r, randomTypingDelay()))
@@ -192,14 +223,14 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   }
 
   const emitParts = (full: string) => {
-    const parts = splitReply(full)
-    if (parts.length === 0) {
+    const parts = chatMode === 'offline' ? [full.trim()] : splitReply(full)
+    if (parts.length === 0 || !parts[0]) {
       push('角色没有返回内容', 'error')
       return
     }
     parts.forEach((p, i) => {
       setTimeout(() => {
-        addLocal({ role: 'assistant', type: 'text', content: p })
+        addLocal({ role: 'assistant', type: 'text', content: p, mode: chatMode })
       }, i * 250)
     })
     const freshHistory = branch
@@ -213,10 +244,54 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     else setAwaitingManual(true)
   }
 
+  const handleSwitchMode = (next: ChatMode) => {
+    if (next === chatMode) return
+    useOfflineMode.getState().setMode(characterId, next)
+    setInputMode('dialogue')
+    if (preset?.baseUrl && messages.length >= 2) {
+      void summarizeForModeSwitch(character, messages, chatMode, next)
+    } else {
+      push(next === 'offline' ? '已切换到线下叙事模式' : '已切换到线上聊天模式')
+    }
+  }
+
+  const fixLastNarrative = async () => {
+    if (fixing) return
+    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant' && m.type === 'text' && m.mode === 'offline' && !m.recalled)
+    if (!lastAssistant) {
+      push('没有可修正的线下叙事消息', 'error')
+      return
+    }
+    setFixing(true)
+    const fixed = await fixNarrativeFormat(character, lastAssistant)
+    setFixing(false)
+    if (!fixed) {
+      push('格式修正失败，请检查 API 配置', 'error')
+      return
+    }
+    updateLocal(lastAssistant.id, { content: fixed })
+    push('已按小说体重排该条回复')
+  }
+
   const send = () => {
     const text = input.trim()
     if (!text) return
-    addLocal({ role: 'user', type: 'text', content: text })
+    if (chatMode === 'offline' && inputMode === 'narration') {
+      sendNarration()
+      return
+    }
+    pendingGapRef.current = messages.length > 0 ? Date.now() - messages[messages.length - 1].timestamp : 0
+    addLocal({ role: 'user', type: 'text', content: text, mode: chatMode })
+    setInput('')
+    setPlusOpen(false)
+    afterUserMsg()
+  }
+
+  const sendNarration = () => {
+    const text = input.trim()
+    if (!text) return
+    pendingGapRef.current = messages.length > 0 ? Date.now() - messages[messages.length - 1].timestamp : 0
+    addLocal({ role: 'user', type: 'narration', content: text, mode: 'offline' })
     setInput('')
     setPlusOpen(false)
     afterUserMsg()
@@ -333,7 +408,9 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     addLocal({ role: 'user', type: 'system', content: `你戳了戳 ${character.name}` })
     if (!preset?.baseUrl) return
     runGeneration(
-      `（系统指令：用户戳了戳你（戳一戳）。用角色的口吻对被戳做出反应。只输出消息本身。）`
+      chatMode === 'offline'
+        ? `（系统指令：用户戳了戳你。在叙事中自然写出你对被戳的反应，包含动作、神态与对白。）`
+        : `（系统指令：用户戳了戳你（戳一戳）。用角色的口吻对被戳做出反应。只输出消息本身。）`
     )
   }
 
@@ -442,6 +519,69 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         </button>
       </div>
 
+      <div
+        className="no-select"
+        style={{
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '7px 12px',
+          flexShrink: 0,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.07)', borderRadius: 999, padding: 2 }}>
+          {([
+            { key: 'online' as ChatMode, label: '线上' },
+            { key: 'offline' as ChatMode, label: '线下' },
+          ]).map((it) => {
+            const active = chatMode === it.key
+            return (
+              <button
+                key={it.key}
+                className="pressable"
+                onClick={() => handleSwitchMode(it.key)}
+                style={{
+                  padding: '4px 22px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  lineHeight: 1.4,
+                  background: active ? '#f5f5f5' : 'transparent',
+                  color: active ? '#111111' : 'var(--text-tertiary)',
+                  fontWeight: active ? 600 : 400,
+                  boxShadow: active ? '0 1px 6px rgba(0,0,0,0.35)' : 'none',
+                  transition: 'all 0.18s ease',
+                }}
+              >
+                {it.label}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ position: 'absolute', right: 10, display: 'flex', alignItems: 'center', gap: 2 }}>
+          {chatMode === 'offline' && (
+            <button
+              className="pressable"
+              onClick={() => void fixLastNarrative()}
+              disabled={fixing}
+              style={{ color: fixing ? 'var(--text-disabled)' : 'var(--text-secondary)', padding: 5 }}
+              title="一键格式修正"
+            >
+              <Wand2 size={16} />
+            </button>
+          )}
+          <button
+            className="pressable"
+            onClick={() => setOfflineCfgOpen(true)}
+            style={{ color: chatMode === 'offline' ? 'var(--text-primary)' : 'var(--text-secondary)', padding: 5 }}
+            title="线下模式设置"
+          >
+            <SlidersHorizontal size={16} />
+          </button>
+        </div>
+      </div>
+
       <button
         className="pressable"
         onClick={() => setCheckinOpen(true)}
@@ -527,12 +667,24 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
             })}
 
             {streamText !== null && (
-              <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
-                <div className="bubble bubble-left fs-body ksc-bubble" style={{ whiteSpace: 'pre-wrap', ...bubbleOverrides(appearance, false) }}>
-                  {streamText}
-                  <span className="stream-cursor">▍</span>
+              chatMode === 'offline' ? (
+                <div style={{ width: '100%', padding: '10px 6px' }}>
+                  <div
+                    className="fs-body"
+                    style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.9, color: 'var(--text-body)', fontFamily: "var(--font-serif, 'Noto Serif SC', serif)", fontSize: 14 * appearance.fontSize + 1 }}
+                  >
+                    {streamText}
+                    <span className="stream-cursor">▍</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div style={{ alignSelf: 'flex-start', maxWidth: '78%' }}>
+                  <div className="bubble bubble-left fs-body ksc-bubble" style={{ whiteSpace: 'pre-wrap', ...bubbleOverrides(appearance, false) }}>
+                    {streamText}
+                    <span className="stream-cursor">▍</span>
+                  </div>
+                </div>
+              )
             )}
 
             {typing && (
@@ -575,13 +727,22 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
                   send()
                 }
               }}
-              placeholder="说点什么…"
+              placeholder={chatMode === 'offline' ? (inputMode === 'narration' ? '写下你的旁白…' : '写下你的对白…') : '说点什么…'}
               rows={1}
               style={{ flex: 1, resize: 'none', maxHeight: 96, lineHeight: 1.5, borderRadius: 14 }}
             />
             {streamText !== null ? (
               <button className="pressable" onClick={() => abortRef.current?.abort()} style={{ color: 'var(--text-secondary)', padding: 8 }} title="停止生成">
                 <StopCircle size={22} />
+              </button>
+            ) : chatMode === 'offline' ? (
+              <button
+                className="pressable"
+                onClick={() => setInputMode((v) => (v === 'dialogue' ? 'narration' : 'dialogue'))}
+                style={{ color: inputMode === 'narration' ? '#f5f5f5' : 'var(--text-secondary)', padding: 8 }}
+                title={inputMode === 'narration' ? '当前：旁白（点击切回对白）' : '当前：对白（点击切换为旁白）'}
+              >
+                {inputMode === 'narration' ? <BookOpen size={22} /> : <MessageCircle size={22} />}
               </button>
             ) : (
               <button
@@ -602,13 +763,22 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
           {plusOpen && (
             <div className="page-enter" style={{ display: 'flex', gap: 14, padding: '10px 14px 14px', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', flexWrap: 'wrap' }}>
-              <PlusAction icon={<ImageIcon size={19} />} label="图片" onClick={sendImage} />
-              <PlusAction icon={<Mic size={19} />} label="语音" onClick={sendVoice} />
-              {params.allowOoc && <PlusAction icon={<Braces size={19} />} label="OOC" onClick={sendOoc} />}
-              <PlusAction icon={<Banknote size={19} />} label="转账" onClick={() => { setPlusOpen(false); setTransferOpen(true) }} />
-              <PlusAction icon={<Gift size={19} />} label="红包" onClick={() => { setPlusOpen(false); setRedpacketOpen(true) }} />
-              <PlusAction icon={<ClipboardCheck size={19} />} label="报备" onClick={() => { setPlusOpen(false); setReportOpen(true) }} />
-              <PlusAction icon={<Timer size={19} />} label="一起专注" onClick={() => { setPlusOpen(false); setTomatoOpen(true) }} />
+              {chatMode === 'offline' ? (
+                <>
+                  <PlusAction icon={<Braces size={19} />} label="OOC" onClick={sendOoc} disabled={!params.allowOoc} />
+                  <span className="fs-micro" style={{ color: 'var(--text-disabled)', alignSelf: 'center' }}>线下叙事模式：图片 / 语音 / 转账 / 红包等富媒体仅线上模式可用</span>
+                </>
+              ) : (
+                <>
+                  <PlusAction icon={<ImageIcon size={19} />} label="图片" onClick={sendImage} />
+                  <PlusAction icon={<Mic size={19} />} label="语音" onClick={sendVoice} />
+                  {params.allowOoc && <PlusAction icon={<Braces size={19} />} label="OOC" onClick={sendOoc} />}
+                  <PlusAction icon={<Banknote size={19} />} label="转账" onClick={() => { setPlusOpen(false); setTransferOpen(true) }} />
+                  <PlusAction icon={<Gift size={19} />} label="红包" onClick={() => { setPlusOpen(false); setRedpacketOpen(true) }} />
+                  <PlusAction icon={<ClipboardCheck size={19} />} label="报备" onClick={() => { setPlusOpen(false); setReportOpen(true) }} />
+                  <PlusAction icon={<Timer size={19} />} label="一起专注" onClick={() => { setPlusOpen(false); setTomatoOpen(true) }} />
+                </>
+              )}
             </div>
           )}
 
@@ -721,6 +891,8 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         <MindPanel character={character} history={messages} onClose={() => setMindOpen(false)} />
       )}
 
+      {offlineCfgOpen && <OfflineSettingsModal characterId={characterId} onClose={() => setOfflineCfgOpen(false)} />}
+
       {viewer}
     </div>
   )
@@ -761,8 +933,156 @@ function bubbleOverrides(a: ReturnType<typeof useChatAppearance.getState>, isUse
   }
 }
 
-function TomatoConfig({ onStart }: { onStart: (seconds: number, noise: boolean, accompany: boolean) => void }) {
-  const [minutes, setMinutes] = useState(25)
+function ChipMono({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      className="pressable"
+      onClick={onClick}
+      style={{
+        padding: '6px 14px',
+        borderRadius: 999,
+        fontSize: 12,
+        lineHeight: 1.4,
+        background: active ? '#f5f5f5' : 'rgba(255,255,255,0.06)',
+        color: active ? '#111111' : 'var(--text-tertiary)',
+        fontWeight: active ? 600 : 400,
+        transition: 'all 0.15s ease',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function SectionLabel({ text, hint }: { text: string; hint?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 8 }}>
+      <span className="fs-body" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{text}</span>
+      {hint && <span className="fs-micro" style={{ color: 'var(--text-disabled)' }}>{hint}</span>}
+    </div>
+  )
+}
+
+function OfflineSettingsModal({ characterId, onClose }: { characterId: string; onClose: () => void }) {
+  useOfflineMode()
+  const st = offlineSettingsFor(characterId)
+  const { updateSettings, applyLengthPreset } = useOfflineMode.getState()
+  return (
+    <Modal open onClose={onClose} title="线下模式设置">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 18, maxHeight: '60vh', overflowY: 'auto', paddingRight: 2 }}>
+        <div>
+          <SectionLabel text="文风" hint={OFFLINE_STYLES.find((s) => s.key === st.style)?.desc} />
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {OFFLINE_STYLES.map((s) => (
+              <ChipMono key={s.key} label={s.label} active={st.style === s.key} onClick={() => updateSettings(characterId, { style: s.key })} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel text="人称" hint={OFFLINE_PERSONS.find((p) => p.key === st.person)?.desc} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            {OFFLINE_PERSONS.map((p) => (
+              <ChipMono key={p.key} label={p.label} active={st.person === p.key} onClick={() => updateSettings(characterId, { person: p.key })} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel text="篇幅" hint={`当前目标约 ${OFFLINE_LENGTHS.find((l) => l.key === st.length)?.target} 字`} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            {OFFLINE_LENGTHS.map((l) => (
+              <ChipMono key={l.key} label={`${l.label}（${l.target}字）`} active={st.length === l.key} onClick={() => applyLengthPreset(characterId, l.key)} />
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel text="字数区间" hint={`${st.minWords} - ${st.maxWords} 字`} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="fs-micro" style={{ color: 'var(--text-tertiary)', width: 28, flexShrink: 0 }}>下限</span>
+              <input
+                type="range"
+                min={100}
+                max={1400}
+                step={50}
+                value={st.minWords}
+                onChange={(e) => updateSettings(characterId, { minWords: Math.min(Number(e.target.value), st.maxWords - 50) })}
+                style={{ flex: 1, accentColor: '#f5f5f5' }}
+              />
+              <span className="fs-micro mono" style={{ color: 'var(--text-secondary)', width: 34, textAlign: 'right' }}>{st.minWords}</span>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span className="fs-micro" style={{ color: 'var(--text-tertiary)', width: 28, flexShrink: 0 }}>上限</span>
+              <input
+                type="range"
+                min={150}
+                max={1500}
+                step={50}
+                value={st.maxWords}
+                onChange={(e) => updateSettings(characterId, { maxWords: Math.max(Number(e.target.value), st.minWords + 50) })}
+                style={{ flex: 1, accentColor: '#f5f5f5' }}
+              />
+              <span className="fs-micro mono" style={{ color: 'var(--text-secondary)', width: 34, textAlign: 'right' }}>{st.maxWords}</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel text="时间感知" hint={`间隔超过 ${st.timeGapMinutes} 分钟再回复，角色会有反应`} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              className="pressable"
+              onClick={() => updateSettings(characterId, { timeAware: !st.timeAware })}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 999,
+                fontSize: 12,
+                background: st.timeAware ? '#f5f5f5' : 'rgba(255,255,255,0.06)',
+                color: st.timeAware ? '#111111' : 'var(--text-tertiary)',
+                fontWeight: st.timeAware ? 600 : 400,
+              }}
+            >
+              {st.timeAware ? '已开启' : '已关闭'}
+            </button>
+            {st.timeAware && (
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1 }}>
+                <input
+                  type="number"
+                  min={5}
+                  max={10080}
+                  value={st.timeGapMinutes}
+                  onChange={(e) => updateSettings(characterId, { timeGapMinutes: Math.max(5, Math.min(10080, Number(e.target.value) || 120)) })}
+                  style={{ width: 80, padding: '5px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-primary)', fontSize: 12 }}
+                />
+                <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>分钟</span>
+              </label>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel text="自定义 prompt 规则" hint="防止 AI 擅自跨模式输出的补充约束" />
+          <textarea
+            value={st.customRules}
+            onChange={(e) => updateSettings(characterId, { customRules: e.target.value })}
+            placeholder={'例：\n- 禁止在旁白里替我做任何决定\n- 场景转换必须用分割线'}
+            rows={4}
+            style={{ width: '100%', resize: 'vertical', minHeight: 72, lineHeight: 1.6, fontSize: 12, borderRadius: 10, padding: '8px 10px' }}
+          />
+        </div>
+
+        <div className="fs-micro" style={{ color: 'var(--text-disabled)', lineHeight: 1.7 }}>
+          设置按角色独立保存。切换模式时自动生成对话摘要注入上下文，两种模式的记忆互通。
+        </div>
+        <button className="btn btn-accent" onClick={onClose}>完成</button>
+      </div>
+    </Modal>
+  )
+}
+
+function TomatoConfig({ onStart }: { onStart: (seconds: number, noise: boolean, accompany: boolean) => void }) {  const [minutes, setMinutes] = useState(25)
   const [noise, setNoise] = useState(false)
   const [accompany, setAccompany] = useState(true)
   return (
@@ -795,9 +1115,14 @@ function TomatoConfig({ onStart }: { onStart: (seconds: number, noise: boolean, 
   )
 }
 
-function PlusAction({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+function PlusAction({ icon, label, onClick, disabled }: { icon: React.ReactNode; label: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button className="pressable" onClick={onClick} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 58 }}>
+    <button
+      className="pressable"
+      onClick={onClick}
+      disabled={disabled}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: 58, opacity: disabled ? 0.35 : 1 }}
+    >
       <span style={{ width: 44, height: 44, borderRadius: 14, background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
         {icon}
       </span>
@@ -821,6 +1146,42 @@ function StickerCell({ imageId, onClick }: { imageId: string; onClick: () => voi
     <button className="pressable" onClick={onClick} style={{ aspectRatio: '1', borderRadius: 10, overflow: 'hidden', background: 'rgba(255,255,255,0.05)' }}>
       {url && <img src={url} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
     </button>
+  )
+}
+
+
+function NarrativeBody({ content, fontPx, serifFont }: { content: string; fontPx: number; serifFont: string }) {
+  const segs = useMemo(() => parseNarrative(content), [content])
+  const time = segs.find((s) => s.kind === 'time')
+  const place = segs.find((s) => s.kind === 'place')
+  const body = segs.filter((s) => s.kind !== 'time' && s.kind !== 'place')
+  return (
+    <div style={{ width: '100%' }}>
+      {(time || place) && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 8 }}>
+          {time && <span className="fs-micro mono" style={{ color: 'var(--text-tertiary)' }}>{time.text}</span>}
+          {time && place && <span className="fs-micro" style={{ color: 'var(--text-disabled)' }}>·</span>}
+          {place && <span className="fs-micro mono" style={{ color: 'var(--text-tertiary)' }}>{place.text}</span>}
+        </div>
+      )}
+      <div style={{ fontFamily: serifFont, fontSize: fontPx, lineHeight: 2.0, color: 'var(--text-body)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+        {body.map((seg, i) => {
+          if (seg.kind === 'dialogue') {
+            return (
+              <span key={i} style={{ color: 'var(--text-primary)', display: 'block', padding: '2px 0' }}>{seg.text}</span>
+            )
+          }
+          if (seg.kind === 'narration') {
+            return (
+              <span key={i} style={{ color: 'var(--text-tertiary)', fontStyle: 'italic', display: 'block', padding: '2px 0' }}>（{seg.text}）</span>
+            )
+          }
+          return (
+            <span key={i} style={{ display: 'block', padding: '1px 0' }}>{seg.text}</span>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -869,6 +1230,52 @@ function MessageRow({
         <div className="fs-micro" style={{ color: 'var(--text-tertiary)', background: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '6px 12px', fontStyle: 'italic' }}>
           OOC：{m.content}
         </div>
+      </div>
+    )
+  }
+
+  const serifFont = "var(--font-serif, 'Noto Serif SC', 'Songti SC', 'SimSun', serif)"
+  const isNarrative = m.mode === 'offline'
+  const rowHandlers = {
+    onContextMenu: (e: React.MouseEvent) => {
+      e.preventDefault()
+      onLongPress()
+    },
+    onDoubleClick: onLongPress,
+  }
+
+  if (m.type === 'narration') {
+    return (
+      <div
+        {...rowHandlers}
+        style={{ width: '100%', display: 'flex', justifyContent: 'center', padding: '6px 0' }}
+      >
+        <div style={{ maxWidth: '88%', borderLeft: '2px solid rgba(255,255,255,0.28)', paddingLeft: 12, padding: '4px 10px 4px 12px' }}>
+          <div className="fs-micro mono" style={{ color: 'var(--text-disabled)', marginBottom: 2 }}>旁白</div>
+          <div style={{ fontFamily: serifFont, fontStyle: 'italic', fontSize: fontPx, lineHeight: 1.9, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {m.content}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isNarrative && m.type === 'text') {
+    if (isUser) {
+      return (
+        <div {...rowHandlers} style={{ width: '100%', display: 'flex', justifyContent: 'flex-end', padding: '5px 2px' }}>
+          <div style={{ maxWidth: '82%', textAlign: 'right' }}>
+            <div className="fs-micro mono" style={{ color: 'var(--text-disabled)', marginBottom: 2 }}>我</div>
+            <div style={{ fontFamily: serifFont, fontSize: fontPx + 1, lineHeight: 1.9, color: 'var(--text-body)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              「{m.content}」
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return (
+      <div {...rowHandlers} style={{ width: '100%', padding: '5px 2px' }}>
+        <NarrativeBody content={m.content} fontPx={fontPx + 1} serifFont={serifFont} />
       </div>
     )
   }
