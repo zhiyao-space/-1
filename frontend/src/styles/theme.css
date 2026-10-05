@@ -879,3 +879,42 @@ input[type='color'] {
     opacity: 0 !important;
   }
 }
+
+/* ---------- 音乐：唱片旋转 / 一起听指示 ---------- */
+
+@keyframes ksc-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ksc-together {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.music-together-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  display: inline-block;
+  animation: ksc-together 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-together-dot {
+    animation: none !important;
+  }
+}

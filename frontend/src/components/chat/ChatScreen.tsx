@@ -60,6 +60,7 @@ import Avatar from './Avatar'
 import { Modal } from '../common'
 import { TypingIndicator, TimeText, useImageViewer } from './ChatParts'
 import { TransferCard, RedPacketCard, VoiceBubble, DiceCard, recordVoice } from './Cards'
+import MusicCardBubble from './MusicCardBubble'
 import { TransferModal, RedPacketModal, ReverseReportModal, beep } from './PayAndTools'
 import TomatoOverlay from './TomatoOverlay'
 import ScheduleView from './ScheduleView'
@@ -1387,6 +1388,13 @@ function renderBody(
     return (
       <div {...commonHandlers} className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`} style={bubbleOverrides(appearance, isUser)}>
         <DiceCard value={m.data?.value} />
+      </div>
+    )
+  }
+  if (m.type === 'music-card') {
+    return (
+      <div {...commonHandlers}>
+        <MusicCardBubble data={m.data ?? {}} />
       </div>
     )
   }

@@ -1,9 +1,9 @@
-import { Music, Pause, Play, SkipBack, SkipForward } from 'lucide-react'
+import { Pause, Play, SkipBack, SkipForward } from 'lucide-react'
 import { useUI } from '../../store/ui'
 import { currentTrack, fmtTime, useMusic } from '../../store/music'
-import { useBlobURL } from '../WallpaperLayer'
 import type { ModuleStyles } from '../../store/desktopModules'
 import { cardStyle } from './moduleStyle'
+import { TrackCover } from '../music/cover'
 
 /**
  * 桌面音乐组件：位于「最近互动」卡片下方、底部图标栏上方。
@@ -11,7 +11,7 @@ import { cardStyle } from './moduleStyle'
  */
 export default function DesktopMusicCard({ styles }: { styles: ModuleStyles }) {
   const track = useMusic((s) => currentTrack(s))
-  const hasTracks = useMusic((s) => s.tracks.length > 0)
+  const hasTracks = useMusic((s) => s.queue.length > 0)
   const playing = useMusic((s) => s.playing)
   const currentTime = useMusic((s) => s.currentTime)
   const duration = useMusic((s) => s.duration)
@@ -21,36 +21,14 @@ export default function DesktopMusicCard({ styles }: { styles: ModuleStyles }) {
   const prev = useMusic((s) => s.prev)
   const seek = useMusic((s) => s.seek)
   const openApp = useUI((s) => s.openApp)
-  const coverUrl = useBlobURL(track?.coverId ?? defaultCoverId)
 
   const ratio = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0
 
   return (
     <div className="no-select" style={{ ...cardStyle(styles), padding: '12px 14px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button
-          className="pressable"
-          onClick={() => openApp('music')}
-          title="打开音乐"
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            overflow: 'hidden',
-            flexShrink: 0,
-            background: 'linear-gradient(160deg, #2a2a2a 0%, #0a0a0a 100%)',
-            border: '1px solid #2a2a2a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#888888',
-          }}
-        >
-          {coverUrl ? (
-            <img src={coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <Music size={20} strokeWidth={1.6} />
-          )}
+        <button className="pressable" onClick={() => openApp('music')} title="打开音乐" style={{ display: 'flex' }}>
+          <TrackCover track={track} size={44} radius={10} fallbackIdbId={defaultCoverId} />
         </button>
 
         <div style={{ flex: 1, minWidth: 0 }}>

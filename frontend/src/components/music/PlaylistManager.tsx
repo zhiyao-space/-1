@@ -1,34 +1,10 @@
 import { useRef, useState } from 'react'
-import { ImagePlus, Link2, Music, Trash2, Upload } from 'lucide-react'
+import { ImagePlus, Link2, Play, Trash2, Upload } from 'lucide-react'
 import { compressImage } from '../../lib/image'
 import { putBlob } from '../../lib/idb'
 import { useToast } from '../../store/ui'
 import { useMusic, type Track } from '../../store/music'
-import { useBlobURL } from '../WallpaperLayer'
-
-/** 单个曲目的封面缩略图 */
-function Cover({ track, size = 40 }: { track: Track; size?: number }) {
-  const url = useBlobURL(track.coverId)
-  return (
-    <span
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 8,
-        overflow: 'hidden',
-        flexShrink: 0,
-        background: 'linear-gradient(160deg, #2a2a2a 0%, #0a0a0a 100%)',
-        border: '1px solid #2a2a2a',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: '#888888',
-      }}
-    >
-      {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Music size={size * 0.45} strokeWidth={1.6} />}
-    </span>
-  )
-}
+import { TrackCover } from './cover'
 
 /** 歌单管理：上传本地音频 / 填写在线 URL / 更换封面 */
 export default function PlaylistManager() {
@@ -38,6 +14,8 @@ export default function PlaylistManager() {
   const updateTrack = useMusic((s) => s.updateTrack)
   const removeTrack = useMusic((s) => s.removeTrack)
   const setDefaultCover = useMusic((s) => s.setDefaultCover)
+  const playLibrary = useMusic((s) => s.playLibrary)
+  const enqueue = useMusic((s) => s.enqueue)
   const push = useToast((s) => s.push)
 
   const audioRef = useRef<HTMLInputElement>(null)
@@ -160,20 +138,34 @@ export default function PlaylistManager() {
         </button>
       </div>
 
-      <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>
-        歌单（{tracks.length}）
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+        <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flex: 1 }}>
+          我的曲库（{tracks.length}）
+        </span>
+        {tracks.length > 0 && (
+          <>
+            <button className="btn btn-sm pressable" onClick={() => playLibrary(0)}>
+              <Play size={12} /> 播放全部
+            </button>
+            <button className="btn btn-sm pressable" style={{ marginLeft: 6 }} onClick={() => enqueue(tracks)}>
+              加入队列
+            </button>
+          </>
+        )}
       </div>
       {tracks.length === 0 ? (
         <div className="fs-micro" style={{ color: 'var(--text-disabled)', padding: '8px 0' }}>
           还没有曲目，上传本地音频或添加在线地址。
         </div>
       ) : (
-        tracks.map((t) => (
+        tracks.map((t, i) => (
           <div
             key={t.id}
             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' }}
           >
-            <Cover track={t} />
+            <button className="pressable" onClick={() => playLibrary(i)} title="播放" style={{ display: 'flex', position: 'relative' }}>
+              <TrackCover track={t} size={40} radius={8} fallbackIdbId={defaultCoverId} />
+            </button>
             <div style={{ flex: 1, minWidth: 0 }}>
               <input
                 value={t.title}

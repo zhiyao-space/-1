@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card' | 'narration'
+export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card' | 'music-card' | 'narration'
 
 export type ChatMode = 'online' | 'offline'
 
@@ -19,6 +19,13 @@ export interface MessageData {
   value?: number
   cover?: string
   momentId?: string
+  /** 音乐卡片：曲目 id（对应 music store 的 queue/likedIds） */
+  trackId?: string
+  songTitle?: string
+  songArtist?: string
+  songCover?: string
+  /** 网易云歌曲 ID，便于卡片随时重新解析链接播放 */
+  songNcmId?: string
 }
 
 export interface ChatMessage {
