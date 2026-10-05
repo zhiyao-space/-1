@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronLeft, Code2, Copy, CornerDownLeft, Send, Settings2, Trash2 } from 'lucide-react'
 import { useUI, useToast } from '../../store/ui'
 import { useXiaogui } from '../../store/xiaogui'
@@ -116,7 +116,8 @@ export default function XiaoguiPanel() {
   const streaming = useXiaogui((s) => s.streaming)
   const setStreaming = useXiaogui((s) => s.setStreaming)
 
-  const presets = useApiPresets((s) => s.presets.filter((p) => p.category === 'chat'))
+  const allPresets = useApiPresets((s) => s.presets)
+  const presets = useMemo(() => allPresets.filter((p) => p.category === 'chat'), [allPresets])
 
   const [input, setInput] = useState('')
   const [showConfig, setShowConfig] = useState(false)
