@@ -16,6 +16,7 @@ import XiaoguiPanel from './xiaogui/XiaoguiPanel'
 import FactoryApp from './factory/FactoryApp'
 import AppRunner from './factory/AppRunner'
 import SocialApp from './social/SocialApp'
+import MallApp from './mall/MallApp'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -56,6 +57,7 @@ export default function PhoneHome() {
           {activeApp === 'music' && <MusicApp />}
           {activeApp === 'factory' && <FactoryApp />}
           {activeApp === 'social' && <SocialApp />}
+          {activeApp === 'mall' && <MallApp />}
         </div>
       )}
 
@@ -75,6 +77,7 @@ export function useAppTitle(): string {
     phone: '电话',
     factory: 'mulin功能应用制造厂',
     social: 'mu社区恋爱交友软件',
+    mall: 'mulin 商城 ✦ MALLÉ',
   }
   return activeApp ? names[activeApp] : ''
 }

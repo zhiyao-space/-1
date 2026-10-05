@@ -31,6 +31,7 @@ export const DEFAULT_COPY: CopyTexts = {
     forum: '论坛',
     music: '音乐',
     social: 'mu社区',
+    mall: 'mulin 商城',
     settings: '设置',
     sms: '短信',
     phone: '电话',
