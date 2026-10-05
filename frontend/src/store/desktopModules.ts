@@ -28,17 +28,6 @@ export interface Monologue {
   at: number
 }
 
-export interface NowPlaying {
-  title: string
-  artist: string
-  coverId: string | null
-  /** 0-1 */
-  progress: number
-  /** 秒 */
-  duration: number
-  playing: boolean
-}
-
 export interface BgPreset {
   id: string
   label: string
@@ -121,14 +110,11 @@ interface DesktopState {
   visibility: ModuleVisibility
   wallpaperPresetId: string
   monologue: Monologue | null
-  nowPlaying: NowPlaying | null
   setStyles: (patch: Partial<ModuleStyles>) => void
   setVisibility: (key: keyof ModuleVisibility, v: boolean) => void
   setWallpaperPreset: (id: string) => void
   setMonologue: (m: Monologue) => void
   resetStyles: () => void
-  setNowPlaying: (n: NowPlaying | null) => void
-  updatePlayback: (patch: Partial<NowPlaying>) => void
 }
 
 export const useDesktop = create<DesktopState>()(
@@ -138,7 +124,6 @@ export const useDesktop = create<DesktopState>()(
       visibility: { ...DEFAULT_VISIBILITY },
       wallpaperPresetId: 'noir',
       monologue: null,
-      nowPlaying: null,
       setStyles: (patch) =>
         set((s) => ({
           styles: {
@@ -152,8 +137,6 @@ export const useDesktop = create<DesktopState>()(
       setWallpaperPreset: (wallpaperPresetId) => set({ wallpaperPresetId }),
       setMonologue: (monologue) => set({ monologue }),
       resetStyles: () => set({ styles: { ...DEFAULT_STYLES }, visibility: { ...DEFAULT_VISIBILITY } }),
-      setNowPlaying: (nowPlaying) => set({ nowPlaying }),
-      updatePlayback: (patch) => set((s) => (s.nowPlaying ? { nowPlaying: { ...s.nowPlaying, ...patch } } : {})),
     }),
     { name: 'ksc:desktopModules' }
   )

@@ -1,68 +1,28 @@
-import { useEffect } from 'react'
-import { Play, Pause, SkipBack, SkipForward } from 'lucide-react'
-import { useDesktop, type NowPlaying } from '../../store/desktopModules'
-import { MusicIcon, PlayIcon, PauseIcon } from '../desktop/DockIcons'
-
-interface Track {
-  title: string
-  artist: string
-  duration: number
-}
-
-/**
- * 本地曲库（占位音源）。
- * 说明：当前项目未接入网易云等外部音源，此播放器为本地模拟播放，
- * 仅驱动桌面「正在播放」模块的曲目 / 进度展示。
- */
-const TRACKS: Track[] = [
-  { title: '空蚀', artist: 'Nightfall', duration: 214 },
-  { title: '雨夜列车', artist: 'Quiet Room', duration: 188 },
-  { title: '沉默的频率', artist: 'Static', duration: 236 },
-  { title: '无人应答', artist: 'Void', duration: 201 },
-  { title: '凌晨三点', artist: 'Afterglow', duration: 245 },
-]
-
-function fmt(sec: number): string {
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${String(s).padStart(2, '0')}`
-}
+import { useState } from 'react'
+import { ChevronDown, ChevronUp, Music, Pause, Play, SkipBack, SkipForward, Volume2 } from 'lucide-react'
+import { currentTrack, fmtTime, useMusic } from '../../store/music'
+import { useBlobURL } from '../WallpaperLayer'
+import PlaylistManager from './PlaylistManager'
 
 export default function MusicApp() {
-  const nowPlaying = useDesktop((s) => s.nowPlaying)
-  const setNowPlaying = useDesktop((s) => s.setNowPlaying)
-  const updatePlayback = useDesktop((s) => s.updatePlayback)
+  const tracks = useMusic((s) => s.tracks)
+  const index = useMusic((s) => s.index)
+  const track = useMusic((s) => currentTrack(s))
+  const playing = useMusic((s) => s.playing)
+  const currentTime = useMusic((s) => s.currentTime)
+  const duration = useMusic((s) => s.duration)
+  const volume = useMusic((s) => s.volume)
+  const defaultCoverId = useMusic((s) => s.defaultCoverId)
+  const toggle = useMusic((s) => s.toggle)
+  const next = useMusic((s) => s.next)
+  const prev = useMusic((s) => s.prev)
+  const seek = useMusic((s) => s.seek)
+  const playIndex = useMusic((s) => s.playIndex)
+  const setVolume = useMusic((s) => s.setVolume)
 
-  // 播放推进：仅在 playing 时逐秒前进，播完自动下一首
-  useEffect(() => {
-    if (!nowPlaying?.playing) return
-    const timer = window.setInterval(() => {
-      const cur = useDesktop.getState().nowPlaying
-      if (!cur || !cur.playing) return
-      const next = cur.progress + 1 / Math.max(1, cur.duration)
-      if (next >= 1) {
-        const idx = TRACKS.findIndex((t) => t.title === cur.title)
-        const nx = TRACKS[(idx + 1) % TRACKS.length]
-        const payload: NowPlaying = { ...nx, coverId: null, progress: 0, playing: true }
-        setNowPlaying(payload)
-      } else {
-        updatePlayback({ progress: next })
-      }
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [nowPlaying?.playing, nowPlaying?.title, setNowPlaying, updatePlayback])
-
-  const play = (t: Track) => setNowPlaying({ ...t, coverId: null, progress: 0, playing: true })
-
-  const step = (dir: 1 | -1) => {
-    const cur = nowPlaying?.title
-    const idx = Math.max(0, TRACKS.findIndex((t) => t.title === cur))
-    const nx = TRACKS[(idx + dir + TRACKS.length) % TRACKS.length]
-    play(nx)
-  }
-
-  const current = nowPlaying
-  const elapsed = current ? current.progress * current.duration : 0
+  const [manage, setManage] = useState(false)
+  const coverUrl = useBlobURL(track?.coverId ?? defaultCoverId)
+  const ratio = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -71,88 +31,142 @@ export default function MusicApp() {
       </div>
 
       <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 24px' }}>
-        <div
-          className="glass"
-          style={{ borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 14, textAlign: 'center' }}
-        >
-          <div style={{ color: 'var(--text-secondary)', display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-            <MusicIcon size={34} />
-          </div>
-          <div className="fs-h2" style={{ color: 'var(--text-primary)' }}>
-            {current?.title ?? '未在播放'}
-          </div>
-          <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginTop: 2 }}>
-            {current?.artist ?? '选择下方曲目开始播放'}
+        <div className="glass" style={{ borderRadius: 'var(--radius-md)', padding: 16, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
+            <span
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 14,
+                overflow: 'hidden',
+                flexShrink: 0,
+                background: 'linear-gradient(160deg, #2a2a2a 0%, #0a0a0a 100%)',
+                border: '1px solid #2a2a2a',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--text-tertiary)',
+              }}
+            >
+              {coverUrl ? (
+                <img src={coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <Music size={30} strokeWidth={1.6} />
+              )}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="fs-h2" style={{ color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {track?.title ?? '未在播放'}
+              </div>
+              <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginTop: 2 }}>
+                {track?.artist || (tracks.length ? '未知歌手' : '在下方歌单管理中添加音频')}
+              </div>
+            </div>
           </div>
 
-          <div style={{ height: 3, borderRadius: 999, background: 'rgba(255,255,255,0.12)', margin: '14px 0 6px', overflow: 'hidden' }}>
-            <div style={{ width: `${Math.min(100, Math.max(0, (current?.progress ?? 0) * 100))}%`, height: '100%', background: 'var(--accent)' }} />
-          </div>
-          <div className="mono fs-micro" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)' }}>
-            <span>{fmt(elapsed)}</span>
-            <span>{fmt(current?.duration ?? 0)}</span>
+          <input
+            type="range"
+            min={0}
+            max={1000}
+            step={1}
+            value={Math.round(ratio * 1000)}
+            disabled={!track || duration <= 0}
+            onChange={(e) => seek(Number(e.target.value) / 1000)}
+            style={{ width: '100%', height: 4 }}
+          />
+          <div className="mono fs-micro" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-tertiary)', marginTop: 6 }}>
+            <span>{fmtTime(currentTime)}</span>
+            <span>{fmtTime(duration)}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22, marginTop: 14 }}>
-            <button className="pressable" onClick={() => step(-1)} style={{ color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 22, marginTop: 12 }}>
+            <button className="pressable" onClick={prev} disabled={tracks.length === 0} style={{ color: 'var(--text-secondary)' }}>
               <SkipBack size={20} />
             </button>
             <button
               className="pressable"
-              onClick={() => (current ? updatePlayback({ playing: !current.playing }) : play(TRACKS[0]))}
+              onClick={toggle}
+              disabled={tracks.length === 0}
               style={{
                 width: 52,
                 height: 52,
                 borderRadius: '50%',
-                background: 'var(--accent)',
+                background: tracks.length === 0 ? 'rgba(255,255,255,0.15)' : 'var(--accent)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              {current?.playing ? <Pause size={22} color="#000" /> : <Play size={22} color="#000" />}
+              {playing ? <Pause size={22} color="#000" /> : <Play size={22} color="#000" />}
             </button>
-            <button className="pressable" onClick={() => step(1)} style={{ color: 'var(--text-secondary)' }}>
+            <button className="pressable" onClick={next} disabled={tracks.length === 0} style={{ color: 'var(--text-secondary)' }}>
               <SkipForward size={20} />
             </button>
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16 }}>
+            <Volume2 size={15} color="var(--text-tertiary)" />
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={Math.round(volume * 100)}
+              onChange={(e) => setVolume(Number(e.target.value) / 100)}
+              style={{ flex: 1, height: 4 }}
+            />
+          </div>
         </div>
 
-        <div className="glass" style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
-          {TRACKS.map((t) => {
-            const active = current?.title === t.title
-            return (
-              <button
-                key={t.title}
-                className="pressable"
-                onClick={() => play(t)}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '12px 14px',
-                  borderBottom: '1px solid rgba(255,255,255,0.06)',
-                  textAlign: 'left',
-                }}
-              >
-                <span style={{ display: 'flex', width: 18, color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                  {active && current?.playing ? <PauseIcon size={16} /> : <PlayIcon size={16} />}
-                </span>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span className="fs-body" style={{ display: 'block', color: active ? 'var(--text-primary)' : 'var(--text-body)' }}>
-                    {t.title}
+        <div className="glass" style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 14 }}>
+          {tracks.length === 0 ? (
+            <div className="fs-micro" style={{ color: 'var(--text-disabled)', padding: 16, textAlign: 'center' }}>
+              歌单为空
+            </div>
+          ) : (
+            tracks.map((t, i) => {
+              const active = i === index
+              return (
+                <button
+                  key={t.id}
+                  className="pressable"
+                  onClick={() => playIndex(i)}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 14px',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    textAlign: 'left',
+                  }}
+                >
+                  <span style={{ display: 'flex', width: 18, color: active ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                    {active && playing ? <Pause size={15} /> : <Play size={15} />}
                   </span>
-                  <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>{t.artist}</span>
-                </span>
-                <span className="mono fs-micro" style={{ color: 'var(--text-tertiary)' }}>{fmt(t.duration)}</span>
-              </button>
-            )
-          })}
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="fs-body" style={{ display: 'block', color: active ? 'var(--text-primary)' : 'var(--text-body)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {t.title}
+                    </span>
+                    <span className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>{t.artist}</span>
+                  </span>
+                  {active && <span className="fs-micro mono" style={{ color: 'var(--text-tertiary)' }}>{fmtTime(currentTime)}</span>}
+                </button>
+              )
+            })
+          )}
         </div>
 
-        <div className="fs-micro" style={{ color: 'var(--text-disabled)', textAlign: 'center', marginTop: 12 }}>
-          本地模拟播放（项目暂未接入网易云等外部音源）
+        <div className="glass" style={{ borderRadius: 'var(--radius-md)', padding: 16 }}>
+          <button
+            className="pressable"
+            onClick={() => setManage((v) => !v)}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-primary)' }}
+          >
+            <span className="fs-body">歌单管理</span>
+            {manage ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+          {manage && <div style={{ marginTop: 14 }}><PlaylistManager /></div>}
         </div>
       </div>
     </div>

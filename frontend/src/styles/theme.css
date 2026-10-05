@@ -423,3 +423,66 @@ input[type='color'] {
 .row-item:last-of-type {
   border-bottom: none;
 }
+
+/* ── 小鬼 AI 编程助手 ───────────────────────────── */
+.xg-float {
+  animation: xgFloat 3.4s ease-in-out infinite;
+}
+.xg-sway {
+  animation: xgSway 5.2s ease-in-out infinite;
+}
+.xg-halo {
+  animation: xgPulse 2.6s ease-in-out infinite;
+}
+.xg-mouth-anim {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: xgMouth 0.42s ease-in-out infinite;
+}
+.xg-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  vertical-align: text-bottom;
+  background: var(--text-secondary);
+  animation: pulse 1s steps(2, start) infinite;
+}
+
+@keyframes xgFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes xgSway {
+  0%,
+  100% {
+    transform: rotate(-3.5deg);
+  }
+  50% {
+    transform: rotate(3.5deg);
+  }
+}
+@keyframes xgPulse {
+  0%,
+  100% {
+    opacity: 0.26;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.08);
+  }
+}
+@keyframes xgMouth {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+  }
+  50% {
+    transform: scaleY(1.35);
+  }
+}

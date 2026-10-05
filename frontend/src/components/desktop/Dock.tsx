@@ -1,6 +1,7 @@
 import { useUI, type AppId } from '../../store/ui'
 import { useSms, smsUnreadCount } from '../../store/sms'
 import { useCalls, callUnreadCount } from '../../store/calls'
+import { useCopy } from '../../store/copy'
 import { ChatIcon, SmsIcon, PhoneIcon } from './DockIcons'
 
 interface DockItem {
@@ -46,6 +47,7 @@ export default function Dock() {
   const openApp = useUI((s) => s.openApp)
   const smsBadge = useSms((s) => smsUnreadCount(s.messages))
   const callBadge = useCalls((s) => callUnreadCount(s.records))
+  const labels = useCopy((s) => s.texts.appLabels)
   const badges: Partial<Record<AppId, number>> = { sms: smsBadge, phone: callBadge }
 
   return (
@@ -87,7 +89,7 @@ export default function Dock() {
               <Badge count={badges[id] ?? 0} />
             </span>
             <span className="fs-aux" style={{ color: 'var(--text-secondary)', letterSpacing: '2px' }}>
-              {label}
+              {labels[id]?.trim() || label}
             </span>
           </button>
         ))}

@@ -6,27 +6,12 @@ import { useChats } from '../../store/chats'
 import { useSms } from '../../store/sms'
 import { useCalls } from '../../store/calls'
 import { useUI } from '../../store/ui'
-import {
-  useDesktop,
-  resolveGradient,
-  shadowCss,
-  type ModuleStyles,
-} from '../../store/desktopModules'
+import { useCopy } from '../../store/copy'
+import { useDesktop, type ModuleStyles } from '../../store/desktopModules'
 import { rollMonologueLine, rollSignature } from '../../lib/monologue'
-import { useBlobURL } from '../WallpaperLayer'
-import { CloudIcon, PauseIcon, PlayIcon, RefreshIcon } from './DockIcons'
-
-function cardStyle(styles: ModuleStyles): React.CSSProperties {
-  const { from, to } = resolveGradient(styles)
-  return {
-    background: `linear-gradient(160deg, ${from} 0%, ${to} 100%)`,
-    border: '1px solid #2a2a2a',
-    borderRadius: styles.borderRadius,
-    boxShadow: shadowCss(styles.shadow),
-    marginBottom: styles.spacing,
-    overflow: 'hidden',
-  }
-}
+import { CloudIcon, RefreshIcon } from './DockIcons'
+import DesktopMusicCard from './DesktopMusicCard'
+import { cardStyle } from './moduleStyle'
 
 function relTime(ts: number): string {
   const diff = Date.now() - ts
@@ -52,6 +37,7 @@ const WEATHERS = [
 function TimeCard({ styles }: { styles: ModuleStyles }) {
   const [now, setNow] = useState(new Date())
   const signature = useSettings((s) => s.signature)
+  const copySignature = useCopy((s) => s.texts.signature)
   const [fallbackSig] = useState(() => rollSignature())
 
   useEffect(() => {
@@ -63,6 +49,7 @@ function TimeCard({ styles }: { styles: ModuleStyles }) {
   const hh = String(now.getHours()).padStart(2, '0')
   const mm = String(now.getMinutes()).padStart(2, '0')
   const week = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()]
+  const sig = copySignature.trim() || signature.trim() || fallbackSig
 
   return (
     <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 16px' }}>
@@ -84,7 +71,7 @@ function TimeCard({ styles }: { styles: ModuleStyles }) {
         className="fs-aux"
         style={{ color: '#888888', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
       >
-        “{signature.trim() || fallbackSig}”
+        “{sig}”
       </div>
     </div>
   )
@@ -93,15 +80,23 @@ function TimeCard({ styles }: { styles: ModuleStyles }) {
 function MonologueCard({ styles }: { styles: ModuleStyles }) {
   const monologue = useDesktop((s) => s.monologue)
   const setMonologue = useDesktop((s) => s.setMonologue)
+  const title = useCopy((s) => s.texts.monologueTitle)
+  const customContent = useCopy((s) => s.texts.monologueContent)
+  const emptyMonologue = useCopy((s) => s.texts.emptyMonologue)
+
+  const hasCustom = customContent.trim().length > 0
 
   useEffect(() => {
-    if (!monologue) setMonologue(rollMonologueLine())
-  }, [monologue, setMonologue])
+    if (!hasCustom && !monologue) setMonologue(rollMonologueLine())
+  }, [hasCustom, monologue, setMonologue])
+
+  const body = hasCustom ? customContent : (monologue?.text ?? emptyMonologue)
+  const author = hasCustom ? '' : (monologue?.author ?? '')
 
   return (
     <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 16px', minHeight: 120 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span className="fs-aux" style={{ color: '#888888', letterSpacing: '1px' }}>今日独白</span>
+        <span className="fs-aux" style={{ color: '#888888', letterSpacing: '1px' }}>{title}</span>
         <button
           className="pressable"
           onClick={() => setMonologue(rollMonologueLine())}
@@ -123,11 +118,13 @@ function MonologueCard({ styles }: { styles: ModuleStyles }) {
           overflow: 'hidden',
         }}
       >
-        “{monologue?.text ?? '……'}”
+        “{body}”
       </div>
-      <div className="fs-micro" style={{ textAlign: 'right', color: '#666666', marginTop: 10 }}>
-        — {monologue?.author ?? ''}
-      </div>
+      {author && (
+        <div className="fs-micro" style={{ textAlign: 'right', color: '#666666', marginTop: 10 }}>
+          — {author}
+        </div>
+      )}
     </div>
   )
 }
@@ -139,6 +136,8 @@ function RecentCard({ styles }: { styles: ModuleStyles }) {
   const calls = useCalls((s) => s.records)
   const openApp = useUI((s) => s.openApp)
   const setPendingChat = useUI((s) => s.setPendingChat)
+  const title = useCopy((s) => s.texts.recentTitle)
+  const emptyRecent = useCopy((s) => s.texts.emptyRecent)
 
   const items = useMemo(() => {
     const lastActive = new Map<string, number>()
@@ -160,15 +159,15 @@ function RecentCard({ styles }: { styles: ModuleStyles }) {
   if (items.length === 0) {
     return (
       <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 16px' }}>
-        <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 8 }}>最近互动</div>
-        <div className="fs-micro" style={{ color: 'var(--text-disabled)' }}>还没有互动记录</div>
+        <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 8 }}>{title}</div>
+        <div className="fs-micro" style={{ color: 'var(--text-disabled)' }}>{emptyRecent}</div>
       </div>
     )
   }
 
   return (
     <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 0 12px' }}>
-      <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 10, padding: '0 16px' }}>最近互动</div>
+      <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 10, padding: '0 16px' }}>{title}</div>
       <div
         style={{
           display: 'flex',
@@ -219,72 +218,11 @@ function RecentCard({ styles }: { styles: ModuleStyles }) {
   )
 }
 
-function PlayingCard({ styles }: { styles: ModuleStyles }) {
-  const nowPlaying = useDesktop((s) => s.nowPlaying)
-  const updatePlayback = useDesktop((s) => s.updatePlayback)
-  const coverUrl = useBlobURL(nowPlaying?.coverId ?? null)
-  const openApp = useUI((s) => s.openApp)
-
-  if (!nowPlaying) return null
-
-  return (
-    <div className="no-select" style={{ ...cardStyle(styles), padding: '12px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button
-          className="pressable"
-          onClick={() => openApp('music')}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            overflow: 'hidden',
-            flexShrink: 0,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid #2a2a2a',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {coverUrl ? (
-            <img src={coverUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <CloudIcon size={20} />
-          )}
-        </button>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div className="fs-body" style={{ color: '#e0e0e0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {nowPlaying.title}
-          </div>
-          <div className="fs-micro" style={{ color: '#888888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {nowPlaying.artist}
-          </div>
-        </div>
-        <button
-          className="pressable"
-          onClick={() => updatePlayback({ playing: !nowPlaying.playing })}
-          style={{ color: '#e0e0e0', padding: 6, display: 'flex' }}
-        >
-          {nowPlaying.playing ? <PauseIcon size={18} /> : <PlayIcon size={18} />}
-        </button>
-      </div>
-      <div style={{ height: 3, borderRadius: 999, background: '#2a2a2a', marginTop: 10, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.min(100, Math.max(0, nowPlaying.progress * 100))}%`, height: '100%', background: 'var(--accent)' }} />
-      </div>
-    </div>
-  )
-}
-
 export default function DesktopModules() {
   const styles = useDesktop((s) => s.styles)
   const visibility = useDesktop((s) => s.visibility)
-  const nowPlaying = useDesktop((s) => s.nowPlaying)
 
-  const anyVisible =
-    visibility.time ||
-    visibility.monologue ||
-    visibility.recent ||
-    (visibility.playing && !!nowPlaying)
+  const anyVisible = visibility.time || visibility.monologue || visibility.recent || visibility.playing
   if (!anyVisible) return null
 
   return (
@@ -292,7 +230,7 @@ export default function DesktopModules() {
       {visibility.time && <TimeCard styles={styles} />}
       {visibility.monologue && <MonologueCard styles={styles} />}
       {visibility.recent && <RecentCard styles={styles} />}
-      {visibility.playing && <PlayingCard styles={styles} />}
+      {visibility.playing && <DesktopMusicCard styles={styles} />}
     </div>
   )
 }

@@ -19,6 +19,8 @@ interface UIState {
   banner: { characterId: string; characterName: string; text: string } | null
   pendingChat: { kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null
   pendingForum: PendingForum | null
+  /** AI 编程助手「小鬼」面板是否打开 */
+  xiaoguiOpen: boolean
   unlock: () => void
   lock: () => void
   openApp: (id: AppId) => void
@@ -26,6 +28,7 @@ interface UIState {
   setBanner: (b: UIState['banner']) => void
   setPendingChat: (p: UIState['pendingChat']) => void
   setPendingForum: (p: PendingForum | null) => void
+  setXiaoguiOpen: (v: boolean) => void
 }
 
 export const useUI = create<UIState>((set) => ({
@@ -34,6 +37,7 @@ export const useUI = create<UIState>((set) => ({
   banner: null,
   pendingChat: null,
   pendingForum: null,
+  xiaoguiOpen: false,
   unlock: () => set({ screen: 'desktop' }),
   lock: () => set({ screen: 'lock', activeApp: null }),
   openApp: (id) => set({ activeApp: id }),
@@ -41,6 +45,7 @@ export const useUI = create<UIState>((set) => ({
   setBanner: (banner) => set({ banner }),
   setPendingChat: (pendingChat) => set({ pendingChat }),
   setPendingForum: (pendingForum) => set({ pendingForum }),
+  setXiaoguiOpen: (xiaoguiOpen) => set({ xiaoguiOpen }),
 }))
 
 export interface ToastItem {

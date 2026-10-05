@@ -5,15 +5,19 @@ import TopNav from './TopNav'
 import Desktop from './Desktop'
 import SettingsApp from './settings/SettingsApp'
 import MusicApp from './music/MusicApp'
+import GlobalAudio from './music/GlobalAudio'
 import ChatHub from './chat/ChatHub'
 import ForumApp from './forum/ForumApp'
 import SmsApp from './sms/SmsApp'
 import PhoneApp from './phone/PhoneApp'
 import Avatar from './chat/Avatar'
+import Ghost from './xiaogui/Ghost'
+import XiaoguiPanel from './xiaogui/XiaoguiPanel'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
   const activeApp = useUI((s) => s.activeApp)
+  const xiaoguiOpen = useUI((s) => s.xiaoguiOpen)
 
   return (
     <div style={{ position: 'absolute', top: 'var(--statusbar-height)', left: 0, right: 0, bottom: 0 }}>
@@ -21,6 +25,10 @@ export default function PhoneHome() {
       <Desktop />
 
       <NotificationBanner />
+
+      <GlobalAudio />
+      {activeApp === null && !xiaoguiOpen && <Ghost />}
+      {xiaoguiOpen && <XiaoguiPanel />}
 
       {activeApp && (
         <div

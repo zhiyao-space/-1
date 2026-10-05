@@ -1,6 +1,8 @@
-import { MessageCircle, Globe, Music, Settings } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { Ghost, Globe, MessageCircle, Music, Settings } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
+import { useCopy } from '../store/copy'
 import { useDesktop, wallpaperCss } from '../store/desktopModules'
 import { WallpaperLayer } from './WallpaperLayer'
 import DesktopModules from './desktop/DesktopModules'
@@ -15,16 +17,51 @@ const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
 
 export default function Desktop() {
   const openApp = useUI((s) => s.openApp)
+  const setXiaoguiOpen = useUI((s) => s.setXiaoguiOpen)
+  const labels = useCopy((s) => s.texts.appLabels)
   const wallpaperId = useSettings((s) => s.wallpapers.desktop)
   const wallpaperFx = useSettings((s) => s.wallpaperFx.desktop)
   const iconSize = useSettings((s) => s.desktopIconSize)
   const wallpaperPresetId = useDesktop((s) => s.wallpaperPresetId)
+
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const pressTimer = useRef<number | null>(null)
+
+  const clearPress = () => {
+    if (pressTimer.current) {
+      window.clearTimeout(pressTimer.current)
+      pressTimer.current = null
+    }
+  }
+
+  // 长按桌面空白处弹出菜单
+  const startPress = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.target !== e.currentTarget) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const y = e.clientY - rect.top
+    clearPress()
+    pressTimer.current = window.setTimeout(() => {
+      setMenu({ x, y })
+      navigator.vibrate?.(10)
+    }, 500)
+  }
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
       <WallpaperLayer imageId={wallpaperId} fx={wallpaperFx} fallbackCss={wallpaperCss(wallpaperPresetId)} />
       <div
         className="no-select"
+        onPointerDown={startPress}
+        onPointerUp={clearPress}
+        onPointerLeave={clearPress}
+        onPointerMove={clearPress}
+        onScroll={clearPress}
+        onContextMenu={(e) => {
+          e.preventDefault()
+          const rect = e.currentTarget.getBoundingClientRect()
+          setMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+        }}
         style={{
           position: 'absolute',
           inset: 0,
@@ -73,7 +110,7 @@ export default function Desktop() {
                   <Icon size={iconSize} strokeWidth={1.8} />
                 </span>
                 <span className="fs-micro" style={{ color: 'var(--text-secondary)', letterSpacing: '1px' }}>
-                  {app.name}
+                  {labels[app.id]?.trim() || app.name}
                 </span>
               </button>
             )
@@ -81,6 +118,47 @@ export default function Desktop() {
         </div>
       </div>
       <Dock />
+
+      {menu && (
+        <div
+          onClick={() => setMenu(null)}
+          style={{ position: 'absolute', inset: 0, zIndex: 300 }}
+        >
+          <div
+            className="glass page-enter"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'absolute',
+              left: Math.max(8, Math.min(menu.x, 270)),
+              top: Math.max(8, Math.min(menu.y, 640)),
+              width: 168,
+              borderRadius: 16,
+              padding: 6,
+            }}
+          >
+            <button
+              className="pressable"
+              onClick={() => {
+                setMenu(null)
+                setXiaoguiOpen(true)
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '11px 12px',
+                borderRadius: 12,
+                textAlign: 'left',
+                color: 'var(--text-primary)',
+              }}
+            >
+              <Ghost size={17} />
+              <span className="fs-body">{labels.xiaogui?.trim() || '小鬼'}</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
