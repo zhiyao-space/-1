@@ -486,3 +486,396 @@ input[type='color'] {
     transform: scaleY(1.35);
   }
 }
+
+/* ── 锁屏幽灵启动动画（5s 循环） ─────────────────── */
+.ls-show {
+  animation: lsShow 5s ease-in-out infinite;
+}
+.ls-halo {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lsHalo 5s ease-in-out infinite;
+}
+.ls-ghost {
+  transform-box: fill-box;
+  transform-origin: 50% 84%;
+  animation: lsGhost 5s ease-in-out infinite;
+}
+.ls-phone {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lsPhone 5s ease-in-out infinite;
+}
+.ls-sword {
+  transform-box: fill-box;
+  transform-origin: 50% 88%;
+  animation: lsSword 5s ease-in-out infinite;
+}
+.ls-slash {
+  animation: lsSlash 5s ease-in-out infinite;
+}
+.ls-mini {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lsMini 5s ease-in-out infinite;
+}
+.ls-mini-screen {
+  animation: lsMiniScreen 5s steps(1, end) infinite;
+}
+.ls-cat {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: lsCat 5s ease-in-out infinite;
+}
+.ls-dog {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: lsDog 5s ease-in-out infinite;
+}
+.ls-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lsSpark 5s ease-in-out infinite;
+}
+.ls-heart {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: lsHeart 5s ease-in-out infinite;
+}
+.ls-mote {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+  animation: lsMote linear infinite;
+  pointer-events: none;
+}
+.ls-line {
+  animation: lsLine 3.2s ease-in-out infinite;
+}
+.ls-brand {
+  animation: lsBrand 3.8s ease-in-out infinite;
+}
+
+@keyframes lsShow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.26)) drop-shadow(0 0 24px var(--accent));
+  }
+  38% {
+    filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.48)) drop-shadow(0 0 38px var(--accent));
+  }
+  82% {
+    filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.62)) drop-shadow(0 0 52px var(--accent));
+  }
+}
+@keyframes lsHalo {
+  0%,
+  100% {
+    opacity: 0.24;
+    transform: scale(0.86);
+  }
+  42% {
+    opacity: 0.48;
+    transform: scale(1.04);
+  }
+  82% {
+    opacity: 0.6;
+    transform: scale(1.12);
+  }
+}
+@keyframes lsGhost {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  10% {
+    transform: translateY(-2px) scale(1.01);
+  }
+  24% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  29% {
+    transform: translateY(-2px) rotate(-7deg) scale(1.01);
+  }
+  34% {
+    transform: translateY(1px) rotate(8deg) scale(1.02);
+  }
+  40% {
+    transform: translateY(0) rotate(0deg) scale(1);
+  }
+  49% {
+    transform: translateY(-3px) scale(1.02);
+  }
+  58% {
+    transform: translateY(0) scale(1);
+  }
+  66% {
+    transform: translateY(2px) scale(1.03);
+  }
+  74% {
+    transform: translateY(-1px) scale(1);
+  }
+  82% {
+    transform: translateY(-7px) scale(1.05);
+  }
+  90% {
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes lsPhone {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  34% {
+    transform: rotate(-4deg);
+  }
+  49% {
+    transform: rotate(3deg);
+  }
+  82% {
+    transform: rotate(-2deg);
+  }
+}
+@keyframes lsSword {
+  0%,
+  20% {
+    opacity: 0;
+    transform: rotate(34deg) translateY(4px) scale(0.7);
+  }
+  26% {
+    opacity: 1;
+    transform: rotate(-24deg) translateY(0) scale(1);
+  }
+  34% {
+    opacity: 1;
+    transform: rotate(72deg) scale(1.05);
+  }
+  40%,
+  100% {
+    opacity: 0;
+    transform: rotate(96deg) scale(0.9);
+  }
+}
+@keyframes lsSlash {
+  0%,
+  27% {
+    opacity: 0;
+    stroke-dashoffset: 46;
+  }
+  30% {
+    opacity: 1;
+    stroke-dasharray: 46;
+    stroke-dashoffset: 46;
+  }
+  35% {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  41%,
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes lsMini {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  48% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  56% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  62%,
+  100% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.9);
+  }
+}
+@keyframes lsMiniScreen {
+  0%,
+  47% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  54% {
+    opacity: 0.2;
+  }
+  57% {
+    opacity: 1;
+  }
+  61%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes lsCat {
+  0%,
+  58% {
+    opacity: 0;
+    transform: translate(-10px, 8px);
+  }
+  66% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: translate(-7px, 6px);
+  }
+}
+@keyframes lsDog {
+  0%,
+  61% {
+    opacity: 0;
+    transform: translate(10px, 8px);
+  }
+  69% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  78% {
+    opacity: 1;
+    transform: translate(0, 0);
+  }
+  85%,
+  100% {
+    opacity: 0;
+    transform: translate(7px, 6px);
+  }
+}
+@keyframes lsSpark {
+  0%,
+  28% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  32% {
+    opacity: 1;
+    transform: scale(1.15) rotate(40deg);
+  }
+  38% {
+    opacity: 0;
+    transform: scale(1.5) rotate(80deg);
+  }
+  84% {
+    opacity: 0;
+    transform: scale(0.3) rotate(0deg);
+  }
+  88% {
+    opacity: 1;
+    transform: scale(1.15) rotate(40deg);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5) rotate(80deg);
+  }
+}
+@keyframes lsHeart {
+  0%,
+  82% {
+    opacity: 0;
+    transform: scale(0.2) translateY(6px);
+  }
+  88% {
+    opacity: 1;
+    transform: scale(1.2) translateY(-2px);
+  }
+  94% {
+    opacity: 0.9;
+    transform: scale(1) translateY(-6px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.1) translateY(-12px);
+  }
+}
+@keyframes lsMote {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.6);
+  }
+  20% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scale(1.05);
+  }
+}
+@keyframes lsLine {
+  0% {
+    opacity: 0;
+    transform: translateY(7px);
+    filter: blur(4px);
+  }
+  14% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+  78% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+    filter: blur(3px);
+  }
+}
+@keyframes lsBrand {
+  0%,
+  100% {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.16);
+  }
+  50% {
+    text-shadow:
+      0 0 18px rgba(255, 255, 255, 0.5),
+      0 0 34px var(--accent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls-show,
+  .ls-halo,
+  .ls-ghost,
+  .ls-phone,
+  .ls-sword,
+  .ls-slash,
+  .ls-mini,
+  .ls-mini-screen,
+  .ls-cat,
+  .ls-dog,
+  .ls-spark,
+  .ls-heart,
+  .ls-mote,
+  .ls-line,
+  .ls-brand {
+    animation: none !important;
+  }
+  .ls-sword,
+  .ls-slash,
+  .ls-mini,
+  .ls-cat,
+  .ls-dog,
+  .ls-heart {
+    opacity: 0 !important;
+  }
+}
