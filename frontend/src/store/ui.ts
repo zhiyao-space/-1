@@ -13,12 +13,16 @@ export interface PendingForum {
   id: string
 }
 
+export type HubTab = 'messages' | 'contacts' | 'moments' | 'me'
+
 interface UIState {
   screen: 'lock' | 'desktop'
   activeApp: AppId | null
   banner: { characterId: string; characterName: string; text: string } | null
   pendingChat: { kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null
   pendingForum: PendingForum | null
+  /** 请求聊天模块切换到指定底栏 Tab（如从聊天卡片跳朋友圈） */
+  pendingHubTab: HubTab | null
   /** AI 编程助手「小鬼」面板是否打开 */
   xiaoguiOpen: boolean
   unlock: () => void
@@ -28,6 +32,7 @@ interface UIState {
   setBanner: (b: UIState['banner']) => void
   setPendingChat: (p: UIState['pendingChat']) => void
   setPendingForum: (p: PendingForum | null) => void
+  setPendingHubTab: (t: HubTab | null) => void
   setXiaoguiOpen: (v: boolean) => void
 }
 
@@ -37,6 +42,7 @@ export const useUI = create<UIState>((set) => ({
   banner: null,
   pendingChat: null,
   pendingForum: null,
+  pendingHubTab: null,
   xiaoguiOpen: false,
   unlock: () => set({ screen: 'desktop' }),
   lock: () => set({ screen: 'lock', activeApp: null }),
@@ -45,6 +51,7 @@ export const useUI = create<UIState>((set) => ({
   setBanner: (banner) => set({ banner }),
   setPendingChat: (pendingChat) => set({ pendingChat }),
   setPendingForum: (pendingForum) => set({ pendingForum }),
+  setPendingHubTab: (pendingHubTab) => set({ pendingHubTab }),
   setXiaoguiOpen: (xiaoguiOpen) => set({ xiaoguiOpen }),
 }))
 

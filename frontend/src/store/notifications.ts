@@ -4,7 +4,7 @@ import type { AppId } from './ui'
 
 export interface NotificationTarget {
   app: AppId
-  payload?: { kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | { view: 'post' | 'dm' | 'circle' | 'profile'; id: string }
+  payload?: { kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | { view: 'post' | 'dm' | 'circle' | 'profile' | 'moment'; id: string }
 }
 
 export type NotificationKind =
@@ -16,6 +16,8 @@ export type NotificationKind =
   | 'forum-pin'
   | 'forum-essence'
   | 'forum-post'
+  | 'moment-like'
+  | 'moment-comment'
   | 'dm'
   | 'chat'
   | 'system'

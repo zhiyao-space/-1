@@ -33,6 +33,7 @@ import { useToast } from '../../store/ui'
 import { useSettings } from '../../store/settings'
 import { useProfile } from '../../store/profile'
 import { useUI } from '../../store/ui'
+import { useMoments } from '../../store/moments'
 import { useSchedule, currentActivity } from '../../store/schedule'
 import { useBranches, useChatAppearance, useWallet } from '../../store/interact'
 import { useOfflineMode, OFFLINE_STYLES, OFFLINE_LENGTHS, OFFLINE_PERSONS, offlineSettingsFor } from '../../store/offlineMode'
@@ -1416,21 +1417,35 @@ function renderBody(
   )
 }
 
-function MomentCardBubble({ content }: { momentId: string | null; content: string }) {
+function MomentCardBubble({ momentId, content }: { momentId: string | null; content: string }) {
+  const moment = useMoments((s) => s.moments.find((m) => m.id === momentId))
+  const setPendingHubTab = useUI((s) => s.setPendingHubTab)
+  const setPendingJump = useMoments((s) => s.setPendingJump)
+  const url = useBlobURL(moment?.imageIds[0] ?? null)
+  const deleted = !moment
+
   return (
-    <div
-      className="bubble bubble-left ksc-bubble"
-      style={{ padding: 10, maxWidth: 240, borderRadius: 14 }}
+    <button
+      className="bubble bubble-left ksc-bubble pressable"
+      onClick={() => {
+        if (!moment) return
+        setPendingJump(moment.id)
+        setPendingHubTab('moments')
+      }}
+      style={{ padding: 10, maxWidth: 240, borderRadius: 14, textAlign: 'left', display: 'block' }}
     >
       <div className="fs-micro" style={{ color: 'var(--text-tertiary)', display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ color: 'var(--accent-color, #9b8cff)' }}>朋友圈</span>
+        <span style={{ color: 'var(--accent, #9b8cff)' }}>朋友圈</span>
         <span>·</span>
-        <span>已归档动态</span>
+        <span>{deleted ? '动态已删除' : moment.author.name}</span>
       </div>
+      {url && (
+        <img src={url} alt="" style={{ width: '100%', maxHeight: 150, objectFit: 'cover', borderRadius: 10, marginTop: 6 }} />
+      )}
       <div className="fs-body" style={{ marginTop: 4, color: 'var(--text-body)', lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-        {content || '（动态内容已不可见）'}
+        {deleted ? '（动态内容已不可见）' : moment.content || content || '（图片动态）'}
       </div>
-    </div>
+    </button>
   )
 }
 

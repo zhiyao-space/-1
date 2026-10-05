@@ -918,3 +918,160 @@ input[type='color'] {
     animation: none !important;
   }
 }
+
+/* ---------- 朋友圈 · 关系地图 ---------- */
+
+.rel-stage {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0) 55%),
+    radial-gradient(90% 70% at 50% 112%, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(160deg, #171717 0%, #0a0a0a 45%, #030303 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.rel-stage::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.028) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(62% 62% at 50% 50%, #000 25%, transparent 100%);
+  mask-image: radial-gradient(62% 62% at 50% 50%, #000 25%, transparent 100%);
+  pointer-events: none;
+}
+
+.rel-ring {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rel-ring-user {
+  border: 2px solid rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.06);
+  animation: relBreath 3.2s ease-in-out infinite;
+}
+
+.rel-ring-char {
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  background: #141414;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.55);
+}
+
+.rel-ring-npc {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: #1c1c1c;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  opacity: 0.9;
+}
+
+@keyframes relBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05), 0 0 14px rgba(255, 255, 255, 0.28);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.02), 0 0 28px rgba(255, 255, 255, 0.5);
+  }
+}
+
+.rel-edge {
+  transition: stroke-opacity 0.18s ease;
+}
+
+.rel-edge-flow {
+  animation: relDashFlow 1.4s linear infinite;
+}
+
+@keyframes relDashFlow {
+  to {
+    stroke-dashoffset: -28;
+  }
+}
+
+.rel-legend {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.rel-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-tertiary);
+}
+
+.rel-ln {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.rel-ln-user {
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.rel-ln-char {
+  width: 9px;
+  height: 9px;
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  border-radius: 50%;
+  background: #141414;
+}
+
+.rel-ln-npc {
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 50%;
+  background: #1c1c1c;
+}
+
+.rel-ln-one {
+  position: relative;
+}
+
+.rel-ln-one::after {
+  content: '';
+  position: absolute;
+  right: -5px;
+  top: -3px;
+  border-left: 5px solid rgba(255, 255, 255, 0.6);
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+
+.rel-ln-amb {
+  border-top-style: dashed;
+}
+
+.rel-ln-broken {
+  border-top-style: dashed;
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rel-ring-user,
+  .rel-edge-flow {
+    animation: none !important;
+  }
+}
