@@ -8,6 +8,7 @@ export type AppId =
   | 'sms'
   | 'phone'
   | 'factory'
+  | 'social'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

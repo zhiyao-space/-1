@@ -30,6 +30,7 @@ export const DEFAULT_COPY: CopyTexts = {
     chat: '聊天',
     forum: '论坛',
     music: '音乐',
+    social: 'mu社区',
     settings: '设置',
     sms: '短信',
     phone: '电话',
