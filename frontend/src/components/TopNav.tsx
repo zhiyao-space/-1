@@ -20,6 +20,8 @@ export default function TopNav({ showBack = true }: { showBack?: boolean }) {
         position: 'relative',
         zIndex: 60,
         flexShrink: 0,
+        // 应用打开时铺上与应用一致的底色，避免顶部透出桌面内容；桌面态保持透明露出壁纸
+        background: activeApp ? 'var(--bg-primary)' : 'transparent',
       }}
     >
       <div style={{ width: 76, display: 'flex' }}>
