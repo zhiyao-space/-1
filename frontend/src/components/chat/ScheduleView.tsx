@@ -1,19 +1,60 @@
-import { useMemo, useState } from 'react'
-import { Plus, Trash2, Moon } from 'lucide-react'
-import { useSchedule, type ScheduleItem } from '../../store/schedule'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Plus, Trash2, Moon, RefreshCw, BookOpen, Users, Armchair, Briefcase, Gamepad2, MessageCircle, UtensilsCrossed, ChevronDown, Sparkles } from 'lucide-react'
+import { useSchedule, type ScheduleItem, type AutoItem, type AutoScheduleType } from '../../store/schedule'
+import { ensureTodaySchedule, autoItemStatus } from '../../lib/scheduleEngine'
 import { useToast } from '../../store/ui'
 import { Modal } from '../common'
+import type { Character } from '../../store/characters'
 
-export default function ScheduleView({ characterId }: { characterId: string }) {
+const TYPE_ICON: Record<AutoScheduleType, typeof Moon> = {
+  日常: UtensilsCrossed,
+  学习: BookOpen,
+  社交: Users,
+  独处: Armchair,
+  打工: Briefcase,
+  娱乐: Gamepad2,
+  互动: MessageCircle,
+  睡眠: Moon,
+}
+
+interface TimelineRow {
+  id: string
+  start: string
+  end: string
+  label: string
+  isSleep: boolean
+  auto: AutoItem | null
+  manual: ScheduleItem | null
+}
+
+export default function ScheduleView({ character }: { character: Character }) {
+  const characterId = character.id
   const items = useSchedule((s) => s.items)
   const routines = useSchedule((s) => s.routines)
   const reports = useSchedule((s) => s.reports)
+  const autoDays = useSchedule((s) => s.autoDays)
   const [tab, setTab] = useState<'month' | 'day' | 'routine'>('month')
   const [cursor, setCursor] = useState(() => new Date())
   const [addOpen, setAddOpen] = useState(false)
   const [routineOpen, setRoutineOpen] = useState(false)
+  const [expanded, setExpanded] = useState<string | null>(null)
+  const [nowTick, setNowTick] = useState(0)
+
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((x) => x + 1), 30000)
+    return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    ensureTodaySchedule(character)
+  }, [characterId])
+
+  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+  const [selected, setSelected] = useState(todayStr)
+  const autoToday = autoDays[`${characterId}_${todayStr}`]
 
   const byDate = useMemo(() => {
+    void nowTick
     const map: Record<string, ScheduleItem[]> = {}
     for (const it of items) {
       if (it.characterId !== characterId && it.characterId !== 'global') continue
@@ -21,21 +62,36 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
       ;(map[it.date] ??= []).push(it)
     }
     return map
-  }, [items, characterId])
+  }, [items, characterId, nowTick])
 
   const year = cursor.getFullYear()
   const month = cursor.getMonth()
   const first = new Date(year, month, 1)
   const startWeekday = first.getDay()
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const todayStr = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
-  const [selected, setSelected] = useState(todayStr)
 
-  const dayItems = useMemo(
-    () => (byDate[selected] ?? []).slice().sort((a, b) => a.start.localeCompare(b.start)),
-    [byDate, selected]
-  )
+  const dayRows = useMemo<TimelineRow[]>(() => {
+    void nowTick
+    const rows: TimelineRow[] = []
+    if (selected === todayStr && autoToday) {
+      for (const a of autoToday.items) {
+        rows.push({ id: a.id, start: a.start, end: a.end, label: a.label, isSleep: a.isSleep, auto: a, manual: null })
+      }
+    }
+    for (const m of byDate[selected] ?? []) {
+      rows.push({ id: m.id, start: m.start, end: m.end, label: m.label, isSleep: m.isSleep, auto: null, manual: m })
+    }
+    return rows.sort((a, b) => a.start.localeCompare(b.start))
+  }, [byDate, selected, autoToday, todayStr, nowTick])
+
+  const hasAutoOn = (ds: string) => ds === todayStr && (autoToday?.items.length ?? 0) > 0
   const charReports = reports.filter((r) => r.characterId === characterId)
+
+  const regenerate = () => {
+    ensureTodaySchedule(character, true)
+    setExpanded(null)
+    useToast.getState().push(`已按「${character.name}」的人设重新生成今日行程`)
+  }
 
   return (
     <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '8px 14px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -54,7 +110,7 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
             </span>
             <button className="pressable btn" style={{ padding: '4px 12px' }} onClick={() => setCursor(new Date(year, month + 1, 1))}>›</button>
             <button className="btn" style={{ padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 4 }} onClick={() => setAddOpen(true)}>
-              <Plus size={13} /> 添加
+              <Plus size={13} /> 特殊事件
             </button>
           </div>
 
@@ -70,7 +126,7 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
                 {Array.from({ length: daysInMonth }).map((_, i) => {
                   const d = i + 1
                   const ds = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
-                  const has = (byDate[ds] ?? []).length > 0
+                  const has = (byDate[ds] ?? []).length > 0 || hasAutoOn(ds)
                   const isSel = ds === selected
                   const isToday = ds === todayStr
                   return (
@@ -86,13 +142,13 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
                         borderRadius: 8,
                         position: 'relative',
                         fontSize: 12,
-                        color: isSel ? '#000' : isToday ? 'var(--accent-color)' : 'var(--text-secondary)',
-                        background: isSel ? 'var(--accent-color)' : 'rgba(255,255,255,0.04)',
-                        border: isToday && !isSel ? '1px solid var(--accent-color)' : '1px solid transparent',
+                        color: isSel ? '#000' : isToday ? '#f5f5f5' : 'var(--text-secondary)',
+                        background: isSel ? '#f5f5f5' : 'rgba(255,255,255,0.04)',
+                        border: isToday && !isSel ? '1px solid rgba(255,255,255,0.45)' : '1px solid transparent',
                       }}
                     >
                       {d}
-                      {has && !isSel && <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: 'var(--accent-color)' }} />}
+                      {has && !isSel && <span style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: '#f5f5f5' }} />}
                     </button>
                   )
                 })}
@@ -100,25 +156,112 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div className="fs-micro" style={{ color: 'var(--text-tertiary)' }}>{selected} 的日程</div>
-            {dayItems.length === 0 && (
-              <div className="fs-body" style={{ color: 'var(--text-tertiary)', padding: '10px 0' }}>这一天还没有安排</div>
+          {tab === 'day' && selected === todayStr && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 2px' }}>
+              <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flex: 1 }}>
+                今日行程由人设自动生成{autoToday ? ` · 生成于 ${new Date(autoToday.generatedAt).toTimeString().slice(0, 5)}` : ''}
+              </span>
+              <button className="pressable" onClick={regenerate} style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)', padding: 4 }} title="重新生成今日行程">
+                <RefreshCw size={12} />
+                <span className="fs-micro">重新生成</span>
+              </button>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 0, position: 'relative' }}>
+            {selected === todayStr && (
+              <span style={{ position: 'absolute', left: 62, top: 14, bottom: 14, width: 1, background: 'rgba(255,255,255,0.1)' }} />
             )}
-            {dayItems.map((it) => (
-              <div key={it.id} className="glass" style={{ borderRadius: 12, padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span className="mono fs-micro" style={{ color: 'var(--text-tertiary)', width: 88 }}>
-                  {it.start}-{it.end}
-                </span>
-                <span className="fs-body" style={{ flex: 1, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  {it.isSleep && <Moon size={12} color="var(--accent-color)" />}
-                  {it.label}
-                </span>
-                <button className="pressable" onClick={() => useSchedule.getState().removeItem(it.id)} style={{ color: 'var(--text-tertiary)', padding: 4 }}>
-                  <Trash2 size={14} />
-                </button>
+            {dayRows.length === 0 && (
+              <div className="fs-body" style={{ color: 'var(--text-tertiary)', padding: '10px 0' }}>
+                {selected === todayStr ? '今日行程生成中…' : '这一天还没有安排'}
               </div>
-            ))}
+            )}
+            {dayRows.map((row) => {
+              const status = row.auto ? autoItemStatus(row.auto) : null
+              const Icon = row.auto ? TYPE_ICON[row.auto.type] : Sparkles
+              const isOpen = expanded === row.id
+              const showMoment = row.auto && status !== 'todo' && row.auto.moment
+              return (
+                <button
+                  key={row.id}
+                  className="pressable"
+                  onClick={() => setExpanded((v) => (v === row.id ? null : row.id))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: 10,
+                    padding: '9px 10px',
+                    borderRadius: 10,
+                    textAlign: 'left',
+                    background: status === 'active' ? 'rgba(255,255,255,0.07)' : 'transparent',
+                  }}
+                >
+                  <span className="mono fs-micro" style={{ color: 'var(--text-tertiary)', width: 88, flexShrink: 0, paddingTop: 2 }}>
+                    {row.start}-{row.end}
+                  </span>
+                  <span
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      flexShrink: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: status === 'active' ? '#f5f5f5' : 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.14)',
+                      position: 'relative',
+                      zIndex: 1,
+                    }}
+                  >
+                    <Icon size={11} color={status === 'active' ? '#111111' : 'rgba(255,255,255,0.55)'} />
+                  </span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="fs-body" style={{ flex: 1, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+                        {row.isSleep && <Moon size={12} color="rgba(255,255,255,0.5)" />}
+                        {row.label}
+                      </span>
+                      {row.auto ? (
+                        status === 'active' ? (
+                          <Badge dark>进行中</Badge>
+                        ) : status === 'done' ? (
+                          <Badge>已完成</Badge>
+                        ) : (
+                          <Badge dim>未开始</Badge>
+                        )
+                      ) : (
+                        <Badge outline>特殊事件</Badge>
+                      )}
+                    </span>
+                    {showMoment && isOpen && (
+                      <span className="fs-micro" style={{ color: 'var(--text-tertiary)', lineHeight: 1.7, paddingTop: 2 }}>
+                        {row.auto!.moment}
+                      </span>
+                    )}
+                    {showMoment && !isOpen && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3, color: 'var(--text-disabled)' }}>
+                        <ChevronDown size={11} />
+                        <span className="fs-micro">瞬间</span>
+                      </span>
+                    )}
+                  </span>
+                  {!row.auto && (
+                    <span
+                      className="pressable"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        useSchedule.getState().removeItem(row.manual!.id)
+                      }}
+                      style={{ color: 'var(--text-tertiary)', padding: 4, flexShrink: 0 }}
+                    >
+                      <Trash2 size={14} />
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </>
       )}
@@ -128,6 +271,9 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
           <button className="btn btn-accent" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }} onClick={() => setRoutineOpen(true)}>
             <Plus size={14} /> 添加固定作息
           </button>
+          <div className="fs-micro" style={{ color: 'var(--text-disabled)' }}>
+            每天首次打开日程时，系统会按人设自动生成今日行程；固定作息仍然优先生效。
+          </div>
           {routines.filter((r) => r.characterId === characterId || r.characterId === 'global').length === 0 && (
             <div className="fs-body" style={{ color: 'var(--text-tertiary)' }}>
               还没有固定作息。添加后角色会按作息生活，睡觉时间自动进入昏睡模式。
@@ -175,6 +321,26 @@ export default function ScheduleView({ characterId }: { characterId: string }) {
   )
 }
 
+function Badge({ children, dark, dim, outline }: { children: ReactNode; dark?: boolean; dim?: boolean; outline?: boolean }) {
+  return (
+    <span
+      className="fs-micro"
+      style={{
+        flexShrink: 0,
+        padding: '2px 8px',
+        borderRadius: 999,
+        fontSize: 10,
+        lineHeight: 1.5,
+        background: dark ? '#f5f5f5' : 'rgba(255,255,255,0.06)',
+        color: dark ? '#111111' : dim ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.6)',
+        border: outline ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(255,255,255,0.12)',
+      }}
+    >
+      {children}
+    </span>
+  )
+}
+
 function TabBtn({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button
@@ -216,21 +382,21 @@ function AddScheduleModal({
       return
     }
     useSchedule.getState().addItem({ characterId, date, start, end, label: label.trim(), isSleep })
-    push('日程已添加')
+    push('特殊事件已添加')
     setLabel('')
     setIsSleep(false)
     onClose()
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="添加日程">
+    <Modal open={open} onClose={onClose} title="添加特殊事件">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         <div style={{ display: 'flex', gap: 8 }}>
           <input type="time" value={start} onChange={(e) => setStart(e.target.value)} style={{ flex: 1 }} />
           <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} style={{ flex: 1 }} />
         </div>
-        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="事项（如：上班 / 上课）" maxLength={20} />
+        <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="事项（如：约会 / 看演出）" maxLength={20} />
         <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input type="checkbox" checked={isSleep} onChange={(e) => setIsSleep(e.target.checked)} />
           <span className="fs-body" style={{ color: 'var(--text-secondary)' }}>标记为睡眠时段（触发昏睡模式）</span>

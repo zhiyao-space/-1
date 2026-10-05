@@ -35,13 +35,19 @@ export function buildCharacterPrompt(c: Character): string {
 }
 
 export function buildScheduleContext(characterId: string): string {
-  const { routines, items } = useSchedule.getState()
-  const act = currentActivity(characterId, routines, items)
-  const today = useSchedule.getState().items.filter(
-    (i) => (i.characterId === characterId || i.characterId === 'global') && i.date === new Date().toISOString().slice(0, 10)
-  )
+  const { routines, items, autoDays } = useSchedule.getState()
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const auto = autoDays[`${characterId}_${today}`]
+  const act = currentActivity(characterId, routines, items, d, auto?.items)
   const parts = [`正在进行：${act.label}`]
-  if (today.length > 0) parts.push(`今日安排：${today.map((t) => `${t.start}-${t.end} ${t.label}`).join('、')}`)
+  if (auto) {
+    parts.push(`今日行程（自动生成）：${auto.items.map((t) => `${t.start}-${t.end} ${t.label}`).join('、')}`)
+  }
+  const special = items.filter(
+    (i) => (i.characterId === characterId || i.characterId === 'global') && i.date === today
+  )
+  if (special.length > 0) parts.push(`特殊事件：${special.map((t) => `${t.start}-${t.end} ${t.label}`).join('、')}`)
   return parts.join('\n')
 }
 
@@ -228,8 +234,11 @@ export async function generateCharacterReply(
 }
 
 export function isSleeping(characterId: string, now = new Date()): { asleep: boolean; label: string } {
-  const { routines, items } = useSchedule.getState()
-  const act = currentActivity(characterId, routines, items, now)
+  const { routines, items, autoDays } = useSchedule.getState()
+  const d = new Date()
+  const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const auto = autoDays[`${characterId}_${today}`]
+  const act = currentActivity(characterId, routines, items, now, auto?.items)
   return { asleep: act.isSleep, label: act.label }
 }
 

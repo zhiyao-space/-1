@@ -48,6 +48,7 @@ import {
 } from '../../lib/chatEngine'
 import { streamChat } from '../../lib/api'
 import { maybeAutoSummarize } from '../../lib/runtimeEngine'
+import { ensureTodaySchedule } from '../../lib/scheduleEngine'
 import {
   summarizeForModeSwitch,
   buildModeTransitionInstruction,
@@ -67,6 +68,11 @@ import { WallpaperLayer, useBlobURL } from '../WallpaperLayer'
 
 function genId(): string {
   return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+}
+
+function todayKey(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export default function ChatScreen({ characterId, onExit }: { characterId: string; onExit: () => void }) {
@@ -119,9 +125,27 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
   const baseMessages = session?.messages ?? []
   const messages = branch ? branch.messages : baseMessages
+  const [nowTick, setNowTick] = useState(0)
+  const autoToday = useSchedule((s) => (character ? s.autoDays[`${character.id}_${todayKey()}`] : undefined))
+  useEffect(() => {
+    if (character) ensureTodaySchedule(character)
+  }, [character?.id])
+  useEffect(() => {
+    const t = setInterval(() => setNowTick((x) => x + 1), 30000)
+    return () => clearInterval(t)
+  }, [])
   const act = useMemo(
-    () => (character ? currentActivity(character.id, useSchedule.getState().routines, useSchedule.getState().items) : { label: '空闲', progress: 0, isSleep: false, source: 'free' as const }),
-    [character, view, messages.length]
+    () =>
+      character
+        ? currentActivity(
+            character.id,
+            useSchedule.getState().routines,
+            useSchedule.getState().items,
+            new Date(),
+            autoToday?.items
+          )
+        : { label: '空闲', progress: 0, isSleep: false, source: 'free' as const },
+    [character, view, messages.length, nowTick, autoToday]
   )
 
   useEffect(() => {
@@ -502,10 +526,48 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         <button className="pressable" onClick={onExit} style={{ color: 'var(--text-secondary)', padding: 4 }}>
           <ChevronLeft size={22} />
         </button>
-        <span onDoubleClick={poke} style={{ cursor: 'pointer' }}>
+        <span onDoubleClick={poke} style={{ cursor: 'pointer', flexShrink: 0 }}>
           <Avatar imageId={character.avatarId} name={character.name} size={34} badgeImageId={appearance.badgeImageId} />
         </span>
-        <span className="nav-title fs-h3" style={{ color: 'var(--text-primary)', flex: 1 }}>{character.name}</span>
+        <button
+          className="pressable"
+          onClick={() => setCheckinOpen(true)}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 2,
+            padding: 0,
+            background: 'transparent',
+          }}
+          title="查岗 / 报备"
+        >
+          <span
+            className="nav-title fs-h3"
+            style={{
+              color: 'var(--text-primary)',
+              maxWidth: '100%',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'left',
+            }}
+          >
+            {character.name}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
+            <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
+              {act.isSleep && <BedDouble size={11} />}
+              {act.isSleep ? '睡觉中' : `正在：${act.label}`}
+            </span>
+            <span style={{ width: 46, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', flexShrink: 0 }}>
+              <span style={{ display: 'block', width: `${act.progress}%`, height: '100%', background: '#f5f5f5', transition: 'width 0.5s' }} />
+            </span>
+            <span className="fs-micro mono" style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{act.progress}%</span>
+          </span>
+        </button>
         <button className="pressable" onClick={() => setMindOpen(true)} style={{ color: 'var(--text-secondary)', padding: 5 }} title="心声">
           <Heart size={18} />
         </button>
@@ -582,27 +644,6 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         </div>
       </div>
 
-      <button
-        className="pressable"
-        onClick={() => setCheckinOpen(true)}
-        style={{
-          flexShrink: 0,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '7px 14px',
-          background: 'rgba(255,255,255,0.04)',
-          borderBottom: '1px solid rgba(255,255,255,0.05)',
-          textAlign: 'left',
-        }}
-      >
-        <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flexShrink: 0 }}>正在：{act.label}</span>
-        <span style={{ flex: 1, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-          <span style={{ display: 'block', width: `${act.progress}%`, height: '100%', background: 'var(--accent-color)', transition: 'width 0.5s' }} />
-        </span>
-        <span className="fs-micro mono" style={{ color: 'var(--text-disabled)' }}>{act.progress}%</span>
-      </button>
-
       {branch && (
         <button
           className="pressable"
@@ -623,7 +664,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
       )}
 
       {view === 'schedule' ? (
-        <ScheduleView characterId={characterId} />
+        <ScheduleView character={character} />
       ) : (
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
           <WallpaperLayer imageId={settings.wallpapers.chat} fx={settings.wallpaperFx.chat} />
