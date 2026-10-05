@@ -2,6 +2,7 @@ import { MessageCircle, Globe, Music, Settings } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
 import { WallpaperLayer } from './WallpaperLayer'
+import Dock from './desktop/Dock'
 
 const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
   { id: 'chat', name: '聊天', icon: MessageCircle },
@@ -29,7 +30,7 @@ export default function Desktop() {
           alignContent: 'flex-start',
           justifyContent: 'flex-start',
           gap: '18px 0',
-          padding: 'calc(var(--nav-height) + 8px) 18px 24px',
+          padding: 'calc(var(--nav-height) + 8px) 18px 130px',
           overflowY: 'auto',
         }}
       >
@@ -70,6 +71,7 @@ export default function Desktop() {
           )
         })}
       </div>
+      <Dock />
     </div>
   )
 }

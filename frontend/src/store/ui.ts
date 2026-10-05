@@ -5,6 +5,8 @@ export type AppId =
   | 'chat'
   | 'forum'
   | 'music'
+  | 'sms'
+  | 'phone'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

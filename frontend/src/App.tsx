@@ -5,6 +5,7 @@ import { getBlob } from './lib/idb'
 import { runProactiveTick } from './lib/proactive'
 import { runForumTick } from './lib/forumScheduler'
 import { ToastHost } from './components/common'
+import { GradDefs } from './components/desktop/DockIcons'
 import LockScreen from './components/LockScreen'
 import PhoneHome from './components/PhoneHome'
 import StatusBar from './components/StatusBar'
@@ -61,6 +62,7 @@ export default function App() {
         background: 'radial-gradient(circle at 50% 30%, #17181c 0%, #08090b 70%)',
       }}
     >
+      <GradDefs />
       {settings.customCss && <style>{settings.customCss}</style>}
       <div
         style={{

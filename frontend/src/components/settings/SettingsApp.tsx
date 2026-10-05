@@ -8,6 +8,7 @@ import {
   BrainCircuit,
   Database,
   Smartphone,
+  ScrollText,
 } from 'lucide-react'
 import { SectionCard } from '../common'
 import ThemePage from './ThemePage'
@@ -18,11 +19,12 @@ import ApiConfigPage from './ApiConfigPage'
 import ChatParamsPage from './ChatParamsPage'
 import WorldbookPage from './WorldbookPage'
 import RuntimeRulesPage from './RuntimeRulesPage'
+import WorldRulesPage from './WorldRulesPage'
 import ChainSettingsPage from './ChainSettingsPage'
 import DataPage from './DataPage'
 import AboutApp from './AboutApp'
 
-type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'chain' | 'data' | 'about'
+type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'worldrules' | 'chain' | 'data' | 'about'
 
 export default function SettingsApp() {
   const [page, setPage] = useState<SubPage>('home')
@@ -38,6 +40,7 @@ export default function SettingsApp() {
       {page === 'chatparams' && <PageShell title="聊天参数" onBack={() => setPage('home')}><ChatParamsPage /></PageShell>}
       {page === 'worldbook' && <WorldbookPage onBackHome={() => setPage('home')} />}
       {page === 'rules' && <RuntimeRulesPage onBack={() => setPage('home')} onOpenChain={() => setPage('chain')} />}
+      {page === 'worldrules' && <WorldRulesPage onBack={() => setPage('home')} />}
       {page === 'chain' && <ChainSettingsPage onBack={() => setPage('rules')} />}
       {page === 'data' && <DataPage onBack={() => setPage('home')} />}
       {page === 'about' && <PageShell title="关于 mulin 小手机" onBack={() => setPage('home')}><AboutApp /></PageShell>}
@@ -76,6 +79,7 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
     { key: 'theme', icon: <Palette size={18} />, label: '美化与字体', sub: '主题 · 配色 · 壁纸 · 图标' },
     { key: 'chatparams', icon: <MessageSquare size={18} />, label: '聊天参数', sub: '响应模式 · 主动消息 · 表情包' },
     { key: 'worldbook', icon: <BookOpen size={18} />, label: '世界书管理', sub: '全局 / 局部 · 三态挂载' },
+    { key: 'worldrules', icon: <ScrollText size={18} />, label: '世界书运行规制', sub: '触发条件 · 优先级 · 导入导出' },
     { key: 'rules', icon: <BrainCircuit size={18} />, label: '角色运行规则', sub: '思维链 · 输出规则 · 自检' },
     { key: 'data', icon: <Database size={18} />, label: '数据管理', sub: '导出 · 导入 · 备份' },
     { key: 'about', icon: <Smartphone size={18} />, label: '关于 mulin 小手机', sub: '设备铭牌 · 锁定信息' },

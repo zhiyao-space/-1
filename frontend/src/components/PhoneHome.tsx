@@ -7,6 +7,8 @@ import SettingsApp from './settings/SettingsApp'
 import PlaceholderApp from './PlaceholderApp'
 import ChatHub from './chat/ChatHub'
 import ForumApp from './forum/ForumApp'
+import SmsApp from './sms/SmsApp'
+import PhoneApp from './phone/PhoneApp'
 import Avatar from './chat/Avatar'
 import { useCharacters } from '../store/characters'
 
@@ -22,7 +24,7 @@ export default function PhoneHome() {
 
       {activeApp && (
         <div
-          className="page-enter"
+          className="page-slide"
           style={{
             position: 'absolute',
             top: 'calc(var(--statusbar-height) + var(--nav-height))',
@@ -38,6 +40,8 @@ export default function PhoneHome() {
           {activeApp === 'settings' && <SettingsApp />}
           {activeApp === 'chat' && <ChatHub />}
           {activeApp === 'forum' && <ForumApp />}
+          {activeApp === 'sms' && <SmsApp />}
+          {activeApp === 'phone' && <PhoneApp />}
           {activeApp === 'music' && <PlaceholderApp />}
         </div>
       )}
@@ -52,6 +56,8 @@ export function useAppTitle(): string {
     chat: '聊天',
     forum: '论坛',
     music: '音乐',
+    sms: '短信',
+    phone: '电话',
   }
   return activeApp ? names[activeApp] : ''
 }
