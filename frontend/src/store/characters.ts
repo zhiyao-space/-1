@@ -8,6 +8,8 @@ export interface CustomField {
   value: string
 }
 
+export type CharacterSource = 'manual' | 'textCreation' | 'fileImport' | 'npc'
+
 export interface Character {
   id: string
   name: string
@@ -21,6 +23,12 @@ export interface Character {
   bannerId?: string | null
   apiPresetId: string | null
   createdAt: number
+  /** 自动提取的分类标签（性格/关系/设定/身份） */
+  tags?: string[]
+  /** 创建来源 */
+  source?: CharacterSource
+  /** 关联的 NPC 角色 id */
+  npcRelations?: string[]
 }
 
 interface CharacterState {

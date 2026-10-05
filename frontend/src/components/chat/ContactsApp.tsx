@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { UserPlus, Users, ChevronRight, Pencil, Trash2, MessageCircle, X } from 'lucide-react'
+import { UserPlus, Users, ChevronRight, Pencil, Trash2, MessageCircle, X, Sparkles, Wand2 } from 'lucide-react'
 import { useCharacters, removeCharacterEverywhere, type Character } from '../../store/characters'
 import { useGroups } from '../../store/groups'
 import { useToast, useUI } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
 import CharacterEditor from './CharacterEditor'
 import GroupCreatorModal from './GroupCreatorModal'
+import NpcGeneratorModal from './NpcGeneratorModal'
 import Avatar from './Avatar'
 import ChatScreen from './ChatScreen'
 import GroupChatScreen from './GroupChatScreen'
-import { SectionCard } from '../common'
+import { Modal, SectionCard } from '../common'
 
 export default function ContactsApp() {
   const characters = useCharacters((s) => s.characters)
@@ -20,8 +21,30 @@ export default function ContactsApp() {
   const [detail, setDetail] = useState<Character | null>(null)
   const [groupCreatorOpen, setGroupCreatorOpen] = useState(false)
   const [openChat, setOpenChat] = useState<{ kind: 'single'; characterId: string } | { kind: 'group'; groupId: string } | null>(null)
+  const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  const [npcOpen, setNpcOpen] = useState(false)
+  const [npcMainId, setNpcMainId] = useState<string | null>(null)
+  const [npcPrompt, setNpcPrompt] = useState<{ id: string; name: string } | null>(null)
   const pendingChat = useUI((s) => s.pendingChat)
   const setPendingChat = useUI((s) => s.setPendingChat)
+
+  const allTags = useMemo(() => {
+    const count = new Map<string, number>()
+    for (const c of characters) for (const t of c.tags ?? []) count.set(t, (count.get(t) ?? 0) + 1)
+    return Array.from(count.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([t]) => t)
+      .slice(0, 16)
+  }, [characters])
+
+  const visibleCharacters = useMemo(
+    () => (selectedTag ? characters.filter((c) => (c.tags ?? []).includes(selectedTag)) : characters),
+    [characters, selectedTag]
+  )
+
+  useEffect(() => {
+    if (selectedTag && !allTags.includes(selectedTag)) setSelectedTag(null)
+  }, [allTags, selectedTag])
 
   useEffect(() => {
     if (pendingChat) {
@@ -47,22 +70,71 @@ export default function ContactsApp() {
       <div className="page-enter" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 24px' }}>
         {tab === 'friends' && (
           <>
-            <button
-              className="btn btn-accent"
-              style={{ width: '100%', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-              onClick={() => {
-                setEditing(null)
-                setEditorOpen(true)
-              }}
-            >
-              <UserPlus size={16} /> 创建角色
-            </button>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <button
+                className="btn btn-accent"
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                onClick={() => {
+                  setEditing(null)
+                  setEditorOpen(true)
+                }}
+              >
+                <UserPlus size={16} /> 创建角色
+              </button>
+              <button
+                className="btn pressable"
+                style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+                disabled={characters.length === 0}
+                onClick={() => {
+                  setNpcMainId(null)
+                  setNpcOpen(true)
+                }}
+              >
+                <Sparkles size={15} /> 生成NPC
+              </button>
+            </div>
+
+            {allTags.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                <button
+                  className="pressable fs-micro"
+                  onClick={() => setSelectedTag(null)}
+                  style={{
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    background: selectedTag === null ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: selectedTag === null ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  }}
+                >
+                  全部
+                </button>
+                {allTags.map((t) => (
+                  <button
+                    key={t}
+                    className="pressable fs-micro"
+                    onClick={() => setSelectedTag(selectedTag === t ? null : t)}
+                    style={{
+                      padding: '3px 10px',
+                      borderRadius: 999,
+                      background: selectedTag === t ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      color: selectedTag === t ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    }}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {characters.length === 0 ? (
-              <EmptyHint text="还没有角色。创建你的第一个角色，一切人设由你填写。" />
+              <EmptyHint text="还没有角色。描述你想要的人设让 AI 生成，或从文件导入，一切由你决定。" />
+            ) : visibleCharacters.length === 0 ? (
+              <EmptyHint text="该标签下暂无角色。" />
             ) : (
               <SectionCard>
-                {characters.map((c) => (
+                {visibleCharacters.map((c) => (
                   <CharacterRow key={c.id} c={c} onOpenDetail={() => setDetail(c)} onOpenChat={() => setOpenChat({ kind: 'single', characterId: c.id })} />
                 ))}
               </SectionCard>
@@ -93,11 +165,45 @@ export default function ContactsApp() {
         )}
       </div>
 
-      <CharacterEditor open={editorOpen} character={editing} onClose={() => setEditorOpen(false)} />
+      <CharacterEditor
+        open={editorOpen}
+        character={editing}
+        onClose={() => setEditorOpen(false)}
+        onCreated={(id, suggestNpc) => {
+          const created = useCharacters.getState().characters.find((c) => c.id === id)
+          if (suggestNpc && created) setNpcPrompt({ id, name: created.name })
+        }}
+      />
       <GroupCreatorModal open={groupCreatorOpen} onClose={() => setGroupCreatorOpen(false)} onCreated={(gid) => {
         setGroupCreatorOpen(false)
         setOpenChat({ kind: 'group', groupId: gid })
       }} />
+
+      <NpcGeneratorModal open={npcOpen} mainCharacterId={npcMainId} onClose={() => setNpcOpen(false)} />
+
+      <Modal open={!!npcPrompt} onClose={() => setNpcPrompt(null)} title="生成关联 NPC" width={320}>
+        <div className="fs-body" style={{ color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16 }}>
+          是否为「{npcPrompt?.name}」自动生成 3-5 个关联 NPC（朋友 / 家人 / 对手等）？它们会加入通讯录，可与主角互动。
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="btn" style={{ flex: 1 }} onClick={() => setNpcPrompt(null)}>
+            暂不
+          </button>
+          <button
+            className="btn btn-accent"
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            onClick={() => {
+              if (npcPrompt) {
+                setNpcMainId(npcPrompt.id)
+                setNpcOpen(true)
+              }
+              setNpcPrompt(null)
+            }}
+          >
+            <Wand2 size={15} /> 生成
+          </button>
+        </div>
+      </Modal>
 
       {detail && (
         <CharacterDetailSheet
@@ -110,6 +216,11 @@ export default function ContactsApp() {
           }}
           onChat={() => {
             setOpenChat({ kind: 'single', characterId: detail.id })
+            setDetail(null)
+          }}
+          onGenerateNpc={() => {
+            setNpcMainId(detail.id)
+            setNpcOpen(true)
             setDetail(null)
           }}
           onDelete={() => {
@@ -161,6 +272,19 @@ function CharacterRow({ c, onOpenDetail, onOpenChat }: { c: Character; onOpenDet
           <span className="fs-micro" style={{ color: 'var(--text-tertiary)', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {c.identity || '点击查看人设'}
           </span>
+          {(c.tags ?? []).length > 0 && (
+            <span style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+              {(c.tags ?? []).slice(0, 3).map((t) => (
+                <span
+                  key={t}
+                  className="fs-micro"
+                  style={{ padding: '1px 6px', borderRadius: 999, background: 'rgba(255,255,255,0.07)', color: 'var(--text-tertiary)' }}
+                >
+                  {t}
+                </span>
+              ))}
+            </span>
+          )}
         </span>
       </button>
       <button className="pressable" onClick={onOpenChat} style={{ color: 'var(--text-secondary)', padding: 6 }} title="发消息">
@@ -249,12 +373,14 @@ function CharacterDetailSheet({
   onClose,
   onEdit,
   onChat,
+  onGenerateNpc,
   onDelete,
 }: {
   character: Character
   onClose: () => void
   onEdit: () => void
   onChat: () => void
+  onGenerateNpc: () => void
   onDelete: () => void
 }) {
   return (
@@ -277,6 +403,19 @@ function CharacterDetailSheet({
         </div>
 
         <SectionCard>
+          {(character.tags ?? []).length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, paddingBottom: 10, marginBottom: 4, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              {(character.tags ?? []).map((t) => (
+                <span
+                  key={t}
+                  className="fs-micro"
+                  style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'var(--text-secondary)' }}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
           <FieldRow label="外观" value={character.appearance} />
           <FieldRow label="性格核心" value={character.personality} />
           <FieldRow label="沟通风格" value={character.commStyle} />
@@ -299,6 +438,13 @@ function CharacterDetailSheet({
             <Trash2 size={15} />
           </button>
         </div>
+        <button
+          className="btn"
+          style={{ width: '100%', marginTop: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          onClick={onGenerateNpc}
+        >
+          <Sparkles size={15} /> 生成关联 NPC
+        </button>
       </div>
     </div>
   )
