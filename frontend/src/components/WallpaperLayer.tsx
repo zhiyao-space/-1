@@ -25,11 +25,13 @@ export function WallpaperLayer({
   fx,
   children,
   radius,
+  fallbackCss,
 }: {
   imageId: string | null
   fx: WallpaperFx
   children?: React.ReactNode
   radius?: number
+  fallbackCss?: string
 }) {
   const url = useBlobURL(imageId)
   return (
@@ -39,7 +41,7 @@ export function WallpaperLayer({
         inset: 0,
         borderRadius: radius,
         overflow: 'hidden',
-        background: 'var(--bg-primary)',
+        background: fallbackCss ?? 'var(--bg-primary)',
       }}
     >
       {url && (

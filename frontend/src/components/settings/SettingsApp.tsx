@@ -9,6 +9,7 @@ import {
   Database,
   Smartphone,
   ScrollText,
+  LayoutGrid,
 } from 'lucide-react'
 import { SectionCard } from '../common'
 import ThemePage from './ThemePage'
@@ -20,11 +21,12 @@ import ChatParamsPage from './ChatParamsPage'
 import WorldbookPage from './WorldbookPage'
 import RuntimeRulesPage from './RuntimeRulesPage'
 import WorldRulesPage from './WorldRulesPage'
+import DesktopCustomizePage from './DesktopCustomizePage'
 import ChainSettingsPage from './ChainSettingsPage'
 import DataPage from './DataPage'
 import AboutApp from './AboutApp'
 
-type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'worldrules' | 'chain' | 'data' | 'about'
+type SubPage = 'home' | 'theme' | 'font' | 'wallpaper' | 'icons' | 'api' | 'chatparams' | 'worldbook' | 'rules' | 'worldrules' | 'desktopcustom' | 'chain' | 'data' | 'about'
 
 export default function SettingsApp() {
   const [page, setPage] = useState<SubPage>('home')
@@ -41,6 +43,7 @@ export default function SettingsApp() {
       {page === 'worldbook' && <WorldbookPage onBackHome={() => setPage('home')} />}
       {page === 'rules' && <RuntimeRulesPage onBack={() => setPage('home')} onOpenChain={() => setPage('chain')} />}
       {page === 'worldrules' && <WorldRulesPage onBack={() => setPage('home')} />}
+      {page === 'desktopcustom' && <DesktopCustomizePage onBack={() => setPage('home')} />}
       {page === 'chain' && <ChainSettingsPage onBack={() => setPage('rules')} />}
       {page === 'data' && <DataPage onBack={() => setPage('home')} />}
       {page === 'about' && <PageShell title="关于 mulin 小手机" onBack={() => setPage('home')}><AboutApp /></PageShell>}
@@ -77,6 +80,7 @@ function SettingsHome({ onNavigate }: { onNavigate: (p: SubPage) => void }) {
   const entries: { key: SubPage; icon: React.ReactNode; label: string; sub: string }[] = [
     { key: 'api', icon: <Plug size={18} />, label: 'API 配置', sub: '聊天 / 生图 / 语音 / 识图' },
     { key: 'theme', icon: <Palette size={18} />, label: '美化与字体', sub: '主题 · 配色 · 壁纸 · 图标' },
+    { key: 'desktopcustom', icon: <LayoutGrid size={18} />, label: '桌面外观自定义', sub: '壁纸 · 模块样式 · 头像 · 开关' },
     { key: 'chatparams', icon: <MessageSquare size={18} />, label: '聊天参数', sub: '响应模式 · 主动消息 · 表情包' },
     { key: 'worldbook', icon: <BookOpen size={18} />, label: '世界书管理', sub: '全局 / 局部 · 三态挂载' },
     { key: 'worldrules', icon: <ScrollText size={18} />, label: '世界书运行规制', sub: '触发条件 · 优先级 · 导入导出' },

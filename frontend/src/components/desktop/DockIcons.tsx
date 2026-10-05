@@ -76,3 +76,41 @@ export function RefreshIcon({ size = 24, strokeWidth = 1.7 }: IconProps) {
     </svg>
   )
 }
+
+/** 天气：云 */
+export function CloudIcon({ size = 24, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} aria-hidden>
+      <path d="M7.5 18.5h9.2a3.8 3.8 0 0 0 .3-7.6 5.2 5.2 0 0 0-9.9-.4 3.9 3.9 0 0 0 .4 8z" />
+    </svg>
+  )
+}
+
+/** 播放 */
+export function PlayIcon({ size = 24, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} aria-hidden>
+      <path d="M8 5.5 18.5 12 8 18.5z" />
+    </svg>
+  )
+}
+
+/** 暂停 */
+export function PauseIcon({ size = 24, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} aria-hidden>
+      <path d="M9.5 5.5v13M14.5 5.5v13" />
+    </svg>
+  )
+}
+
+/** 音乐：音符 */
+export function MusicIcon({ size = 24, strokeWidth = 1.6 }: IconProps) {
+  return (
+    <svg {...base(size, strokeWidth)} aria-hidden>
+      <path d="M9 18V6.2l9-1.7V16" />
+      <circle cx="6.6" cy="18" r="2.6" />
+      <circle cx="15.6" cy="16" r="2.6" />
+    </svg>
+  )
+}

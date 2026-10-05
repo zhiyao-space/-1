@@ -4,7 +4,7 @@ import { useUI, AppId } from '../store/ui'
 import TopNav from './TopNav'
 import Desktop from './Desktop'
 import SettingsApp from './settings/SettingsApp'
-import PlaceholderApp from './PlaceholderApp'
+import MusicApp from './music/MusicApp'
 import ChatHub from './chat/ChatHub'
 import ForumApp from './forum/ForumApp'
 import SmsApp from './sms/SmsApp'
@@ -42,7 +42,7 @@ export default function PhoneHome() {
           {activeApp === 'forum' && <ForumApp />}
           {activeApp === 'sms' && <SmsApp />}
           {activeApp === 'phone' && <PhoneApp />}
-          {activeApp === 'music' && <PlaceholderApp />}
+          {activeApp === 'music' && <MusicApp />}
         </div>
       )}
     </div>
