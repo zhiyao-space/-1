@@ -13,6 +13,8 @@ import PhoneApp from './phone/PhoneApp'
 import Avatar from './chat/Avatar'
 import Ghost from './xiaogui/Ghost'
 import XiaoguiPanel from './xiaogui/XiaoguiPanel'
+import FactoryApp from './factory/FactoryApp'
+import AppRunner from './factory/AppRunner'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -51,8 +53,11 @@ export default function PhoneHome() {
           {activeApp === 'sms' && <SmsApp />}
           {activeApp === 'phone' && <PhoneApp />}
           {activeApp === 'music' && <MusicApp />}
+          {activeApp === 'factory' && <FactoryApp />}
         </div>
       )}
+
+      <AppRunner />
     </div>
   )
 }
@@ -66,6 +71,7 @@ export function useAppTitle(): string {
     music: '音乐',
     sms: '短信',
     phone: '电话',
+    factory: 'mulin功能应用制造厂',
   }
   return activeApp ? names[activeApp] : ''
 }

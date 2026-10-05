@@ -1,23 +1,31 @@
-import { useRef, useState } from 'react'
-import { Ghost, Globe, MessageCircle, Music, Settings } from 'lucide-react'
+import { useMemo, useRef, useState } from 'react'
+import { Factory, Ghost, Globe, Maximize2, MessageCircle, Music, Settings } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
 import { useCopy } from '../store/copy'
 import { useDesktop, wallpaperCss } from '../store/desktopModules'
+import { useFactory } from '../store/factory'
 import { WallpaperLayer } from './WallpaperLayer'
 import DesktopModules from './desktop/DesktopModules'
 import Dock from './desktop/Dock'
+import Preview from './factory/Preview'
 
 const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
   { id: 'chat', name: '聊天', icon: MessageCircle },
   { id: 'forum', name: '论坛', icon: Globe },
   { id: 'music', name: '音乐', icon: Music },
+  { id: 'factory', name: '制造厂', icon: Factory },
   { id: 'settings', name: '设置', icon: Settings },
 ]
 
 export default function Desktop() {
   const openApp = useUI((s) => s.openApp)
   const setXiaoguiOpen = useUI((s) => s.setXiaoguiOpen)
+  const setRunningApp = useUI((s) => s.setRunningApp)
+  const apps = useFactory((s) => s.apps)
+  // 小组件尺寸的应用直接以活的卡片嵌在桌面上；其余以小尺寸以外的图标呈现
+  const widgetApps = useMemo(() => apps.filter((a) => a.isVisibleOnDesktop && a.size === 'small'), [apps])
+  const desktopApps = useMemo(() => apps.filter((a) => a.isVisibleOnDesktop && a.size !== 'small'), [apps])
   const labels = useCopy((s) => s.texts.appLabels)
   const wallpaperId = useSettings((s) => s.wallpapers.desktop)
   const wallpaperFx = useSettings((s) => s.wallpaperFx.desktop)
@@ -70,6 +78,46 @@ export default function Desktop() {
         }}
       >
         <DesktopModules />
+
+        {widgetApps.length > 0 && (
+          <div style={{ marginBottom: 18 }}>
+            <div className="fs-micro" style={{ color: 'var(--text-secondary)', letterSpacing: '1px', margin: '0 0 8px 2px' }}>
+              小组件
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {widgetApps.map((app) => (
+                <div
+                  key={app.id}
+                  className="glass"
+                  style={{ position: 'relative', height: 188, borderRadius: 'var(--radius-md)', overflow: 'hidden' }}
+                >
+                  <Preview appId={app.id} app={{ name: app.name, html: app.html, css: app.css, js: app.js }} device="tablet" />
+                  <button
+                    className="pressable"
+                    onClick={() => setRunningApp(app.id)}
+                    title={`打开「${app.name}」`}
+                    style={{
+                      position: 'absolute',
+                      top: 6,
+                      right: 6,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'rgba(0,0,0,0.45)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    <Maximize2 size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
@@ -115,6 +163,40 @@ export default function Desktop() {
               </button>
             )
           })}
+          {desktopApps.map((app) => (
+            <button
+              key={app.id}
+              className="pressable"
+              onClick={() => setRunningApp(app.id)}
+              style={{
+                width: '25%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 6,
+                padding: '4px 0',
+              }}
+            >
+              <span
+                className="glass"
+                style={{
+                  width: iconSize * 2,
+                  height: iconSize * 2,
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: iconSize * 0.92,
+                  lineHeight: 1,
+                }}
+              >
+                {app.icon}
+              </span>
+              <span className="fs-micro" style={{ color: 'var(--text-secondary)', letterSpacing: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                {app.name}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
       <Dock />
