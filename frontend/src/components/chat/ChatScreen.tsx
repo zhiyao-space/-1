@@ -25,6 +25,7 @@ import {
   SlidersHorizontal,
   Quote,
   X,
+  Dices,
 } from 'lucide-react'
 import { useChats, type ChatMessage, type ChatMode } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
@@ -36,6 +37,7 @@ import { useSettings } from '../../store/settings'
 import { useProfile } from '../../store/profile'
 import { useUI } from '../../store/ui'
 import { useMoments } from '../../store/moments'
+import { useGames, type GameSession } from '../../store/games'
 import { useSchedule, currentActivity } from '../../store/schedule'
 import { useBranches, useChatAppearance, useWallet } from '../../store/interact'
 import { useOfflineMode, OFFLINE_STYLES, OFFLINE_LENGTHS, OFFLINE_PERSONS, offlineSettingsFor } from '../../store/offlineMode'
@@ -68,6 +70,9 @@ import { TransferModal, RedPacketModal, ReverseReportModal, beep } from './PayAn
 import TomatoOverlay from './TomatoOverlay'
 import ScheduleView from './ScheduleView'
 import MindPanel from './MindPanel'
+import { GameSetupModal } from '../games/GameSetupModal'
+import { GameCardBubble } from '../games/GameCardBubble'
+import { handleGameTurn } from '../../lib/gameEngine'
 import { WallpaperLayer, useBlobURL } from '../WallpaperLayer'
 
 function genId(): string {
@@ -96,6 +101,8 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const activeBranchId = useBranches((s) => s.activeBranchId[sessionId] ?? null)
   const branch = useBranches((s) => s.branches.find((b) => b.id === activeBranchId) ?? null)
   const [input, setInput] = useState('')
+  const [gameSetupOpen, setGameSetupOpen] = useState(false)
+  const activeGame = useGames((s) => s.games.find((g) => g.chatId === sessionId && g.status === 'playing'))
   const [plusOpen, setPlusOpen] = useState(false)
   const [stickerOpen, setStickerOpen] = useState(false)
   const [typing, setTyping] = useState(false)
@@ -319,7 +326,26 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     setInput('')
     setPlusOpen(false)
     setQuoteMsg(null)
+    if (activeGame) {
+      void runGameTurn(activeGame, text)
+      return
+    }
     afterUserMsg()
+  }
+
+  const runGameTurn = async (game: GameSession, text: string) => {
+    setTyping(true)
+    try {
+      const { narrative, ended } = await handleGameTurn(game, character, text)
+      useChats.getState().addMessage(sessionId, { role: 'assistant', type: 'text', content: narrative })
+      if (ended) {
+        useChats.getState().addMessage(sessionId, { role: 'system', type: 'system', content: ended })
+      }
+    } catch (e) {
+      push(`游戏回合失败：${e instanceof Error ? e.message : String(e)}`, 'error')
+    } finally {
+      setTyping(false)
+    }
   }
 
   /** 自定义模拟语音：无需录音，自定时长与文字 */
@@ -785,6 +811,28 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
               </button>
             </div>
           )}
+          {activeGame && (
+            <div style={{ padding: '0 14px 6px', flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+              <button
+                className="pressable"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 14px',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  color: 'var(--accent-color)',
+                  border: '1px solid var(--accent-color)',
+                  background: 'transparent',
+                }}
+                onClick={() => useGames.getState().setStatus(activeGame.id, 'paused')}
+              >
+                <Dices size={13} />
+                游戏中 · 点击暂停（输入框直接当行动/提问发送）
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 10px 10px', flexShrink: 0 }}>
             <button
               className="pressable"
@@ -855,6 +903,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
                   <PlusAction icon={<Gift size={19} />} label="红包" onClick={() => { setPlusOpen(false); setRedpacketOpen(true) }} />
                   <PlusAction icon={<ClipboardCheck size={19} />} label="报备" onClick={() => { setPlusOpen(false); setReportOpen(true) }} />
                   <PlusAction icon={<Timer size={19} />} label="一起专注" onClick={() => { setPlusOpen(false); setTomatoOpen(true) }} />
+                  <PlusAction icon={<Dices size={19} />} label="一起玩" onClick={() => { setPlusOpen(false); setGameSetupOpen(true) }} />
                 </>
               )}
             </div>
@@ -961,6 +1010,12 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         onSend={doRedpacket}
       />
       <ReverseReportModal open={reportOpen} onClose={() => setReportOpen(false)} onSubmit={submitReport} />
+      <GameSetupModal
+        open={gameSetupOpen}
+        onClose={() => setGameSetupOpen(false)}
+        chatId={sessionId}
+        character={character}
+      />
       <Modal open={tomatoOpen} onClose={() => setTomatoOpen(false)} title="一起专注">
         <TomatoConfig onStart={startTomato} />
       </Modal>
@@ -1461,6 +1516,13 @@ function renderBody(
     return (
       <div {...commonHandlers}>
         <MomentCardBubble momentId={m.data?.momentId ?? null} content={m.content} />
+      </div>
+    )
+  }
+  if (m.type === 'game-card') {
+    return (
+      <div {...commonHandlers}>
+        <GameCardBubble gameId={m.data?.gameId ?? ''} />
       </div>
     )
   }

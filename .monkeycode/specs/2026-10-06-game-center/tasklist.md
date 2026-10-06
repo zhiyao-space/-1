@@ -54,7 +54,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 - 操作均调 games store；结束并归档后由 ChatScreen 发一条 system 消息
 - 提交：`feat(game): T6 游戏卡组件`
 
-## T7 [TODO] ChatScreen 集成
+## T7 [DONE] ChatScreen 集成
 
 - 修改：`frontend/src/components/chat/ChatScreen.tsx`
 - 4 处改动：
@@ -77,3 +77,4 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 ## Progress Log（接力方必读，追加勿删）
 
 - 2026-10-06 规格(requirements/design/tasklist)已推送。执行从 T1 开始。
+- 2026-10-06 T1-T7 完成（提交 9edfcd0/20ba3f2/14d3057/fdd60d9/39f39bd/9b9c7e3 及本次）。设计偏差：T7 第 4 项「removeSession 删除聊天时清理 games」未挂钩——孤儿游戏会话无副作用（路由按 chatId 匹配、卡片有已删除兜底渲染），从简处理。games store 额外增加了 setCardMsg action（卡片消息与会话互链）。剩余：T8 验证收尾。
