@@ -42,6 +42,7 @@ import {
   pickSome,
   randInt,
 } from '../lib/cityCatalog'
+import { allLibraryPeople } from '../lib/libraryPeople'
 
 /* ============================================================
    Mul市 · 数据层
@@ -858,6 +859,8 @@ interface MulCityState {
   removePerson: (id: string) => void
   initAttrs: (id: string, attrs: Partial<PersonAttrs>) => void
   importCharacters: () => number
+  /** 幂等同步角色库（自建角色 + NPC）到 Mul市居民，返回本次新增数量 */
+  syncLibraryPeople: () => number
   movePerson: (id: string, landmarkId: string) => void
 
   /* 关系 */
@@ -1453,36 +1456,29 @@ export const useMulCity = create<MulCityState>()(
           ),
         })),
 
-      importCharacters: () => {
+      importCharacters: () => get().syncLibraryPeople(),
+
+      syncLibraryPeople: () => {
         const existing = new Set(get().people.map((p) => p.name))
-        let added = 0
-        try {
-          const raw = localStorage.getItem('ksc:characters')
-          if (!raw) return 0
-          const parsed = JSON.parse(raw) as { state?: { characters?: { id: string; name: string; identity?: string; personality?: string; avatarId?: string | null }[] } }
-          const list = parsed.state?.characters ?? []
-          const made: Person[] = []
-          for (const c of list) {
-            if (!c.name || existing.has(c.name)) continue
-            made.push(
-              localPerson({
-                type: 'character',
-                name: c.name,
-                occupation: c.identity || undefined,
-                bio: c.personality || '',
-                avatarId: c.avatarId || undefined,
-              })
-            )
-            added += 1
-          }
-          if (made.length) {
-            set((s) => ({ people: [...s.people, ...made] }))
-            get().pushCivilRecord(`从恋爱 App 导入 ${made.length} 位角色`)
-          }
-        } catch {
-          return 0
+        const made: Person[] = []
+        for (const lib of allLibraryPeople()) {
+          if (!lib.name || existing.has(lib.name)) continue
+          existing.add(lib.name)
+          made.push(
+            localPerson({
+              type: lib.type,
+              name: lib.name,
+              occupation: lib.identity || undefined,
+              bio: lib.personality || undefined,
+              avatarId: lib.avatarId || undefined,
+            })
+          )
         }
-        return added
+        if (made.length) {
+          set((s) => ({ people: [...s.people, ...made] }))
+          get().pushCivilRecord(`从角色库同步 ${made.length} 位角色 / NPC`)
+        }
+        return made.length
       },
 
       movePerson: (id, landmarkId) =>

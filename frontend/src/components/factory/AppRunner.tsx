@@ -9,7 +9,10 @@ import { AppIcon } from './parts'
 export default function AppRunner() {
   const runningId = useUI((s) => s.runningAppId)
   const setRunningApp = useUI((s) => s.setRunningApp)
-  const target = useFactory((s) => s.apps.find((a) => a.id === runningId))
+  const owned = useFactory((s) => s.apps.find((a) => a.id === runningId))
+  // 公用库应用无需安装也可直接运行
+  const shared = useFactory((s) => s.sharedApps.find((a) => a.id === runningId))
+  const target = owned ?? shared
 
   if (!runningId) return null
 
@@ -67,7 +70,7 @@ export default function AppRunner() {
 
         <div style={{ flex: 1, minHeight: 0, padding: '0 10px calc(12px + env(safe-area-inset-bottom))' }}>
           {target ? (
-            <Preview appId={target.id} app={{ name: target.name, html: target.html, css: target.css, js: target.js }} device="tablet" />
+            <Preview appId={target.id} app={{ name: target.name, html: target.html, css: target.css, js: target.js }} device="tablet" ephemeral={!owned} />
           ) : (
             <div className="fx-sunken" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fx-t3,#999)' }}>
               <span className="fs-body">这个应用已经被删除了</span>

@@ -719,6 +719,79 @@
   color: var(--fx-t3);
 }
 
+/* ---------- 主理人 / 推荐官（来自角色库） ---------- */
+.ml-curators {
+  padding: 10px 12px 2px;
+}
+.ml-curators__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.ml-curators__title {
+  font-size: calc(13px * var(--fs-scale));
+  font-weight: 700;
+  color: var(--fx-t1);
+}
+.ml-curators__sub {
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.ml-curators__scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+.ml-curators__scroll::-webkit-scrollbar {
+  display: none;
+}
+.ml-curator {
+  flex: 0 0 auto;
+  width: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.ml-curator__avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--fx-face);
+  box-shadow: var(--fx-mid-shadow);
+}
+.ml-curator__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ml-curator__name {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(10.5px * var(--fs-scale));
+  color: var(--fx-t2);
+}
+.ml-curator__tag {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(9px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
 /* ---------- 底部导航 ---------- */
 .ml-nav {
   flex-shrink: 0;

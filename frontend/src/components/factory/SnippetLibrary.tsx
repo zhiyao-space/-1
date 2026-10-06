@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Copy, CornerDownLeft, Plus, Scissors, Trash2, X } from 'lucide-react'
+import { Copy, CornerDownLeft, Plus, Scissors, Trash2, Upload, X } from 'lucide-react'
 import { SNIPPET_LIBRARY } from '../../lib/factoryTemplates'
 import { useFactory, type CodeSnippet } from '../../store/factory'
 import { useToast } from '../../store/ui'
@@ -22,7 +22,13 @@ export default function SnippetLibrary({ onInsert }: { onInsert: (type: 'html' |
   const addSnippet = useFactory((s) => s.addSnippet)
   const removeSnippet = useFactory((s) => s.removeSnippet)
   const touchSnippet = useFactory((s) => s.touchSnippet)
+  const sharedSnippets = useFactory((s) => s.sharedSnippets)
+  const publishSnippetToLibrary = useFactory((s) => s.publishSnippetToLibrary)
+  const unpublishSnippetFromLibrary = useFactory((s) => s.unpublishSnippetFromLibrary)
   const push = useToast((s) => s.push)
+
+  /** 查询片段在公用库中对应的条目 */
+  const publishedFor = (id: string, name: string) => sharedSnippets.find((x) => x.originId === id || x.name === name)
 
   const [group, setGroup] = useState('全部')
   const [active, setActive] = useState<Item | null>(null)
@@ -76,6 +82,7 @@ export default function SnippetLibrary({ onInsert }: { onInsert: (type: 'html' |
                   {item.name}
                 </span>
                 {item.mine && <span className="fx-chip">我的</span>}
+                {item.mine && publishedFor(item.id, item.name) && <span className="fx-chip">已发布</span>}
               </div>
               <div className="fs-micro" style={{ color: 'var(--fx-t3,#999)', marginTop: 5, lineHeight: 1.5 }}>
                 {item.description || item.tags.join(' · ')}
@@ -91,6 +98,32 @@ export default function SnippetLibrary({ onInsert }: { onInsert: (type: 'html' |
                   <CornerDownLeft size={13} /> 一键插入
                 </button>
               </div>
+              {item.mine && (
+                <button
+                  className="fx-btn fx-btn--soft fx-press-soft"
+                  style={{ width: '100%', marginTop: 8 }}
+                  onClick={() => {
+                    const existing = publishedFor(item.id, item.name)
+                    if (existing) {
+                      unpublishSnippetFromLibrary(existing.id)
+                      push('已从公用库下架', 'info')
+                    } else {
+                      const shared = publishSnippetToLibrary(item.id)
+                      if (shared) push(`已发布「${shared.name}」到公用库`)
+                    }
+                  }}
+                >
+                  {publishedFor(item.id, item.name) ? (
+                    <>
+                      <Trash2 size={13} /> 从公用库下架
+                    </>
+                  ) : (
+                    <>
+                      <Upload size={13} /> 发布到公用库
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           ))}
         </div>
@@ -128,6 +161,32 @@ export default function SnippetLibrary({ onInsert }: { onInsert: (type: 'html' |
                 <CornerDownLeft size={13} /> 插入到工坊
               </button>
             </div>
+            {active.mine && (
+              <button
+                className="fx-btn fx-btn--accent fx-press"
+                style={{ width: '100%', marginTop: 8 }}
+                onClick={() => {
+                  const existing = publishedFor(active.id, active.name)
+                  if (existing) {
+                    unpublishSnippetFromLibrary(existing.id)
+                    push('已从公用库下架', 'info')
+                  } else {
+                    const shared = publishSnippetToLibrary(active.id)
+                    if (shared) push(`已发布「${shared.name}」到公用库`)
+                  }
+                }}
+              >
+                {publishedFor(active.id, active.name) ? (
+                  <>
+                    <Trash2 size={13} /> 从公用库下架
+                  </>
+                ) : (
+                  <>
+                    <Upload size={13} /> 发布到公用库
+                  </>
+                )}
+              </button>
+            )}
             {active.mine && (
               <button
                 className="fx-btn fx-btn--soft fx-press-soft"

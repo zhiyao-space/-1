@@ -146,6 +146,11 @@ export default function CityApp() {
     return () => window.clearInterval(timer)
   }, [tick])
 
+  // 进入 Mul市时自动把角色库（自建角色 + NPC）同步为居民，无需手动点击
+  useEffect(() => {
+    useMulCity.getState().syncLibraryPeople()
+  }, [])
+
   const nav = useMemo<CityNav>(
     () => ({
       push: (route) => setStack((s) => [...s, route]),

@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Pencil, Plus, RefreshCw, Search, Sparkles } from 'lucide-react'
 import { useMall, visibleModules, type MallModule, type MallProduct } from '../../store/mall'
+import { useCharacters } from '../../store/characters'
+import { useForum } from '../../store/forum'
+import { allLibraryPeople, type LibraryPerson } from '../../lib/libraryPeople'
+import { useBlobURL } from '../WallpaperLayer'
 import { generateBanners, generateProducts } from '../../lib/mallEngine'
 import { useLongPress } from '../../hooks'
 import { useToast } from '../../store/ui'
@@ -76,6 +80,39 @@ function SearchRow({ product, moduleName, onOpen }: { product: MallProduct; modu
   )
 }
 
+/** 单个主理人 / 推荐官头像卡：优先使用 IndexedDB 头像，否则用渐变占位 */
+function CuratorCard({ person }: { person: LibraryPerson }) {
+  const url = useBlobURL(person.avatarId)
+  const label = person.identity?.trim() || (person.type === 'npc' ? 'NPC' : '角色')
+  return (
+    <div className="ml-curator" title={`${person.name} · ${label}`}>
+      <span className="ml-curator__avatar" style={url ? undefined : { background: thumbBg(person.name) }}>
+        {url ? <img src={url} alt="" /> : person.name.slice(0, 1)}
+      </span>
+      <span className="ml-curator__name">{person.name}</span>
+      <span className="ml-curator__tag">{label}</span>
+    </div>
+  )
+}
+
+/** 主理人 / 推荐官横向列表：角色库中的角色与 NPC 自动出现在商城首页 */
+function CuratorRow({ people }: { people: LibraryPerson[] }) {
+  if (!people.length) return null
+  return (
+    <div className="ml-curators">
+      <div className="ml-curators__head">
+        <span className="ml-curators__title">主理人 · 推荐官</span>
+        <span className="ml-curators__sub">来自你的角色库</span>
+      </div>
+      <div className="ml-curators__scroll no-select">
+        {people.map((p) => (
+          <CuratorCard key={`${p.type}:${p.id}`} person={p} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function HomeTab({
   onOpenProduct,
   onEditModule,
@@ -93,6 +130,11 @@ export default function HomeTab({
   const toggleModuleEnabled = useMall((s) => s.toggleModuleEnabled)
   const removeModule = useMall((s) => s.removeModule)
   const push = useToast((s) => s.push)
+
+  // 订阅角色库（自建角色 + NPC），新建后无需刷新即可出现在首页
+  const characters = useCharacters((s) => s.characters)
+  const npcs = useForum((s) => s.npcs)
+  const curators = useMemo(() => allLibraryPeople().slice(0, 12), [characters, npcs])
 
   const visible = useMemo(() => visibleModules(modules), [modules])
   const [activeId, setActiveId] = useState<string | null>(visible[0]?.id ?? null)
@@ -266,6 +308,9 @@ export default function HomeTab({
           <RefreshCw size={13} className={refreshingAll ? 'ml-spin' : ''} />
           <span>{refreshingAll ? '正在刷新全部…' : pull >= PULL_TRIGGER - 12 ? '松开刷新' : '下拉刷新'}</span>
         </div>
+
+        {/* 角色库主理人 / 推荐官：仅在非搜索状态展示 */}
+        {!query && <CuratorRow people={curators} />}
 
         {query ? (
           <>

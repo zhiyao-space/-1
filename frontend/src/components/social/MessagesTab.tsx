@@ -152,7 +152,7 @@ export default function MessagesTab({
             const offset = drag && drag.id === char.id ? drag.x : openId === char.id ? -SWIPE_W : 0
             const dragging = !!drag && drag.id === char.id
             return (
-              <div key={char.id} style={{ position: 'relative', overflow: 'hidden', borderRadius: 18 }}>
+              <div key={char.id} style={{ position: 'relative', overflow: 'hidden', borderRadius: 18, flexShrink: 0 }}>
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', justifyContent: 'flex-end' }}>
                   <button
                     className="fx-press-soft"
@@ -225,7 +225,7 @@ export default function MessagesTab({
                     <SocialAvatar
                       avatarId={char.avatarId}
                       name={socialDisplayName(char)}
-                      size={46}
+                      size={50}
                       status={char.onlineStatus}
                       onClick={() => onOpenCard(char.id)}
                     />

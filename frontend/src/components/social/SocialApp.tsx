@@ -43,6 +43,11 @@ export default function SocialApp() {
     return acc + list.filter((m) => m.senderId !== ME && !m.read).length
   }, 0)
 
+  // 把全局角色库（自建角色 / NPC）同步进来，保证创建的角色在恋爱社交中真实出现
+  useEffect(() => {
+    useSocial.getState().syncLibraryCharacters()
+  }, [])
+
   // 在线状态随机变化
   useEffect(() => {
     const t = window.setInterval(() => tickOnline(), 45000)

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { allLibraryPeople } from '../lib/libraryPeople'
 
 /* ============================================================
    「mu社区恋爱交友软件」数据层
@@ -149,6 +150,8 @@ interface SocialState {
   bumpAffinity: (id: string, delta: number) => void
 
   refreshMatches: () => void
+  /** 把「角色库」里自建的角色 / NPC 同步进恋爱社交，返回新增数量 */
+  syncLibraryCharacters: () => number
 
   ensureConversation: (charId: string) => void
   sendMessage: (charId: string, msg: { text: string; type?: MsgType; meta?: SocialMessage['meta'] }) => void
@@ -521,6 +524,40 @@ export const useSocial = create<SocialState>()(
           list.sort((a, b) => b.matchScore - a.matchScore)
           return { matches: list }
         }),
+
+      syncLibraryCharacters: () => {
+        const existing = new Set(get().characters.map((c) => c.nickname))
+        const added: SocialCharacter[] = []
+        for (const p of allLibraryPeople()) {
+          const name = p.name?.trim()
+          if (!name || existing.has(name)) continue
+          existing.add(name)
+          const persona = (p.personality ?? '').trim()
+          added.push({
+            id: `lib_${p.id}`,
+            nickname: name,
+            avatarId: p.avatarId ?? undefined,
+            bio: persona || p.identity || '来自角色库的新朋友。',
+            personality: persona ? persona.split(/[，,、/\s]+/).filter(Boolean).slice(0, 4) : [],
+            skills: [],
+            interests: [],
+            zodiac: '',
+            mbti: '',
+            onlineStatus: 'online',
+            affinity: 30,
+            relationship: relationshipOf(30),
+            lastActive: Date.now(),
+            metAt: Date.now(),
+            proactive: false,
+            muted: false,
+            blocked: false,
+            pinned: false,
+          })
+        }
+        if (!added.length) return 0
+        set((s) => ({ characters: [...s.characters, ...added] }))
+        return added.length
+      },
 
       ensureConversation: (charId) =>
         set((s) => {

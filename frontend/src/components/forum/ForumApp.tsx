@@ -105,11 +105,13 @@ export default function ForumApp() {
           <Center text="帖子不存在或已被删除" />
         ))}
       {view.name === 'dm' && (
-        <DmView
-          initialDmId={(view as { id: string | null }).id}
-          onClearInitial={() => setStack((s) => (s.length ? s.map((v) => (v.name === 'dm' ? { name: 'dm', id: null } : v)) : s))}
-          onOpenPost={openPost}
-        />
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', paddingBottom: 60 }}>
+          <DmView
+            initialDmId={(view as { id: string | null }).id}
+            onClearInitial={() => setStack((s) => (s.length ? s.map((v) => (v.name === 'dm' ? { name: 'dm', id: null } : v)) : s))}
+            onOpenPost={openPost}
+          />
+        </div>
       )}
       {view.name === 'me' && <ProfileView onOpenPost={openPost} />}
 

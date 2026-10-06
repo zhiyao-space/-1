@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useProfile } from './profile'
 
 export type AppCategory = '效率' | '生活' | '娱乐' | '工具' | '自定义'
 export const APP_CATEGORIES: AppCategory[] = ['效率', '生活', '娱乐', '工具', '自定义']
@@ -74,6 +75,39 @@ export interface SandboxExperiment {
   updatedAt: number
 }
 
+/** 公用库应用：localStorage 全局持久化，所有账号/档案都可安装使用 */
+export interface SharedApp {
+  /** 公用库内的唯一 id（shared_xxx） */
+  id: string
+  /** 发布时来源应用在本地的 id，用于幂等更新 */
+  originId: string
+  name: string
+  icon: string
+  description: string
+  html: string
+  css: string
+  js: string
+  category: AppCategory
+  size: AppSize
+  publisher: string
+  publishedAt: number
+  installs: number
+}
+
+/** 公用库组件（代码片段），结构与 CodeSnippet 一致并附加发布元数据 */
+export interface SharedSnippet {
+  id: string
+  originId: string
+  name: string
+  type: 'html' | 'css' | 'js'
+  code: string
+  tags: string[]
+  description: string
+  publisher: string
+  publishedAt: number
+  installs: number
+}
+
 export interface NewAppInput {
   name: string
   icon?: string
@@ -93,12 +127,69 @@ function uid(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
 }
 
+/** 发布者标识：优先用当前档案昵称，未设置时回退为匿名 */
+function currentPublisher(): string {
+  const nickname = useProfile.getState().profile.nickname?.trim()
+  return nickname || '匿名用户'
+}
+
+function isStr(v: unknown): v is string {
+  return typeof v === 'string'
+}
+
+/** 校验收到的公用库应用数据，形状不对返回 null（用于导入，永不抛错） */
+function normalizeSharedApp(raw: unknown): SharedApp | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  if (!isStr(r.name) || !isStr(r.html) || !isStr(r.css) || !isStr(r.js)) return null
+  const id = isStr(r.id) && r.id ? r.id : uid('shared')
+  return {
+    id,
+    originId: isStr(r.originId) ? r.originId : '',
+    name: r.name,
+    icon: isStr(r.icon) && r.icon ? r.icon : 'Puzzle',
+    description: isStr(r.description) ? r.description : '',
+    html: r.html,
+    css: r.css,
+    js: r.js,
+    category: (APP_CATEGORIES as string[]).includes(r.category as string) ? (r.category as AppCategory) : '自定义',
+    size: r.size === 'small' || r.size === 'medium' || r.size === 'full' ? (r.size as AppSize) : 'medium',
+    publisher: isStr(r.publisher) && r.publisher ? r.publisher : '匿名用户',
+    publishedAt: typeof r.publishedAt === 'number' ? r.publishedAt : Date.now(),
+    installs: typeof r.installs === 'number' && r.installs >= 0 ? Math.floor(r.installs) : 0,
+  }
+}
+
+/** 校验公用库组件数据，形状不对返回 null */
+function normalizeSharedSnippet(raw: unknown): SharedSnippet | null {
+  if (!raw || typeof raw !== 'object') return null
+  const r = raw as Record<string, unknown>
+  if (!isStr(r.name) || !isStr(r.code)) return null
+  const type = r.type === 'html' || r.type === 'css' || r.type === 'js' ? r.type : 'css'
+  const id = isStr(r.id) && r.id ? r.id : uid('shared')
+  return {
+    id,
+    originId: isStr(r.originId) ? r.originId : '',
+    name: r.name,
+    type,
+    code: r.code,
+    tags: Array.isArray(r.tags) ? r.tags.filter(isStr) : [],
+    description: isStr(r.description) ? r.description : '',
+    publisher: isStr(r.publisher) && r.publisher ? r.publisher : '匿名用户',
+    publishedAt: typeof r.publishedAt === 'number' ? r.publishedAt : Date.now(),
+    installs: typeof r.installs === 'number' && r.installs >= 0 ? Math.floor(r.installs) : 0,
+  }
+}
+
 interface FactoryState {
   apps: CustomApp[]
   snippets: CodeSnippet[]
   versions: Record<string, AppVersion[]>
   aiHistory: AiRecord[]
   sandbox: SandboxExperiment[]
+  /** 公用库：全局持久化，所有账号可见 */
+  sharedApps: SharedApp[]
+  sharedSnippets: SharedSnippet[]
   /** 应用运行时的独立存储桥：`${appId}::${key}` -> 值 */
   appStorage: Record<string, string>
   lastOpenedAppId: string | null
@@ -127,6 +218,26 @@ interface FactoryState {
   removeExperiment: (id: string) => void
   publishExperiment: (id: string) => CustomApp | null
 
+  /** 把本地应用发布到公用库（按来源 id / 名称幂等，已发布则更新内容） */
+  publishAppToLibrary: (appId: string) => SharedApp | null
+  /** 从公用库移除（取消发布）应用 */
+  unpublishAppFromLibrary: (sharedId: string) => void
+  removeSharedApp: (sharedId: string) => void
+  /** 安装公用库应用到「我的应用」，返回新应用 */
+  installSharedApp: (sharedId: string) => CustomApp | null
+
+  /** 把本地片段发布到公用库（按来源 id / 名称幂等） */
+  publishSnippetToLibrary: (snippetId: string) => SharedSnippet | null
+  unpublishSnippetFromLibrary: (sharedId: string) => void
+  removeSharedSnippet: (sharedId: string) => void
+  /** 安装公用库组件到「我的片段」，换新 id 避免冲突 */
+  installSharedSnippet: (sharedId: string) => CodeSnippet | null
+
+  /** 导出公用库为 JSON 字符串（含应用与组件） */
+  exportLibrary: () => string
+  /** 导入公用库 JSON，按 id / 名称去重合并；格式非法返回 false，永不抛错 */
+  importLibrary: (json: string) => boolean
+
   setAppStorage: (appId: string, key: string, value: string) => void
   removeAppStorage: (appId: string, key: string) => void
   getAppStorage: (appId: string) => Record<string, string>
@@ -143,6 +254,8 @@ export const useFactory = create<FactoryState>()(
       versions: {},
       aiHistory: [],
       sandbox: [],
+      sharedApps: [],
+      sharedSnippets: [],
       appStorage: {},
       lastOpenedAppId: null,
 
@@ -294,6 +407,160 @@ export const useFactory = create<FactoryState>()(
         })
         set((s) => ({ sandbox: s.sandbox.map((x) => (x.id === id ? { ...x, status: 'published' } : x)) }))
         return app
+      },
+
+      publishAppToLibrary: (appId) => {
+        const app = get().apps.find((a) => a.id === appId)
+        if (!app) return null
+        const existing = get().sharedApps.find((s) => s.originId === app.id || s.name === app.name)
+        const shared: SharedApp = {
+          id: existing?.id ?? uid('shared'),
+          originId: app.id,
+          name: app.name,
+          icon: app.icon,
+          description: app.description,
+          html: app.html,
+          css: app.css,
+          js: app.js,
+          category: app.category,
+          size: app.size,
+          publisher: existing?.publisher ?? currentPublisher(),
+          publishedAt: Date.now(),
+          installs: existing?.installs ?? 0,
+        }
+        set((s) => ({
+          sharedApps: existing
+            ? s.sharedApps.map((x) => (x.id === existing.id ? shared : x))
+            : [shared, ...s.sharedApps],
+        }))
+        return shared
+      },
+
+      unpublishAppFromLibrary: (sharedId) =>
+        set((s) => ({ sharedApps: s.sharedApps.filter((x) => x.id !== sharedId) })),
+
+      removeSharedApp: (sharedId) =>
+        set((s) => ({ sharedApps: s.sharedApps.filter((x) => x.id !== sharedId) })),
+
+      installSharedApp: (sharedId) => {
+        const shared = get().sharedApps.find((x) => x.id === sharedId)
+        if (!shared) return null
+        const app = get().addApp({
+          name: shared.name,
+          icon: shared.icon,
+          description: shared.description,
+          html: shared.html,
+          css: shared.css,
+          js: shared.js,
+          category: shared.category,
+          size: shared.size,
+          source: 'custom',
+          isVisibleOnDesktop: false,
+        })
+        set((s) => ({ sharedApps: s.sharedApps.map((x) => (x.id === sharedId ? { ...x, installs: x.installs + 1 } : x)) }))
+        return app
+      },
+
+      publishSnippetToLibrary: (snippetId) => {
+        const snip = get().snippets.find((x) => x.id === snippetId)
+        if (!snip) return null
+        const existing = get().sharedSnippets.find((s) => s.originId === snip.id || s.name === snip.name)
+        const shared: SharedSnippet = {
+          id: existing?.id ?? uid('shared'),
+          originId: snip.id,
+          name: snip.name,
+          type: snip.type,
+          code: snip.code,
+          tags: snip.tags,
+          description: snip.description,
+          publisher: existing?.publisher ?? currentPublisher(),
+          publishedAt: Date.now(),
+          installs: existing?.installs ?? 0,
+        }
+        set((s) => ({
+          sharedSnippets: existing
+            ? s.sharedSnippets.map((x) => (x.id === existing.id ? shared : x))
+            : [shared, ...s.sharedSnippets],
+        }))
+        return shared
+      },
+
+      unpublishSnippetFromLibrary: (sharedId) =>
+        set((s) => ({ sharedSnippets: s.sharedSnippets.filter((x) => x.id !== sharedId) })),
+
+      removeSharedSnippet: (sharedId) =>
+        set((s) => ({ sharedSnippets: s.sharedSnippets.filter((x) => x.id !== sharedId) })),
+
+      installSharedSnippet: (sharedId) => {
+        const shared = get().sharedSnippets.find((x) => x.id === sharedId)
+        if (!shared) return null
+        const snip: CodeSnippet = {
+          id: uid('snip'),
+          name: shared.name,
+          type: shared.type,
+          code: shared.code,
+          tags: [...shared.tags],
+          description: shared.description,
+          createdAt: Date.now(),
+          lastUsed: Date.now(),
+        }
+        set((s) => ({
+          snippets: [snip, ...s.snippets],
+          sharedSnippets: s.sharedSnippets.map((x) => (x.id === sharedId ? { ...x, installs: x.installs + 1 } : x)),
+        }))
+        return snip
+      },
+
+      exportLibrary: () =>
+        JSON.stringify(
+          { version: 1, exportedAt: Date.now(), sharedApps: get().sharedApps, sharedSnippets: get().sharedSnippets },
+          null,
+          2
+        ),
+
+      importLibrary: (json) => {
+        try {
+          const data = JSON.parse(json) as { sharedApps?: unknown; sharedSnippets?: unknown } | null
+          if (!data || typeof data !== 'object') return false
+          const inApps = Array.isArray(data.sharedApps) ? data.sharedApps : []
+          const inSnippets = Array.isArray(data.sharedSnippets) ? data.sharedSnippets : []
+          const cur = get()
+          let valid = 0
+
+          const nextApps = [...cur.sharedApps]
+          for (const raw of inApps) {
+            const item = normalizeSharedApp(raw)
+            if (!item) continue
+            valid += 1
+            const idx = nextApps.findIndex((x) => x.id === item.id || x.name === item.name)
+            if (idx >= 0) {
+              const old = nextApps[idx]
+              nextApps[idx] = { ...old, ...item, id: old.id, installs: Math.max(old.installs, item.installs) }
+            } else {
+              nextApps.push(item)
+            }
+          }
+
+          const nextSnippets = [...cur.sharedSnippets]
+          for (const raw of inSnippets) {
+            const item = normalizeSharedSnippet(raw)
+            if (!item) continue
+            valid += 1
+            const idx = nextSnippets.findIndex((x) => x.id === item.id || x.name === item.name)
+            if (idx >= 0) {
+              const old = nextSnippets[idx]
+              nextSnippets[idx] = { ...old, ...item, id: old.id, installs: Math.max(old.installs, item.installs) }
+            } else {
+              nextSnippets.push(item)
+            }
+          }
+
+          if (valid === 0) return false
+          set({ sharedApps: nextApps, sharedSnippets: nextSnippets })
+          return true
+        } catch {
+          return false
+        }
       },
 
       setAppStorage: (appId, key, value) =>
