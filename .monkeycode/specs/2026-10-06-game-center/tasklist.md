@@ -13,7 +13,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 - 验收：`npx tsc -b` 通过（workdir /workspace/frontend）
 - 提交：`feat(game): T1 消息层新增 game-card 类型`
 
-## T2 [TODO] 数据层 — games store
+## T2 [DONE] 数据层 — games store
 
 - 新建：`frontend/src/store/games.ts`
 - 内容：严格按 design.md「Components 1」的 GameSession/TrpgState/TurtleState/GameType/GameStatus 定义；persist 键 `ksc:games`；actions：createGame（uid 格式仿 chats.ts 的 uid，`g` 前缀）、patchState、pushLog（log 截断最近 40 条）、setStatus、endGame、removeGame、getActiveByChat
