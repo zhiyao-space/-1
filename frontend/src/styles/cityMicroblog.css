@@ -1,0 +1,563 @@
+/* ============================================================
+   Mul市 · Tab10 微博（仿 Twitter/X + 微博混合体）
+   厚块黑白渐变（.fx-*）视觉；mono / color / real 三套 UI 主题
+   ============================================================ */
+
+.cx-mb-root {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- UI 主题变量（供帖子卡片与微博界面共用） ---------- */
+.cx-mb-theme--mono {
+  --cbm-accent: #ffffff;
+  --cbm-accent-soft: #cfcfcf;
+  --cbm-heat: #b9b9b9;
+}
+.cx-mb-theme--color {
+  --cbm-accent: #7db3ff;
+  --cbm-accent-soft: #a9c9ff;
+  --cbm-heat: #63d5ff;
+}
+.cx-mb-theme--real {
+  --cbm-accent: #ffb27a;
+  --cbm-accent-soft: #ffd2ad;
+  --cbm-heat: #ff8f6b;
+}
+
+.cx-mb-scroll {
+  padding-bottom: 96px;
+}
+
+/* 主题差异：color 更亮更蓝、real 用衬线正文与暖色卡片 */
+.cx-mb-theme--color .cx-mb-post {
+  box-shadow: 5px 5px 14px #000000, -4px -4px 10px #2f2f2f;
+}
+.cx-mb-theme--real .cx-mb-post {
+  background: linear-gradient(160deg, #2c2723 0%, #201d1a 100%);
+}
+.cx-mb-theme--real .cx-mb-post__body {
+  font-family: var(--font-title);
+  font-size: calc(14.5px * var(--fs-scale));
+}
+
+/* ============================================================
+   帖子卡片（MicroPostCard / RichText）
+   ============================================================ */
+
+.cx-mb-post {
+  background: var(--fx-face);
+  border-radius: 20px;
+  padding: 12px 13px;
+  margin-bottom: 10px;
+  box-shadow: var(--fx-back-shadow);
+}
+.cx-mb-post--compact {
+  padding: 10px 11px;
+  margin-bottom: 8px;
+}
+
+.cx-mb-post__head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  text-align: left;
+}
+.cx-mb-post__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.cx-mb-post__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(13.5px * var(--fs-scale));
+  font-weight: 600;
+  color: var(--fx-t1);
+}
+.cx-mb-post__meta {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: calc(10.5px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cx-mb-post__flag {
+  margin-top: 8px;
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--cbm-heat, var(--fx-t3));
+}
+.cx-mb-post__body {
+  margin-top: 9px;
+  font-size: calc(14px * var(--fs-scale));
+  line-height: 1.62;
+  color: var(--fx-t2);
+  white-space: pre-wrap;
+  word-break: break-word;
+  cursor: pointer;
+}
+.cx-mb-tag {
+  color: var(--cbm-accent, #ffffff);
+}
+.cx-mb-mention {
+  color: var(--cbm-accent-soft, #cccccc);
+}
+
+.cx-mb-mask {
+  width: 100%;
+  margin-top: 10px;
+  padding: 18px 12px;
+  border-radius: 14px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+  color: var(--fx-t3);
+  font-size: calc(12px * var(--fs-scale));
+}
+
+.cx-mb-quote {
+  margin-top: 9px;
+  padding: 9px 11px;
+  border-radius: 14px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+  cursor: pointer;
+}
+.cx-mb-quote__name {
+  font-size: calc(11.5px * var(--fs-scale));
+  color: var(--cbm-accent);
+}
+.cx-mb-quote__text {
+  margin-top: 4px;
+  font-size: calc(12.5px * var(--fs-scale));
+  color: var(--fx-t3);
+  line-height: 1.5;
+}
+
+.cx-mb-media {
+  margin-top: 9px;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(3, 1fr);
+  cursor: pointer;
+}
+.cx-mb-media img,
+.cx-mb-media__ph {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  border-radius: 10px;
+  display: block;
+  background: linear-gradient(135deg, #1b1b1b 0%, #333333 100%);
+}
+.cx-mb-media--1 {
+  grid-template-columns: 1fr;
+}
+.cx-mb-media--1 img,
+.cx-mb-media--1 .cx-mb-media__ph {
+  aspect-ratio: 16 / 10;
+}
+.cx-mb-media--2,
+.cx-mb-media--4 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.cx-mb-poll {
+  margin-top: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.cx-mb-poll__opt {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+  color: var(--fx-t2);
+}
+.cx-mb-poll__opt--on {
+  color: var(--fx-t1);
+}
+.cx-mb-poll__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.14);
+  transition: width 320ms ease;
+}
+.cx-mb-poll__opt--on .cx-mb-poll__fill {
+  background: var(--cbm-accent, #ffffff);
+  opacity: 0.35;
+}
+.cx-mb-poll__text {
+  position: relative;
+  flex: 1;
+  font-size: calc(12.5px * var(--fs-scale));
+  text-align: left;
+}
+.cx-mb-poll__opt b {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: calc(11.5px * var(--fs-scale));
+}
+.cx-mb-poll__foot {
+  font-size: calc(10.5px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+.cx-mb-assistant {
+  margin-top: 9px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--cbm-accent-soft, var(--fx-t2));
+  font-size: calc(11.5px * var(--fs-scale));
+  line-height: 1.5;
+}
+
+.cx-mb-acts {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.cx-mb-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 10px;
+  color: var(--fx-t3);
+  font-size: calc(11px * var(--fs-scale));
+}
+.cx-mb-act--like {
+  color: #ff6b8a;
+}
+.cx-mb-theme--color .cx-mb-act--like {
+  color: var(--cbm-accent);
+}
+.cx-mb-theme--real .cx-mb-act--like {
+  color: var(--cbm-heat);
+}
+.cx-mb-act--on {
+  color: var(--cbm-accent, var(--fx-t1));
+}
+.cx-mb-act--static {
+  cursor: default;
+}
+.cx-mb-heart-burst {
+  animation: cxMbBurst 620ms ease-out;
+}
+@keyframes cxMbBurst {
+  0% {
+    transform: scale(0.6);
+  }
+  40% {
+    transform: scale(1.4);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ---------- 热门话题横向条 ---------- */
+.cx-mb-hotstrip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0 12px;
+  scrollbar-width: none;
+}
+.cx-mb-hotstrip::-webkit-scrollbar {
+  display: none;
+}
+.cx-mb-chip {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 13px;
+  background: var(--fx-face);
+  box-shadow: var(--fx-back-shadow);
+  color: var(--fx-t2);
+  font-size: calc(11.5px * var(--fs-scale));
+}
+.cx-mb-chip svg {
+  color: var(--cbm-heat, var(--fx-t3));
+}
+
+/* ---------- 热搜榜 ---------- */
+.cx-mb-hot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cx-mb-hot__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--fx-face);
+  box-shadow: var(--fx-back-shadow);
+  text-align: left;
+}
+.cx-mb-hot__row--on {
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+}
+.cx-mb-hot__idx {
+  font-family: var(--font-mono);
+  font-size: calc(15px * var(--fs-scale));
+  font-weight: 700;
+  color: var(--cbm-heat, var(--fx-t3));
+  min-width: 22px;
+}
+.cx-mb-hot__idx--top {
+  color: var(--cbm-accent);
+}
+.cx-mb-hot__body {
+  flex: 1;
+  min-width: 0;
+}
+.cx-mb-hot__title {
+  font-size: calc(13px * var(--fs-scale));
+  color: var(--fx-t1);
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cx-mb-hot__heat {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+/* ---------- 语音空间 / 社群 ---------- */
+.cx-mb-listcard {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 10px;
+}
+.cx-mb-listcard__title {
+  font-size: calc(14.5px * var(--fs-scale));
+  font-weight: 600;
+  color: var(--fx-t1);
+}
+.cx-mb-listcard__sub {
+  margin-top: 4px;
+  font-size: calc(11.5px * var(--fs-scale));
+  color: var(--fx-t3);
+  line-height: 1.5;
+}
+.cx-mb-badge-live {
+  background: #ff4d5e !important;
+  color: #ffffff !important;
+  font-weight: 700;
+}
+.cx-mb-avatars {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* ---------- 私信 ---------- */
+.cx-mb-convo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: var(--fx-face);
+  box-shadow: var(--fx-back-shadow);
+  text-align: left;
+}
+.cx-mb-convo__body {
+  flex: 1;
+  min-width: 0;
+}
+.cx-mb-convo__name {
+  font-size: calc(13.5px * var(--fs-scale));
+  color: var(--fx-t1);
+}
+.cx-mb-convo__last {
+  margin-top: 3px;
+  font-size: calc(11px * var(--fs-scale));
+  color: var(--fx-t3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cx-mb-convo__time {
+  font-family: var(--font-mono);
+  font-size: calc(9.5px * var(--fs-scale));
+  color: var(--fx-t3);
+  flex: 0 0 auto;
+}
+.cx-mb-dmhead {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px 2px 10px;
+}
+.cx-mb-dmhead__name {
+  font-size: calc(14px * var(--fs-scale));
+  font-weight: 600;
+  color: var(--fx-t1);
+}
+.cx-mb-bubble {
+  max-width: 78%;
+  padding: 9px 12px;
+  border-radius: 15px;
+  font-size: calc(13px * var(--fs-scale));
+  line-height: 1.5;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.cx-mb-bubble--them {
+  align-self: flex-start;
+  background: var(--fx-face);
+  box-shadow: var(--fx-back-shadow);
+  color: var(--fx-t2);
+}
+.cx-mb-bubble--me {
+  align-self: flex-end;
+  background: var(--cbm-accent, #ffffff);
+  color: #000000;
+  font-weight: 500;
+  box-shadow: var(--fx-back-shadow);
+}
+.cx-mb-bubble__time {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--font-mono);
+  font-size: calc(9px * var(--fs-scale));
+  opacity: 0.6;
+}
+.cx-mb-dmbar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 10px 0 4px;
+  margin-top: 12px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.85) 40%);
+}
+
+/* ---------- 我的 / 资料卡 ---------- */
+.cx-mb-profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+.cx-mb-profile__name {
+  font-size: calc(16px * var(--fs-scale));
+  font-weight: 700;
+  color: var(--fx-t1);
+}
+.cx-mb-profile__sub {
+  margin-top: 3px;
+  font-size: calc(11px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cx-mb-themerow {
+  display: flex;
+  gap: 8px;
+}
+.cx-mb-themerow button {
+  flex: 1;
+}
+
+/* ---------- 发布浮标 ---------- */
+.cx-mb-fab {
+  position: absolute;
+  right: 16px;
+  bottom: calc(var(--nav-height, 60px) + 18px);
+  z-index: 40;
+  width: 54px;
+  height: 54px;
+  border-radius: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cbm-accent, var(--fx-accent));
+  color: #000000;
+  box-shadow: var(--fx-front-shadow);
+}
+
+/* ---------- 发布面板 ---------- */
+.cx-mb-cgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.cx-mb-cimg,
+.cx-mb-cadd {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+}
+.cx-mb-cimg {
+  background: linear-gradient(135deg, #1b1b1b 0%, #333333 100%);
+  box-shadow: var(--fx-inset-shadow);
+}
+.cx-mb-cimg__del {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-mb-cadd {
+  border: 1px dashed #444444;
+  border-radius: 12px;
+  background: var(--fx-sunken);
+  color: var(--fx-t3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-mb-counter {
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cx-mb-counter--over {
+  color: #ff8a8a;
+}
+.cx-mb-pollrow {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}

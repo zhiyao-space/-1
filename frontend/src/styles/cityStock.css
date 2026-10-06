@@ -1,0 +1,316 @@
+/* ============================================================
+   Mul市 · Tab12 股市与经济
+   沿用 mulin 厚块黑白渐变体系（.fx-*），涨红 / 跌绿 / 平灰
+   ============================================================ */
+
+/* 涨跌色（同时作为图表 currentColor） */
+.cx-up {
+  color: #ff5b5b;
+}
+.cx-down {
+  color: #3ddc84;
+}
+.cx-flat {
+  color: var(--fx-t3);
+}
+
+/* ---------- 顶部工具条 ---------- */
+.cx-stk-toolbar {
+  flex-shrink: 0;
+  padding: 8px 14px 4px;
+}
+.cx-stk-toolbar__msg {
+  margin-top: 6px;
+  font-size: calc(10.5px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+/* ---------- 快讯 ---------- */
+.cx-stk-news {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.cx-stk-news:last-child {
+  border-bottom: 0;
+}
+.cx-stk-news__t {
+  flex: 1;
+  min-width: 0;
+  font-size: calc(12px * var(--fs-scale));
+  color: var(--fx-t2);
+  line-height: 1.45;
+}
+.cx-stk-news__time {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: calc(9.5px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+/* ---------- 指数卡片 ---------- */
+.cx-stk-index {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.cx-stk-index__card {
+  padding: 12px 12px 6px;
+}
+.cx-stk-index__name {
+  font-size: calc(11.5px * var(--fs-scale));
+  color: var(--fx-t3);
+  letter-spacing: 0.5px;
+}
+.cx-stk-index__val {
+  font-family: var(--font-mono);
+  font-size: calc(22px * var(--fs-scale));
+  font-weight: 700;
+  line-height: 1.25;
+}
+.cx-stk-index__chg {
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--fs-scale));
+}
+.cx-stk-index__vol {
+  margin: 4px 0 2px;
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cx-stk-index__card .cx-trend {
+  display: block;
+  margin-top: 2px;
+}
+
+/* ---------- 热点板块 ---------- */
+.cx-stk-sectors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.cx-stk-sector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--fx-face);
+  box-shadow: var(--fx-back-shadow);
+  font-size: calc(12px * var(--fs-scale));
+  color: var(--fx-t2);
+}
+.cx-stk-sector b {
+  font-family: var(--font-mono);
+  font-size: calc(12.5px * var(--fs-scale));
+}
+
+/* ---------- 个股行 ---------- */
+.cx-stk-code {
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+  margin-left: 2px;
+}
+.cx-stk-quote {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.cx-stk-quote b {
+  font-family: var(--font-mono);
+  font-size: calc(14px * var(--fs-scale));
+}
+.cx-stk-quote i {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: calc(10.5px * var(--fs-scale));
+}
+
+/* ---------- 搜索框 ---------- */
+.cx-stk-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  margin-bottom: 10px;
+  border-radius: 13px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+  color: var(--fx-t3);
+}
+.cx-stk-search__icon {
+  flex: 0 0 auto;
+}
+.cx-stk-search__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--fx-t1);
+  font-size: calc(12.5px * var(--fs-scale));
+}
+.cx-stk-search__input::placeholder {
+  color: var(--fx-t3);
+}
+
+/* ---------- 持仓饼图 ---------- */
+.cx-stk-pie {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.cx-stk-pie svg {
+  flex: 0 0 auto;
+}
+.cx-stk-pie__legend {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.cx-stk-pie__item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: calc(11px * var(--fs-scale));
+  color: var(--fx-t2);
+}
+.cx-stk-pie__dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+.cx-stk-pie__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cx-stk-pie__pct {
+  font-family: var(--font-mono);
+  color: var(--fx-t3);
+}
+
+/* ---------- 股民排行 ---------- */
+.cx-stk-rank {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: calc(12px * var(--fs-scale));
+}
+.cx-stk-rank:last-child {
+  border-bottom: 0;
+}
+.cx-stk-rank--me {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 8px 8px;
+}
+.cx-stk-rank__no {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--fs-scale));
+  background: var(--fx-sunken);
+  color: var(--fx-t3);
+}
+.cx-stk-rank__no--1 {
+  background: #e6b566;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+.cx-stk-rank__no--2 {
+  background: #c9c9c9;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+.cx-stk-rank__no--3 {
+  background: #c98b66;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+.cx-stk-rank__name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--fx-t1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cx-stk-rank__total {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  color: var(--fx-t2);
+}
+.cx-stk-rank__rate {
+  flex: 0 0 auto;
+  width: 72px;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-size: calc(11px * var(--fs-scale));
+}
+
+/* ---------- 交易记录 ---------- */
+.cx-stk-trade__amt {
+  font-family: var(--font-mono);
+  font-size: calc(12px * var(--fs-scale));
+}
+
+/* ---------- 景气度仪表 ---------- */
+.cx-stk-gauge {
+  display: block;
+  margin: 0 auto;
+}
+.cx-stk-gauge__track {
+  stroke: var(--fx-sunken);
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.cx-stk-gauge__fill {
+  stroke: currentColor;
+  stroke-width: 12;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px currentColor);
+}
+.cx-stk-gauge__needle {
+  stroke: var(--fx-t1);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.cx-stk-gauge__hub {
+  fill: var(--fx-t1);
+}
+.cx-stk-gauge__tick {
+  fill: var(--fx-t3);
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+.cx-stk-gauge__cap {
+  text-align: center;
+  font-size: calc(11px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cx-stk-gauge__cap b {
+  font-family: var(--font-mono);
+  font-size: calc(15px * var(--fs-scale));
+  color: var(--fx-t1);
+}

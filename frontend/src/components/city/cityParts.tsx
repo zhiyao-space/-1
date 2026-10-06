@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { ChevronRight, MapPin } from 'lucide-react'
-import type { Landmark, Person, PersonAttrs, TicketKind } from '../../store/mulCity'
+import type { Candle, Landmark, Person, PersonAttrs, TicketKind } from '../../store/mulCity'
 import { TICKET_KIND_LABEL } from '../../store/mulCity'
 
 /* ============================================================
@@ -422,3 +422,74 @@ export function fmtWhen(ts: number): string {
 }
 
 export { PersonRow as default }
+
+/* ---------- 图表：分时 / K线 / 迷你走势 ---------- */
+
+export function Sparkline({ data, up, width = 62, height = 22 }: { data: number[]; up?: boolean; width?: number; height?: number }) {
+  if (data.length < 2) return null
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const pts = data
+    .map((v, i) => `${(i / (data.length - 1)) * width},${height - ((v - min) / span) * (height - 2) - 1}`)
+    .join(' ')
+  return (
+    <svg className={up === false ? 'cx-down' : 'cx-up'} width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
+export function TrendChart({ data, height = 118 }: { data: number[]; height?: number }) {
+  if (data.length < 2) return <div className="cx-chart-empty">暂无分时数据</div>
+  const W = 300
+  const min = Math.min(...data)
+  const max = Math.max(...data)
+  const span = max - min || 1
+  const xy = (v: number, i: number) => `${(i / (data.length - 1)) * W},${(1 - (v - min) / span) * (height - 8) + 4}`
+  const line = data.map(xy).join(' ')
+  const area = `0,${height} ${line} ${W},${height}`
+  const up = data[data.length - 1] >= data[0]
+  return (
+    <svg className={`cx-trend ${up ? 'cx-up' : 'cx-down'}`} viewBox={`0 0 ${W} ${height}`} preserveAspectRatio="none" width="100%" height={height}>
+      <polygon points={area} className="cx-trend__area" />
+      <polyline points={line} fill="none" stroke="currentColor" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+    </svg>
+  )
+}
+
+export function KLineChart({ candles, height = 168, showVolume = true }: { candles: Candle[]; height?: number; showVolume?: boolean }) {
+  if (candles.length < 2) return <div className="cx-chart-empty">暂无K线数据</div>
+  const W = 300
+  const H = height
+  const volH = showVolume ? 34 : 0
+  const priceH = H - volH - 6
+  const max = Math.max(...candles.map((c) => c.h))
+  const min = Math.min(...candles.map((c) => c.l))
+  const span = max - min || 1
+  const cw = (W - 4) / candles.length
+  const y = (p: number) => 2 + (1 - (p - min) / span) * priceH
+  const maxVol = Math.max(...candles.map((c) => c.v)) || 1
+  return (
+    <svg className="cx-kline" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" width="100%" height={H}>
+      {[0, 0.25, 0.5, 0.75, 1].map((f) => (
+        <line key={f} x1="0" x2={W} y1={2 + f * priceH} y2={2 + f * priceH} className="cx-kline__grid" vectorEffect="non-scaling-stroke" />
+      ))}
+      {candles.map((c, i) => {
+        const x = 2 + i * cw + cw / 2
+        const up = c.c >= c.o
+        const top = y(Math.max(c.o, c.c))
+        const bot = y(Math.min(c.o, c.c))
+        const bw = Math.max(1.4, cw * 0.62)
+        const vy = 6 + priceH + (c.v / maxVol) * volH
+        return (
+          <g key={i} className={up ? 'cx-up' : 'cx-down'}>
+            <line x1={x} x2={x} y1={y(c.h)} y2={y(c.l)} stroke="currentColor" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+            <rect x={x - bw / 2} y={top} width={bw} height={Math.max(1, bot - top)} fill="currentColor" />
+            {showVolume && <rect x={x - bw / 2} y={vy} width={bw} height={Math.max(0.6, H - vy)} fill="currentColor" opacity="0.38" />}
+          </g>
+        )
+      })}
+    </svg>
+  )
+}

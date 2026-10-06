@@ -1,0 +1,261 @@
+/* ============================================================
+   Mul市 · Tab9 新闻资讯
+   厚块黑白渐变体系（复用 --fx-* 变量），仅补新闻中心结构
+   ============================================================ */
+
+/* ---------- 搜索 + 刷新 ---------- */
+.cxn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.cxn-search {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+.cxn-search > svg {
+  position: absolute;
+  left: 13px;
+  color: var(--fx-t3);
+  pointer-events: none;
+}
+.cxn-search .fx-input {
+  padding-left: 34px;
+  padding-right: 32px;
+}
+.cxn-search__clear {
+  position: absolute;
+  right: 10px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-back-shadow);
+  color: var(--fx-t3);
+  font-size: calc(14px * var(--fs-scale));
+  line-height: 1;
+}
+.cxn-refresh {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.cxn-spin {
+  animation: cxnSpin 900ms linear infinite;
+}
+@keyframes cxnSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---------- 分类 Tab（嵌在滚动区内，去掉自身左右内边距） ---------- */
+.cxn-subtabs {
+  margin: 2px 0 0;
+}
+.cxn-subtabs .cx-subtabs {
+  padding: 2px 0 4px;
+}
+
+/* ---------- 元信息 ---------- */
+.cxn-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+/* ---------- 今日焦点 ---------- */
+.cxn-focus {
+  background: linear-gradient(150deg, var(--fx-face) 0%, var(--fx-sunken) 100%);
+}
+.cxn-focus__top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cxn-focus__title {
+  margin-top: 11px;
+  font-size: calc(20px * var(--fs-scale));
+  font-weight: 700;
+  line-height: 1.42;
+  color: var(--fx-t1);
+}
+.cxn-focus__summary {
+  margin-top: 9px;
+  font-size: calc(12.5px * var(--fs-scale));
+  line-height: 1.65;
+  color: var(--fx-t2);
+}
+.cxn-focus__foot {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 11px;
+}
+
+/* ---------- 订阅栏目 ---------- */
+.cxn-subs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.cxn-sub {
+  min-height: 26px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* ---------- 热搜 ---------- */
+.cxn-trends {
+  background: var(--fx-face);
+  border-radius: 18px;
+  box-shadow: var(--fx-mid-shadow);
+  overflow: hidden;
+}
+.cxn-trend {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  text-align: left;
+  background: transparent;
+  color: var(--fx-t1);
+}
+.cxn-trend + .cxn-trend {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.cxn-trend--on {
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+}
+.cxn-trend__rank {
+  flex: 0 0 auto;
+  width: 18px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: calc(12px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+.cxn-trend__rank--hot {
+  color: var(--fx-t1);
+  font-weight: 700;
+}
+.cxn-trend__title {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: calc(12.5px * var(--fs-scale));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cxn-trend__label {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: var(--fx-accent);
+  color: #000000;
+  font-size: calc(8.5px * var(--fs-scale));
+  font-weight: 700;
+}
+.cxn-trend__heat {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: calc(10px * var(--fs-scale));
+  color: var(--fx-t3);
+}
+
+/* ---------- 推荐阅读列表 ---------- */
+.cxn-card {
+  margin-bottom: 10px;
+}
+.cxn-card__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cxn-card__title {
+  margin-top: 9px;
+  font-size: calc(14.5px * var(--fs-scale));
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--fx-t1);
+}
+.cxn-card__summary {
+  margin-top: 6px;
+  font-size: calc(11.5px * var(--fs-scale));
+  line-height: 1.6;
+  color: var(--fx-t3);
+}
+
+/* ---------- 操作条 ---------- */
+.cxn-acts {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 11px;
+  padding-top: 10px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.cxn-act {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border-radius: 9px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+  color: var(--fx-t3);
+  font-size: calc(10px * var(--fs-scale));
+}
+.cxn-act--on {
+  background: var(--fx-accent);
+  color: #000000;
+  font-weight: 700;
+  box-shadow: var(--fx-back-shadow);
+}
+.cxn-act--share {
+  margin-left: auto;
+}
+
+/* ---------- 提示 ---------- */
+.cxn-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 82px;
+  transform: translateX(-50%);
+  z-index: 300;
+  padding: 9px 18px;
+  border-radius: 14px;
+  background: var(--fx-accent);
+  color: #000000;
+  font-size: calc(12px * var(--fs-scale));
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: var(--fx-front-shadow);
+  animation: cxnToast 200ms ease-out;
+}
+@keyframes cxnToast {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}

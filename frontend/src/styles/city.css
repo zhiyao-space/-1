@@ -590,7 +590,7 @@
   font-weight: 600;
 }
 
-/* ---------- 底部导航（8 Tab） ---------- */
+/* ---------- 底部导航（12 Tab，可横向滚动） ---------- */
 .cx-nav {
   flex-shrink: 0;
   display: flex;
@@ -598,10 +598,17 @@
   background: var(--fx-face);
   box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.7), inset 0 1px 0 #3a3a3a;
   padding-bottom: env(safe-area-inset-bottom);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.cx-nav::-webkit-scrollbar {
+  display: none;
 }
 .cx-nav__item {
-  flex: 1;
-  min-width: 0;
+  flex: 1 0 auto;
+  min-width: 56px;
   min-height: 54px;
   border: 0;
   background: none;
@@ -634,6 +641,43 @@
   height: 3px;
   border-radius: 999px;
   background: var(--fx-accent);
+}
+
+/* ---------- 事件引擎浮标 ---------- */
+.cx-eventfab {
+  position: absolute;
+  right: 12px;
+  bottom: 68px;
+  z-index: 150;
+  max-width: 62%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--fx-accent);
+  border-radius: 999px;
+  background: var(--fx-face);
+  color: var(--fx-accent);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.65);
+  font-size: calc(11px * var(--fs-scale));
+}
+.cx-eventfab__t {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fx-t1);
+}
+.cx-eventfab__n {
+  flex-shrink: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--fx-accent);
+  color: #0a0a0a;
+  font-size: calc(9px * var(--fs-scale));
+  line-height: 16px;
+  text-align: center;
 }
 
 /* ---------- 动态时间线 ---------- */

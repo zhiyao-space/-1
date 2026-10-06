@@ -1,8 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Briefcase, Building2, CreditCard, LogOut, Map as MapIcon, MessageSquare, Music2, Plane, Settings2 } from 'lucide-react'
+import {
+  AtSign,
+  Briefcase,
+  Building2,
+  CreditCard,
+  Globe,
+  LineChart,
+  LogOut,
+  Map as MapIcon,
+  MessageSquare,
+  Music2,
+  Newspaper,
+  Plane,
+  Settings2,
+  Sparkles,
+} from 'lucide-react'
 import { useUI, useToast } from '../../store/ui'
 import { fmtCityClock, useMulCity, type CityTabKey } from '../../store/mulCity'
-import { CityNavContext, type CityNav, type CityRoute } from './cityNav'
+import { CityNavContext, useCityNav, type CityNav, type CityRoute } from './cityNav'
 import { RouteView } from './cityDetails'
 import CityHomeTab from './CityHomeTab'
 import CivilTab from './CivilTab'
@@ -12,13 +27,18 @@ import ServiceTab from './ServiceTab'
 import SocialTab from './SocialTab'
 import WorkTab from './WorkTab'
 import AdminTab from './AdminTab'
+import NewsTab from './NewsTab'
+import MicroblogTab from './MicroblogTab'
+import BrowserTab from './BrowserTab'
+import StockTab from './StockTab'
 import '../../styles/factory.css'
 import '../../styles/city.css'
 
 /* ============================================================
    Mul市
    运行在小手机内部的完整虚拟城市生活模拟系统
-   底部 8 Tab：Mul市 | 市籍 | 出行 | 演出 | 公共服务 | 社交 | 工作 | 管理
+   底部 12 Tab：Mul市 | 市籍 | 出行 | 演出 | 公共服务 | 社交 | 工作 | 管理
+              | 新闻 | 微博 | 浏览器 | 股市
    ============================================================ */
 
 const TABS: { key: CityTabKey; label: string; icon: typeof MapIcon }[] = [
@@ -29,6 +49,10 @@ const TABS: { key: CityTabKey; label: string; icon: typeof MapIcon }[] = [
   { key: 'service', label: '公共服务', icon: Building2 },
   { key: 'social', label: '社交', icon: MessageSquare },
   { key: 'work', label: '工作', icon: Briefcase },
+  { key: 'news', label: '新闻', icon: Newspaper },
+  { key: 'microblog', label: '微博', icon: AtSign },
+  { key: 'browser', label: '浏览器', icon: Globe },
+  { key: 'stock', label: '股市', icon: LineChart },
   { key: 'admin', label: '管理', icon: Settings2 },
 ]
 
@@ -88,6 +112,27 @@ function CityTopBar() {
   )
 }
 
+/** 事件引擎浮标：任意 Tab 都能看到进行中的事件并直接参与 */
+function EventFab() {
+  const active = useMulCity((s) => s.events.active)
+  const nav = useCityNav()
+
+  if (!active.length) return null
+  const top = active[0]
+
+  return (
+    <button
+      className="cx-eventfab fx-press"
+      onClick={() => nav.push({ view: 'gameevent', id: top.id })}
+      title="Mul市正在发生 · 点击参与"
+    >
+      <Sparkles size={14} />
+      <span className="cx-eventfab__t">{top.title}</span>
+      {active.length > 1 && <b className="cx-eventfab__n">{active.length}</b>}
+    </button>
+  )
+}
+
 export default function CityApp() {
   const [tab, setTab] = useState<CityTabKey>('city')
   const [stack, setStack] = useState<CityRoute[]>([])
@@ -135,8 +180,15 @@ export default function CityApp() {
           {tab === 'service' && <ServiceTab />}
           {tab === 'social' && <SocialTab />}
           {tab === 'work' && <WorkTab />}
+          {tab === 'news' && <NewsTab />}
+          {tab === 'microblog' && <MicroblogTab />}
+          {tab === 'browser' && <BrowserTab />}
+          {tab === 'stock' && <StockTab />}
           {tab === 'admin' && <AdminTab onToast={pushToast} />}
         </div>
+
+        {/* 事件引擎浮标：进行中的事件在任何 Tab 都能看到并参与 */}
+        {!current && <EventFab />}
 
         {current && (
           <div

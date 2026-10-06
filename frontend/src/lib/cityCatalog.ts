@@ -1,15 +1,37 @@
 import type {
+  BrowseResult,
+  BrowserBookmark,
+  BrowserTab,
+  Candle,
+  CalendarItem,
+  CityMeta,
   Course,
   District,
+  EventChoice,
+  EventTemplate,
+  GameEvent,
+  GameEventType,
   GroupChat,
   Job,
   Landmark,
+  MicroblogCommunity,
+  MicroblogPost,
+  MicroblogSpace,
+  NewsCategory,
+  NewsItem,
+  OrderBook,
   Person,
   PersonAttrs,
   PersonType,
   Post,
+  QuickLink,
   ScheduleItem,
   ShowEvent,
+  Stock,
+  StockIndex,
+  StockNews,
+  TrendingTopic,
+  WebPage,
   WorldEvent,
 } from '../store/mulCity'
 import { rankLevel } from '../store/mulCity'
@@ -435,3 +457,704 @@ export const COURSE_SEED: Omit<Course, 'id'>[] = [
   { title: '吉他弹唱', skill: '音乐', level: 1, price: 520, weeks: 6, teacher: '陆听' },
   { title: '城市速写', skill: '写作', level: 1, price: 260, weeks: 2, teacher: '程知' },
 ]
+
+/* ============================================================
+   Tab9 · 新闻资讯
+   ============================================================ */
+
+export const NEWS_CATEGORIES: NewsCategory[] = ['Mul市要闻', '财经', '科技', '娱乐', '体育', '社会', '国际']
+
+const NEWS_SOURCES: Record<NewsCategory, string[]> = {
+  Mul市要闻: ['Mul市新闻中心', '城市晚报'],
+  财经: ['财经观察', 'Mul市商报'],
+  科技: ['科技前哨', '创客周刊'],
+  娱乐: ['娱乐星报', '现场报道'],
+  体育: ['城市体育报'],
+  社会: ['社会纪实', '居民通讯'],
+  国际: ['环球视野'],
+}
+
+interface NewsSeed {
+  title: string
+  summary: string
+}
+
+const NEWS_SEEDS: Record<NewsCategory, NewsSeed[]> = {
+  Mul市要闻: [
+    { title: '中央广场钟塔修缮完工，整点报时今晚恢复', summary: '停了两周的钟声将在今晚 20:00 重新响起，广场上已经有人提前等候。' },
+    { title: 'Mul市拟新增两条夜间公交线，覆盖老城区与海滨', summary: '市政部门表示，线路方案将公示七天，居民可在社区中心提出意见。' },
+    { title: '{P} 向市籍.程行系统提交了城市公共艺术提案', summary: '提案计划在地铁总站与梧桐里之间设置一组可互动装置。' },
+    { title: '住宅区新增三处口袋公园，下月起陆续开放', summary: '社区公园东侧的地块已开始平整，预计秋天前完工。' },
+  ],
+  财经: [
+    { title: 'Mul市综指收涨，科技与消费板块领跑', summary: '全天成交额较前一交易日放大，机构资金主要流向成长股。' },
+    { title: '星光百货公布季度业绩，线下客流回升明显', summary: '管理层称顶层露台的夜间市集带动了整体客流。' },
+    { title: 'Mul市经济景气度小幅上行，居民消费信心回暖', summary: '餐饮、演出与出行三项支出同比上升。' },
+    { title: '地铁发布票价优化方案，通勤族或将受益', summary: '方案拟对月票与换乘优惠做出调整。' },
+  ],
+  科技: [
+    { title: '创客空间发布开源项目「里世界时钟」，可同步城市时间', summary: '项目上线当天就收到了几十份社区提交的补丁。' },
+    { title: 'Mul市城市系统完成一次静默升级，居民无感知', summary: '负责维护的工程师表示，这次升级主要优化了夜间调度。' },
+    { title: '本地团队做出可在旧手机上运行的城市模拟器', summary: '演示里，整座 Mul市 在一部小手机里自行运转。' },
+    { title: '独立书店引入电子借阅柜，扫码即可取书', summary: '首批上线两百本，涵盖小说与城市史。' },
+  ],
+  娱乐: [
+    { title: '{P} 的新作品在美术馆预展上首次公开', summary: '现场排队的人从展厅一直绕到了台阶下。' },
+    { title: '夏夜回声巡演 Mul市站开票，内场十分钟售罄', summary: '主办方称正在协调加场。' },
+    { title: '深夜食堂老板上了本地节目，聊了聊二十年的一锅汤', summary: '节目播出后，小店门口排起了长队。' },
+    { title: '独立放映周公布片单，多部胶片作品入选', summary: '放映地点在 Mul 剧场的小厅。' },
+  ],
+  体育: [
+    { title: '环城骑行赛报名开启，路线沿滨海与山区展开', summary: '全程约 42 公里，设有三个补给点。' },
+    { title: '竹林步道秋季登高活动名额已过半', summary: '活动要求结伴上山，山顶天文台当晚开放。' },
+    { title: '{P} 在半程马拉松里跑出了个人最好成绩', summary: '终点设在中央广场，冲线时有人喊了他的名字。' },
+    { title: '社区公园夜跑团扩招，新增两条路线', summary: '组织者提醒新人注意配速与补水。' },
+  ],
+  社会: [
+    { title: '梧桐里一位居民在楼道里放了共享工具箱', summary: '箱子里有螺丝刀、胶带和一把旧雨伞，写着“用完放回”。' },
+    { title: '{P} 连续三年在社区中心做志愿者', summary: '她说只是顺手，邻居们却说整条街都因此松快了些。' },
+    { title: '老城区茶馆的常客们自发组织了一场旧物交换', summary: '换出去的多是旧书和旧唱片。' },
+    { title: '深夜便利店的留言墙被写满了，店长说不会擦掉', summary: '上面大多是加班的人写给自己的一句话。' },
+  ],
+  国际: [
+    { title: '多地出现类似的“城市自转”系统，引发讨论', summary: '研究者认为，这是一种新的城市叙事方式。' },
+    { title: '跨城市高铁网络扩容，Mul市 被列入下一批节点', summary: '具体通车时间尚未公布。' },
+    { title: '国际艺术双年展公布主题：雾与钟塔', summary: '多位 Mul市 创作者收到邀请。' },
+    { title: '全球模型爱好者社区关注到一部小手机里的城市', summary: '他们把这种现象称作“里世界”。' },
+  ],
+}
+
+function r2(n: number): number {
+  return Math.round(n * 100) / 100
+}
+
+function fillTokens(text: string, people: Person[], city?: CityMeta): string {
+  const others = people.filter((p) => p.type !== 'user')
+  const person = others.length ? pick(others) : people[0]
+  const lm = city?.landmarks?.length ? pick(city.landmarks) : pick(LANDMARKS)
+  return text.replace(/\{P\}/g, person?.name ?? '一位居民').replace(/\{L\}/g, lm.name)
+}
+
+export function localNewsItem(people: Person[], city: CityMeta, category?: NewsCategory): NewsItem {
+  const cat = category ?? pick(NEWS_CATEGORIES)
+  const seed = pick(NEWS_SEEDS[cat])
+  const lm = pick(city.landmarks.length ? city.landmarks : LANDMARKS)
+  const person = pick(people.filter((p) => p.type !== 'user')) ?? people[0]
+  const title = fillTokens(seed.title, people, city)
+  const summary = fillTokens(seed.summary, people, city)
+  const at = Date.now() - randInt(0, 10) * 3600000
+  const body = [
+    summary,
+    `据${pick(NEWS_SOURCES[cat])}了解，这件事最早是从${lm.name}一带传开的。${pick([`${person?.name ?? '一位居民'}是当事人之一。`, '现场聚集了不少围观的居民。', '相关方尚未给出更多回应。'])}`,
+    pick([
+      '有居民表示，这样的变化让人对 Mul市 的日常多了一点期待。',
+      '也有人认为，真正重要的不是结果，而是过程里那些被记住的瞬间。',
+      '目前情况仍在持续，界面新闻将持续关注。',
+      '熟悉这一带的人说，事情最后多半会以一种安静的方式收场。',
+    ]),
+  ].join('\n\n')
+  return {
+    id: cityId('nws'),
+    title,
+    summary,
+    body,
+    category: cat,
+    source: pick(NEWS_SOURCES[cat]),
+    author: pick(['本报记者', '通讯员', '编辑部', '特约撰稿']),
+    images: [],
+    at,
+    expiresAt: at + 3 * 86400000,
+    views: randInt(120, 9800),
+    likes: [],
+    dislikes: [],
+    comments: [],
+    relatedPersons: person ? [person.id] : [],
+    landmarkId: lm.id,
+  }
+}
+
+export function localNews(people: Person[], city: CityMeta, count = 10): NewsItem[] {
+  const cats: NewsCategory[] = pickSome(NEWS_CATEGORIES, 3)
+  const out: NewsItem[] = []
+  for (let i = 0; i < count; i += 1) out.push(localNewsItem(people, city, cats[i % cats.length]))
+  return out
+}
+
+export function buildSeedNews(people: Person[]): NewsItem[] {
+  const city: CityMeta = { name: 'Mul市', districts: DISTRICTS, landmarks: LANDMARKS, weather: '晴', year: 2026, cityTime: Date.now(), timeScale: 1, lastTickAt: Date.now() }
+  const cats: NewsCategory[] = ['Mul市要闻', '财经', '娱乐', '科技', '社会', '体育']
+  return cats.map((c) => localNewsItem(people, city, c))
+}
+
+const TREND_LABELS = ['热', '沸', '新', '爆', '']
+
+export function localTrendingTopics(people: Person[]): TrendingTopic[] {
+  const others = people.filter((p) => p.type !== 'user')
+  const names = others.map((p) => p.name)
+  const pool = [
+    'Mul市 夏季音乐节',
+    '钟塔整点报时恢复',
+    '地铁 3 号线',
+    '深夜食堂',
+    '梧桐里共享工具箱',
+    '环城骑行赛',
+    '美术馆新展',
+    '老城区夜市',
+    '城市系统升级',
+    '海边日落',
+    ...names.map((n) => `${n}`),
+    ...names.slice(0, 5).map((n) => `${n} 的新作品`),
+  ]
+  const pickedUnique = Array.from(new Set(pool))
+  return pickSome(pickedUnique, 10).map((title, i) => ({
+    id: cityId('tr'),
+    title,
+    heat: Math.round((100 - i * 7) * 1000 + randInt(0, 6000)),
+    label: i < 3 ? pick(TREND_LABELS.slice(0, 3)) : pick(TREND_LABELS),
+    at: Date.now() - i * 1800000,
+  }))
+}
+
+export const buildSeedTrending = localTrendingTopics
+
+/* ============================================================
+   Tab10 · 微博
+   ============================================================ */
+
+function microblogContent(person: Person, meName: string, affinity: number): string {
+  const job = person.occupation
+  const hobby = person.hobbies[0] ?? '散步'
+  const warm = [
+    `和 ${meName} 聊了会儿，忽然觉得 ${hobby} 这件事还是要有个人一起才好玩。`,
+    `${meName} 今天又出现在我常去的地方，假装是巧合。`,
+    `今天第 ${randInt(2, 7)} 杯咖啡，写 ${job} 的人大概都这样。`,
+  ]
+  const cool = [
+    `做 ${job} 的第七年，还是会在下班路上多看两眼这座城市。`,
+    `今天去${pick(LANDMARKS).name}走了走，人不多，风刚刚好。`,
+    `把 ${hobby} 这件小事坚持下来，居然也有点成就感。`,
+  ]
+  const neut = [
+    `Mul市 的傍晚真的很适合发呆。`,
+    `${pick(LANDMARKS).name} 今天人有点多，但气氛很好。`,
+    `睡前一问：你们最近在听什么？`,
+  ]
+  if (affinity > 60) return pick(warm)
+  if (affinity >= 30) return pick(cool)
+  return pick(neut)
+}
+
+export function localMicroblogPost(person: Person, meName: string, affinity: number, _cityTime: number): MicroblogPost {
+  const likes = Array.from({ length: randInt(1, 60) }, () => cityId('g'))
+  const commentCount = randInt(0, 4)
+  const commenters = pickSome(person.hobbies.length ? [] : [], 0)
+  void commenters
+  return {
+    id: cityId('mb'),
+    authorId: person.id,
+    content: microblogContent(person, meName, affinity),
+    images: [],
+    type: 'text',
+    createdAt: Date.now() - randInt(0, 8) * 3600000,
+    likes,
+    reposts: [],
+    comments: Array.from({ length: commentCount }, () => ({
+      id: cityId('mc'),
+      authorId: person.id,
+      content: pick(['同感。', '哈哈哈哈哈。', '下次一起。', '这条我存了。', '说得真好。']),
+      at: Date.now() - randInt(0, 6) * 3600000,
+      likes: [],
+    })),
+    views: randInt(80, 4200),
+    location: Math.random() > 0.5 ? pick(LANDMARKS).name : '',
+    isAnonymous: false,
+    tags: pickSome(person.hobbies, 1),
+    isSensitive: false,
+    bookmarks: [],
+  }
+}
+
+export function buildSeedMicroblog(people: Person[]): MicroblogPost[] {
+  const others = people.filter((p) => p.type !== 'user')
+  const byName = (n: string) => others.find((p) => p.name === n) ?? others[0]
+  const now = Date.now()
+  const drafts: { by: string; content: string; tags: string[]; likes: number; type?: MicroblogPost['type']; poll?: string[]; loc?: string }[] = [
+    { by: '苏叙', content: '新豆子到了，浅烘，尾段有股柑橘味。今晚店里见。', tags: ['咖啡', '深夜食堂'], likes: 42, loc: '深夜食堂' },
+    { by: '程知', content: '图书馆四楼的光今天特别好，靠窗那排全被人占了。', tags: ['阅读'], likes: 68 },
+    { by: '顾南', content: '布展到最后一天，墙上那道影子比作品还好看。明天见。', tags: ['展览', 'Mul市'], likes: 113 },
+    { by: '沈岸', content: '第一卷一整卷都是海边，冲出来才知道哪几张能留。', tags: ['摄影'], likes: 77 },
+    { by: '江野', content: '投票：今晚多煮的那锅汤，你们想喝清汤还是浓汤？', tags: ['深夜食堂'], likes: 31, type: 'poll', poll: ['清汤', '浓汤', '都来一碗'] },
+    { by: '周眠', content: '3 号线今天又晚点，但车窗外的黄昏值回票价。', tags: ['日常', 'Mul市'], likes: 19 },
+    { by: '陆听', content: '带人走了一趟山路，第一次发现竹林步道尽头有片湖。', tags: ['爬山'], likes: 54, loc: '竹林步道' },
+    { by: '叶澄', content: '书店新到一批旧版诗集，封面都旧得好看。', tags: ['书店'], likes: 33 },
+  ]
+  return drafts.map((d) => {
+    const person = byName(d.by)
+    const poll = d.poll
+      ? d.poll.map((text, i) => ({ id: `po_${i}_${cityId('o')}`, text, votes: Array.from({ length: randInt(3, 40) }, () => cityId('v')) }))
+      : undefined
+    return {
+      id: cityId('mb'),
+      authorId: person.id,
+      content: d.content,
+      images: [],
+      type: d.type ?? 'text',
+      createdAt: now - randInt(1, 12) * 3600000,
+      likes: Array.from({ length: d.likes }, () => cityId('g')),
+      reposts: Array.from({ length: Math.round(d.likes / 6) }, () => cityId('g')),
+      comments: [],
+      views: d.likes * randInt(8, 30),
+      location: d.loc ?? '',
+      isAnonymous: false,
+      tags: d.tags,
+      isSensitive: false,
+      poll,
+      bookmarks: [],
+    }
+  })
+}
+
+export const buildSeedHotSearch = localTrendingTopics
+
+export function buildSeedSpaces(people: Person[]): MicroblogSpace[] {
+  const others = people.filter((p) => p.type !== 'user')
+  const at = (n: string) => (others.find((p) => p.name === n) ?? others[0]).id
+  const now = Date.now()
+  return [
+    {
+      id: cityId('sp'),
+      title: '深夜连麦 · 城市里最安静的那个小时',
+      topic: '你所在的城市此刻是什么样子',
+      hostId: at('苏叙'),
+      guestIds: [at('江野'), at('贺津')],
+      startAt: now + 1800000,
+      live: false,
+      online: randInt(120, 900),
+      reactions: randInt(200, 3000),
+      subtitles: [],
+    },
+    {
+      id: cityId('sp'),
+      title: '展览幕后：一场展是怎么布起来的',
+      topic: '策展人的一天',
+      hostId: at('顾南'),
+      guestIds: [at('沈岸')],
+      startAt: now + 86400000,
+      live: false,
+      online: randInt(60, 400),
+      reactions: randInt(100, 1500),
+      subtitles: [],
+    },
+    {
+      id: cityId('sp'),
+      title: '早起的人都在做什么',
+      topic: '六点的 Mul市',
+      hostId: at('陆听'),
+      guestIds: [at('程知')],
+      startAt: now - 1800000,
+      live: true,
+      online: randInt(200, 1200),
+      reactions: randInt(500, 6000),
+      subtitles: ['要不要现在开始？', '我这边天刚亮。', '声音很清楚。'],
+    },
+  ]
+}
+
+export function buildSeedCommunities(people: Person[]): MicroblogCommunity[] {
+  const others = people.filter((p) => p.type !== 'user')
+  const at = (n: string) => (others.find((p) => p.name === n) ?? others[0]).id
+  const now = Date.now()
+  const mk = (name: string, desc: string, owner: string, members: string[]): MicroblogCommunity => ({
+    id: cityId('cmt'),
+    name,
+    desc,
+    ownerId: at(owner),
+    memberIds: ['person_me', ...members.map(at)],
+    posts: [
+      {
+        id: cityId('cp'),
+        authorId: at(owner),
+        content: `${name} 第 ${randInt(2, 40)} 次约活动，这次人应该能凑齐。`,
+        images: [],
+        type: 'text',
+        createdAt: now - randInt(1, 40) * 3600000,
+        likes: Array.from({ length: randInt(3, 30) }, () => cityId('g')),
+        reposts: [],
+        comments: [],
+        views: randInt(50, 900),
+        location: '',
+        isAnonymous: false,
+        tags: [name],
+        isSensitive: false,
+        bookmarks: [],
+      },
+    ],
+    createdAt: now - randInt(30, 400) * 86400000,
+  })
+  return [
+    mk('梧桐里生活群', '住在梧桐里的人都在这儿。', '许苓', ['苏叙', '贺津', '周眠']),
+    mk('Mul市胶片社', '只聊胶卷、冲扫和光。', '沈岸', ['顾南', '叶澄']),
+    mk('夜跑小队', '每晚九点，公园门口集合。', '温时', ['陆听', '贺津']),
+  ]
+}
+
+/* ============================================================
+   Tab11 · 浏览器
+   ============================================================ */
+
+export function buildSeedQuickLinks(): QuickLink[] {
+  return [
+    { id: cityId('ql'), title: 'Mul市门户', url: 'mul.city/portal', desc: '城市公告与政务服务' },
+    { id: cityId('ql'), title: 'Mul市新闻', url: 'mul.city/news', desc: '要闻 · 财经 · 社会' },
+    { id: cityId('ql'), title: '微博广场', url: 'mul.city/microblog', desc: '热搜与实时动态' },
+    { id: cityId('ql'), title: 'Mul市证券', url: 'mul.city/stock', desc: '大盘 · 个股 · 资讯' },
+    { id: cityId('ql'), title: '本地搜索', url: 'mul.city/local', desc: '搜人 / 搜地点 / 搜事件' },
+    { id: cityId('ql'), title: '城市图书馆', url: 'mul.city/library', desc: '藏书与借阅' },
+  ]
+}
+
+export function buildSeedBookmarks(): BrowserBookmark[] {
+  const now = Date.now()
+  return [
+    { id: cityId('bm'), title: 'Mul市门户', url: 'mul.city/portal', folder: '常用', at: now - 86400000 },
+    { id: cityId('bm'), title: 'Mul市证券行情', url: 'mul.city/stock', folder: '常用', at: now - 43200000 },
+    { id: cityId('bm'), title: '城市图书馆', url: 'mul.city/library', folder: '阅读', at: now - 172800000 },
+  ]
+}
+
+export function buildSeedBrowserTabs(): BrowserTab[] {
+  return [{ id: cityId('tab'), title: '新标签页', url: '', kind: 'home', query: '', results: [] }]
+}
+
+export function localBrowseResults(query: string, people: Person[]): BrowseResult[] {
+  const q = query.trim() || 'Mul市'
+  const others = people.filter((p) => p.type !== 'user')
+  const person = pick(others.length ? others : people)
+  const lm = pick(LANDMARKS)
+  const results: BrowseResult[] = [
+    { id: cityId('sr'), title: `Mul市门户 · 关于「${q}」`, url: `mul.city/portal?q=${encodeURIComponent(q)}`, summary: `Mul市官方门户汇总了与「${q}」相关的政务公告、城市活动与公共服务入口。`, site: 'mul.city' },
+    { id: cityId('sr'), title: `${q} - Mul市新闻专题`, url: `mul.city/news/topic/${encodeURIComponent(q)}`, summary: `新闻中心已为「${q}」建立专题页，收录近期相关报道与居民来稿。`, site: 'mul.city' },
+    { id: cityId('sr'), title: `${person.name} 的主页 · 微博`, url: `mul.city/microblog/u/${person.id}`, summary: `${person.name}，${person.occupation}。最近在聊「${q}」，主页有 ${randInt(20, 400)} 条微博。`, site: 'mul.city' },
+    { id: cityId('sr'), title: `${lm.name} · 城市地图词条`, url: `mul.city/map/${lm.id}`, summary: `${lm.name}（${lm.type}）：${lm.description}`, site: 'mul.city' },
+    { id: cityId('sr'), title: `「${q}」相关行情 · Mul市证券`, url: `mul.city/stock/search?q=${encodeURIComponent(q)}`, summary: `与「${q}」可能相关的上市公司与板块，附实时行情与资讯。`, site: 'mul.city' },
+  ]
+  return pickSome(results, randInt(3, 5))
+}
+
+export function localWebPage(query: string, people: Person[]): WebPage {
+  const q = query.trim() || 'Mul市'
+  const others = people.filter((p) => p.type !== 'user')
+  const person = pick(others.length ? others : people)
+  const lm = pick(LANDMARKS)
+  const url = q.startsWith('mul.city') ? q : `mul.city/search?q=${encodeURIComponent(q)}`
+  const isStock = /stock|股|行情|证券/.test(q)
+  const isNews = /news|新闻|快讯/.test(q)
+  const isMicro = /microblog|微博|热搜/.test(q)
+  const title = isStock ? 'Mul市证券 · 行情中心' : isNews ? 'Mul市新闻 · 专题' : isMicro ? 'Mul市微博 · 广场' : `${q} · Mul市门户`
+  const site = url.split('/')[0]
+  const blocks = [
+    { type: 'h' as const, text: title },
+    { type: 'p' as const, text: `这是 Mul市 内部网络的一页。你搜索的是「${q}」。${pick(['页面加载得很快，像这座城市的节奏。', '页脚写着：Mul市网络中心维护。', '没有广告，只有城市自己的内容。'])}` },
+    { type: 'h' as const, text: '相关内容' },
+    {
+      type: 'list' as const,
+      items: [
+        `${lm.name}：${lm.description}`,
+        `${person.name}（${person.occupation}）最近提到过「${q}」`,
+        `热搜：${q} 正在 Mul市 被讨论`,
+      ],
+    },
+    { type: 'quote' as const, text: pick(['“城市不需要被解释，它只需要被生活。”', '“里世界也是世界。”', '“每一条街都记得走过的人。”']) },
+    { type: 'p' as const, text: '本页面由 Mul市 AI 内容引擎模拟生成，仅用于城市内部浏览。' },
+  ]
+  return { title, url, site, blocks }
+}
+
+/* ============================================================
+   Tab12 · 股市与经济
+   ============================================================ */
+
+export const SECTORS = ['科技', '消费', '金融', '医药', '娱乐', '能源']
+
+const STOCK_SEED: { symbol: string; name: string; sector: string; price: number; pe: number }[] = [
+  { symbol: 'MUL001', name: 'Mul市科技', sector: '科技', price: 42.6, pe: 38 },
+  { symbol: 'MUL002', name: '云雾数据', sector: '科技', price: 88.3, pe: 52 },
+  { symbol: 'MUL003', name: '星轨半导体', sector: '科技', price: 156.4, pe: 61 },
+  { symbol: 'MUL101', name: '深夜食品', sector: '消费', price: 23.8, pe: 22 },
+  { symbol: 'MUL102', name: '梧桐里百货', sector: '消费', price: 31.2, pe: 18 },
+  { symbol: 'MUL103', name: '潮汐咖啡', sector: '消费', price: 18.9, pe: 27 },
+  { symbol: 'MUL201', name: 'Mul市银行', sector: '金融', price: 12.4, pe: 9 },
+  { symbol: 'MUL202', name: '港湾保险', sector: '金融', price: 27.5, pe: 12 },
+  { symbol: 'MUL203', name: '城信证券', sector: '金融', price: 19.6, pe: 15 },
+  { symbol: 'MUL301', name: '社区医药', sector: '医药', price: 35.7, pe: 29 },
+  { symbol: 'MUL302', name: '白序生物', sector: '医药', price: 64.1, pe: 44 },
+  { symbol: 'MUL401', name: '夏夜文娱', sector: '娱乐', price: 29.3, pe: 33 },
+  { symbol: 'MUL402', name: 'Mul 剧场', sector: '娱乐', price: 15.8, pe: 24 },
+  { symbol: 'MUL403', name: '胶片影业', sector: '娱乐', price: 47.2, pe: 40 },
+  { symbol: 'MUL501', name: '灯塔能源', sector: '能源', price: 22.1, pe: 11 },
+  { symbol: 'MUL502', name: '海风电力', sector: '能源', price: 33.4, pe: 14 },
+  { symbol: 'MUL503', name: '半山燃气', sector: '能源', price: 17.9, pe: 10 },
+  { symbol: 'MUL601', name: '城市交通', sector: '金融', price: 9.8, pe: 8 },
+]
+
+export function genCandles(base: number, days = 30): Candle[] {
+  const now = Date.now()
+  const out: Candle[] = []
+  let p = base * (0.86 + Math.random() * 0.18)
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const o = p
+    const drift = (Math.random() - 0.47) * 0.036
+    const c = Math.max(0.5, o * (1 + drift))
+    out.push({
+      t: now - i * 86400000,
+      o: r2(o),
+      h: r2(Math.max(o, c) * (1 + Math.random() * 0.02)),
+      l: r2(Math.min(o, c) * (1 - Math.random() * 0.02)),
+      c: r2(c),
+      v: randInt(180000, 3200000),
+    })
+    p = c
+  }
+  const last = out[out.length - 1]
+  const k = base / last.c
+  out.forEach((cd) => {
+    cd.o = r2(cd.o * k)
+    cd.h = r2(cd.h * k)
+    cd.l = r2(cd.l * k)
+    cd.c = r2(cd.c * k)
+  })
+  return out
+}
+
+export function genOrderBook(price: number): OrderBook {
+  const bids: [number, number][] = []
+  const asks: [number, number][] = []
+  for (let i = 1; i <= 5; i += 1) {
+    bids.push([r2(price - i * price * 0.002), randInt(100, 4200)])
+    asks.push([r2(price + i * price * 0.002), randInt(100, 4200)])
+  }
+  return { bids, asks }
+}
+
+export function buildSeedStocks(): Stock[] {
+  return STOCK_SEED.map((s) => {
+    const history = genCandles(s.price, 30)
+    const prevClose = history.length > 1 ? history[history.length - 2].c : s.price
+    const change = r2(s.price - prevClose)
+    const sharesOut = randInt(2, 40) * 100000000
+    return {
+      symbol: s.symbol,
+      name: s.name,
+      sector: s.sector,
+      price: s.price,
+      prevClose,
+      change,
+      changePct: r2((change / prevClose) * 100),
+      volume: randInt(300000, 8000000),
+      marketCap: Math.round(s.price * sharesOut),
+      peRatio: s.pe,
+      eps: r2(s.price / s.pe),
+      high52w: r2(Math.max(...history.map((c) => c.h)) * 1.05),
+      low52w: r2(Math.min(...history.map((c) => c.l)) * 0.95),
+      history,
+      orderBook: genOrderBook(s.price),
+      relatedNews: [],
+      alert: '',
+    }
+  })
+}
+
+export function buildSeedIndices(): StockIndex[] {
+  const mk = (id: string, name: string, value: number): StockIndex => ({
+    id,
+    name,
+    value,
+    prevClose: value,
+    change: 0,
+    changePct: 0,
+    volume: randInt(10000000, 90000000),
+    history: Array.from({ length: 30 }, () => r2(value * (0.97 + Math.random() * 0.06))),
+  })
+  return [mk('ix_mul', 'MUL综指', 3241.66), mk('ix_tech', '科技指数', 1876.42), mk('ix_cons', '消费指数', 2140.08)]
+}
+
+export function localStockNews(stocks: Stock[]): StockNews[] {
+  const pickStocks = pickSome(stocks, Math.min(5, stocks.length))
+  return pickStocks.map((s, i) => ({
+    id: cityId('sn'),
+    title: pick([
+      `${s.name}（${s.symbol}）发布季度经营数据，营收同比${pick(['增长', '回落'])}`,
+      `${s.name} 获机构调研，${s.sector}板块受关注`,
+      `${s.name} 公告：拟投入新项目`,
+      `${s.name} 今日出现大宗交易`,
+    ]),
+    symbol: s.symbol,
+    impact: pick(['good', 'bad', 'neutral'] as const),
+    at: Date.now() - i * 1800000,
+  }))
+}
+
+/* ============================================================
+   事件引擎
+   ============================================================ */
+
+interface EventTpl extends EventTemplate {
+  choices: EventChoice[]
+  chainTo?: string
+}
+
+const EVENT_TPL: EventTpl[] = [
+  {
+    id: 'tpl_schedule',
+    type: '日程事件',
+    title: '下班后的邀约',
+    description: '{P} 问你要不要一起去{L}走走，说最近有件小事想聊聊。',
+    triggerType: 'time',
+    weight: 10,
+    choices: [
+      { text: '一起去', consequence: '你们在{L}聊了很久，关系近了一些。', effects: { affinity: 8, mood: 6 } },
+      { text: '改天吧', consequence: '对方说好，语气里有一点失落。', effects: { affinity: -3 } },
+    ],
+  },
+  {
+    id: 'tpl_random',
+    type: '随机事件',
+    title: '在{L}捡到一样东西',
+    description: '你在{L}的地上捡到一个旧相机，镜头盖还开着，里面好像还有胶卷。',
+    triggerType: 'location',
+    weight: 8,
+    choices: [
+      { text: '交给管理员', consequence: '管理员记下了你的市籍号，社信小幅提升。', effects: { socialCredit: 3 } },
+      { text: '自己留着', consequence: '你把相机收进包里，心里有点不踏实。', effects: { mood: 2, socialCredit: -1 } },
+      { text: '拍两张再交', consequence: '你按了两下快门，然后把它交给了管理员。', effects: { socialCredit: 2, mood: 4 } },
+    ],
+  },
+  {
+    id: 'tpl_social',
+    type: '社交事件',
+    title: '{P} 和 {P2} 闹了点别扭',
+    description: '两个人因为一件小事僵住了，都希望你能说句话。',
+    triggerType: 'condition',
+    weight: 9,
+    choices: [
+      { text: '各劝一句', consequence: '你两边都说了话，事情缓和了下来。', effects: { socialCredit: 2, affinity: 3 } },
+      { text: '站在一边', consequence: '你选了一边，另一边记在了心里。', effects: { affinity: -2, socialCredit: -1 } },
+      { text: '装作没看见', consequence: '你走开了，气氛留在原地。', effects: { mood: -3 } },
+    ],
+  },
+  {
+    id: 'tpl_economy',
+    type: '经济事件',
+    title: 'Mul市 经济数据公布',
+    description: '本季度经济景气度出炉，市场对{L}一带的消费复苏看法不一。',
+    triggerType: 'time',
+    weight: 7,
+    choices: [
+      { text: '加仓看多', consequence: '你选择了相信这座城市，市场情绪随之上扬。', effects: { economy: 2, money: -800 } },
+      { text: '观望', consequence: '你按兵不动，等待更清晰的信号。', effects: { mood: 1 } },
+      { text: '减仓避险', consequence: '你把风险控制在了手里。', effects: { money: 400, economy: -1 } },
+    ],
+  },
+  {
+    id: 'tpl_special',
+    type: '特殊事件',
+    title: '{L} 的临时演出',
+    description: '有人在{L}搭起了简易舞台，说今晚有一场没有预告的演出。',
+    triggerType: 'probability',
+    weight: 6,
+    choices: [
+      { text: '留下来听', consequence: '你在人群里站了两个小时，散场时耳朵还在响。', effects: { mood: 10, money: -60 } },
+      { text: '拍照就走', consequence: '你拍了几张照片，发到了微博上。', effects: { mood: 3 } },
+    ],
+    chainTo: 'tpl_random',
+  },
+  {
+    id: 'tpl_user',
+    type: '用户相关事件',
+    title: '{P} 想找你帮个忙',
+    description: '{P} 说他最近在{L}遇到点麻烦，想到的第一个人是你。',
+    triggerType: 'interaction',
+    weight: 9,
+    choices: [
+      { text: '答应', consequence: '你答应了，对方明显松了口气。', effects: { affinity: 10, mood: -2 } },
+      { text: '先问清楚', consequence: '你把事情问清楚了才决定帮忙，对方说你靠谱。', effects: { affinity: 6, socialCredit: 1 } },
+      { text: '委婉拒绝', consequence: '你说自己最近也忙，对方说理解。', effects: { affinity: -5 } },
+    ],
+  },
+  {
+    id: 'tpl_npc',
+    type: '社交事件',
+    title: '{P} 在{L}办了一场小型分享会',
+    description: '主题是「怎么把日子过慢一点」，来了十几个人，坐得满满当当。',
+    triggerType: 'time',
+    weight: 7,
+    choices: [
+      { text: '去听听', consequence: '你听完之后，忽然想给自己放个假。', effects: { mood: 8, affinity: 5 } },
+      { text: '帮忙张罗', consequence: '你在现场忙前忙后，认识了好几个人。', effects: { socialCredit: 4, affinity: 6, mood: 3 } },
+    ],
+  },
+]
+
+export function buildSeedGameTemplates(): EventTemplate[] {
+  return EVENT_TPL.map(({ choices: _c, chainTo: _t, ...t }) => t)
+}
+
+export function localGameEvent(
+  people: Person[],
+  opts?: { type?: GameEventType; hint?: string; locationId?: string }
+): GameEvent {
+  const pool = opts?.type ? EVENT_TPL.filter((t) => t.type === opts.type) : EVENT_TPL
+  const tplRaw = pool.length ? pick(pool) : EVENT_TPL[0]
+  const others = people.filter((p) => p.type !== 'user')
+  const picked = pickSome(others.length ? others : people, randInt(1, 2))
+  const p1 = picked[0]?.name ?? '一位居民'
+  const p2 = picked[1]?.name ?? p1
+  const lm = opts?.locationId ? (LANDMARKS.find((l) => l.id === opts.locationId) ?? pick(LANDMARKS)) : pick(LANDMARKS)
+  const fill = (s: string) => s.replace(/\{P2\}/g, p2).replace(/\{P\}/g, p1).replace(/\{L\}/g, lm.name)
+  const chainTpl = tplRaw.chainTo ? EVENT_TPL.find((t) => t.id === tplRaw.chainTo) : undefined
+  const choices: EventChoice[] = tplRaw.choices.map((c, i) => ({
+    ...c,
+    text: fill(c.text),
+    consequence: fill(c.consequence),
+    nextEventId: chainTpl && i === 0 ? chainTpl.id : undefined,
+  }))
+  return {
+    id: cityId('gev'),
+    type: tplRaw.type,
+    title: fill(tplRaw.title),
+    description: fill(tplRaw.description),
+    triggerType: tplRaw.triggerType,
+    triggerCondition: opts?.hint ?? '',
+    involvedPersons: picked.map((p) => p.id),
+    locationId: lm.id,
+    time: Date.now() + randInt(-2, 6) * 3600000,
+    duration: randInt(1, 4),
+    outcome: '',
+    choices,
+    consequences: [],
+    isResolved: false,
+    source: 'npc',
+    createdAt: Date.now(),
+  }
+}
+
+export function buildSeedCalendar(): CalendarItem[] {
+  const now = Date.now()
+  const drafts: { title: string; kind: string; inHours: number; locationId: string }[] = [
+    { title: '中央广场周末市集', kind: '市集', inHours: 40, locationId: 'lm_square' },
+    { title: '美术馆新展预展', kind: '展览', inHours: 18, locationId: 'lm_gallery' },
+    { title: '海滨栈桥日落演出', kind: '演出', inHours: 62, locationId: 'lm_pier' },
+    { title: '竹林步道登高日', kind: '活动', inHours: 120, locationId: 'lm_bamboo' },
+    { title: '老城区夜市', kind: '市集', inHours: 8, locationId: 'lm_wall' },
+    { title: '山顶天文台开放夜', kind: '活动', inHours: 96, locationId: 'lm_observatory' },
+  ]
+  return drafts.map((d) => ({
+    id: cityId('cal'),
+    title: d.title,
+    kind: d.kind,
+    at: now + d.inHours * 3600000,
+    locationId: d.locationId,
+    joined: false,
+    done: false,
+  }))
+}

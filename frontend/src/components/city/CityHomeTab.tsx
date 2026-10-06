@@ -17,6 +17,8 @@ export default function CityHomeTab() {
   const people = useMulCity((s) => s.people)
   const worldEvents = useMulCity((s) => s.worldEvents)
   const activities = useMulCity((s) => s.activities)
+  const gameEvents = useMulCity((s) => s.events.active)
+  const triggerNpcEvent = useMulCity((s) => s.triggerNpcEvent)
   const advanceHours = useMulCity((s) => s.advanceHours)
   const me = useMe()
   const nav = useCityNav()
@@ -27,6 +29,7 @@ export default function CityHomeTab() {
   const [query, setQuery] = useState('')
   const [reply, setReply] = useState('')
   const [busy, setBusy] = useState(false)
+  const [eventMsg, setEventMsg] = useState('')
   const [scene, setScene] = useState<{ title: string; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string>('')
@@ -236,7 +239,7 @@ export default function CityHomeTab() {
           <div className="cx-stats">
             <Stat value={`${online}/${people.length}`} label="在线居民" />
             <Stat value={activities?.length ?? 0} label="实时动态" />
-            <Stat value={worldEvents.filter((e) => !e.outcome).length} label="进行中事件" />
+            <Stat value={worldEvents.filter((e) => !e.outcome).length + gameEvents.length} label="进行中事件" />
           </div>
           <button
             className="fx-btn fx-btn--front fx-press"
@@ -264,6 +267,38 @@ export default function CityHomeTab() {
             </div>
           ))}
         </div>
+
+        {/* 事件引擎 */}
+        <div className="cx-sechead">
+          <span className="cx-sechead__t">事件引擎</span>
+          <span className="cx-sechead__sub">全城正在发生</span>
+        </div>
+        {gameEvents.length ? (
+          gameEvents.slice(0, 5).map((e) => (
+            <Row
+              key={e.id}
+              icon={<Target size={15} />}
+              title={e.title}
+              sub={e.description}
+              right={<span className="cx-tag cx-tag--on">{e.type}</span>}
+              onClick={() => nav.push({ view: 'gameevent', id: e.id })}
+              arrow
+            />
+          ))
+        ) : (
+          <Empty icon={<Target size={26} />} text="此刻没有待处理的事件" hint="点下方按钮让Mul市自己发生点什么" />
+        )}
+        <button
+          className="fx-btn fx-press"
+          style={{ width: '100%', marginTop: 8 }}
+          onClick={() => {
+            triggerNpcEvent()
+            setEventMsg('已生成一个新事件')
+          }}
+        >
+          <Sparkles size={14} /> 让事件引擎推进一次
+        </button>
+        {eventMsg && <div className="cx-row__sub" style={{ marginTop: 6 }}>{eventMsg}</div>}
 
         {/* 世界事件 */}
         <div className="cx-sechead"><span className="cx-sechead__t">世界事件</span></div>
