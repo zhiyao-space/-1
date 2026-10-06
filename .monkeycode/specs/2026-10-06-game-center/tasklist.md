@@ -47,7 +47,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 - 样式：参照 ChatScreen 内弹层遮罩与 moments 卡片变量（var(--text-*)）
 - 提交：`feat(game): T5 游戏创建面板`
 
-## T6 [TODO] 游戏卡 — GameCardBubble
+## T6 [DONE] 游戏卡 — GameCardBubble
 
 - 新建：`frontend/src/components/games/GameCardBubble.tsx`
 - 内容：按 design.md「Components 6」三态渲染（playing/paused/ended）；跑团面板=场景+进度条+HP+道具；海龟汤面板=提问标记列表+要提示(max3)；按钮：暂停/继续/结束并归档/删除
