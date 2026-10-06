@@ -9,6 +9,7 @@ import {
   ME,
   ONLINE_LABEL,
   daysSince,
+  socialDisplayName,
   useCharacter,
   useSocial,
   type MsgType,
@@ -249,14 +250,14 @@ export default function ChatView({
         </button>
         <SocialAvatar
           avatarId={character.avatarId}
-          name={character.nickname}
+          name={socialDisplayName(character)}
           size={38}
           status={character.onlineStatus}
           onClick={() => onOpenCard(charId)}
         />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div className="sc-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {character.nickname}
+            {socialDisplayName(character)}
           </div>
           <div className="sc-sub">
             {ONLINE_LABEL[character.onlineStatus]} · 相识 {daysSince(character.metAt)} 天

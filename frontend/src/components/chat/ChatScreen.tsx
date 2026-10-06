@@ -23,6 +23,8 @@ import {
   MessageCircle,
   Wand2,
   SlidersHorizontal,
+  Quote,
+  X,
 } from 'lucide-react'
 import { useChats, type ChatMessage, type ChatMode } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
@@ -100,6 +102,8 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const [streamText, setStreamText] = useState<string | null>(null)
   const [awaitingManual, setAwaitingManual] = useState(false)
   const [actionMsg, setActionMsg] = useState<ChatMessage | null>(null)
+  const [quoteMsg, setQuoteMsg] = useState<ChatMessage | null>(null)
+  const [voiceComposeOpen, setVoiceComposeOpen] = useState(false)
   const [view, setView] = useState<'chat' | 'schedule'>('chat')
   const [mindOpen, setMindOpen] = useState(false)
   const [checkinOpen, setCheckinOpen] = useState(false)
@@ -299,6 +303,10 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     push('已按小说体重排该条回复')
   }
 
+  const quoteData = quoteMsg
+    ? { quote: { name: quoteMsg.role === 'user' ? '我' : character.name, content: quoteMsg.content } }
+    : {}
+
   const send = () => {
     const text = input.trim()
     if (!text) return
@@ -307,9 +315,25 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
       return
     }
     pendingGapRef.current = messages.length > 0 ? Date.now() - messages[messages.length - 1].timestamp : 0
-    addLocal({ role: 'user', type: 'text', content: text, mode: chatMode })
+    addLocal({ role: 'user', type: 'text', content: text, mode: chatMode, data: quoteData.quote ? quoteData : undefined })
     setInput('')
     setPlusOpen(false)
+    setQuoteMsg(null)
+    afterUserMsg()
+  }
+
+  /** 自定义模拟语音：无需录音，自定时长与文字 */
+  const sendVoiceSimulated = (seconds: number, transcript: string) => {
+    pendingGapRef.current = messages.length > 0 ? Date.now() - messages[messages.length - 1].timestamp : 0
+    addLocal({
+      role: 'user',
+      type: 'voice',
+      content: `[语音 ${seconds}"]`,
+      mode: chatMode,
+      data: { seconds, simulated: true, transcript: transcript.trim() || undefined, ...(quoteData.quote ? quoteData : {}) },
+    })
+    setVoiceComposeOpen(false)
+    setQuoteMsg(null)
     afterUserMsg()
   }
 
@@ -750,6 +774,17 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
 
       {view === 'chat' && (
         <>
+          {quoteMsg && (
+            <div className="chat-quote-bar">
+              <div className="chat-quote-bar__body">
+                <span className="chat-quote-bar__name">引用 · {quoteMsg.role === 'user' ? '我' : character.name}</span>
+                <span className="chat-quote-bar__text">{quoteMsg.content}</span>
+              </div>
+              <button className="pressable" onClick={() => setQuoteMsg(null)} style={{ color: 'var(--text-tertiary)', padding: 4 }} aria-label="取消引用">
+                <X size={16} />
+              </button>
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, padding: '8px 10px 10px', flexShrink: 0 }}>
             <button
               className="pressable"
@@ -849,6 +884,24 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
             {actionMsg.type === 'text' && (
               <SheetBtn icon={<Copy size={17} />} label="复制" onClick={() => copyMsg(actionMsg)} />
             )}
+            {(actionMsg.type === 'text' || actionMsg.type === 'voice') && (
+              <SheetBtn
+                icon={<Quote size={17} />}
+                label="引用"
+                onClick={() => {
+                  setQuoteMsg(actionMsg)
+                  setActionMsg(null)
+                }}
+              />
+            )}
+            <SheetBtn
+              icon={<Mic size={17} />}
+              label="模拟语音"
+              onClick={() => {
+                setVoiceComposeOpen(true)
+                setActionMsg(null)
+              }}
+            />
             {actionMsg.role === 'user' && params.allowRecall && !actionMsg.recalled && (
               <SheetBtn icon={<Undo2 size={17} />} label="撤回" onClick={() => recall(actionMsg)} />
             )}
@@ -918,6 +971,10 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
           <input value={branchName} onChange={(e) => setBranchName(e.target.value)} placeholder="分支名称（可选）" maxLength={16} autoFocus />
           <button className="btn btn-accent" onClick={confirmBranch}>创建</button>
         </div>
+      </Modal>
+
+      <Modal open={voiceComposeOpen} onClose={() => setVoiceComposeOpen(false)} title="模拟语音">
+        <VoiceCompose onSend={sendVoiceSimulated} />
       </Modal>
 
       {tomato && (
@@ -1367,7 +1424,8 @@ function renderBody(
         className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} ksc-bubble`}
         style={{ padding: '4px 6px', ...bubbleOverrides(appearance, isUser) }}
       >
-        <VoiceBubble voiceId={m.data?.voiceId} seconds={m.data?.seconds} />
+        {m.data?.quote && <QuoteBlock quote={m.data.quote} />}
+        <VoiceBubble voiceId={m.data?.voiceId} seconds={m.data?.seconds} simulated={m.data?.simulated} transcript={m.data?.transcript} />
       </div>
     )
   }
@@ -1412,7 +1470,71 @@ function renderBody(
       className={`bubble ${isUser ? 'bubble-right' : 'bubble-left'} fs-body ksc-bubble`}
       style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontSize: fontPx, ...bubbleOverrides(appearance, isUser) }}
     >
+      {m.data?.quote && <QuoteBlock quote={m.data.quote} />}
       {m.content}
+    </div>
+  )
+}
+
+/** 气泡内的引用块 */
+function QuoteBlock({ quote }: { quote: { name: string; content: string } }) {
+  return (
+    <div className="bubble__quote">
+      <span className="bubble__quote-name">{quote.name}</span>
+      <span className="bubble__quote-text">{quote.content}</span>
+    </div>
+  )
+}
+
+/** 自定义模拟语音：无需录音，自定时长与文字 */
+function VoiceCompose({ onSend }: { onSend: (seconds: number, transcript: string) => void }) {
+  const [seconds, setSeconds] = useState(8)
+  const [transcript, setTranscript] = useState('')
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div>
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 8 }}>语音时长</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <input
+            type="range"
+            min={1}
+            max={60}
+            value={seconds}
+            onChange={(e) => setSeconds(Number(e.target.value))}
+            style={{ flex: 1, accentColor: 'var(--accent-color)' }}
+          />
+          <span className="fs-body" style={{ width: 46, textAlign: 'right' }}>{seconds}"</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+          {[3, 8, 15, 30, 60].map((s) => (
+            <button
+              key={s}
+              className="pressable"
+              onClick={() => setSeconds(s)}
+              style={{
+                padding: '4px 12px',
+                borderRadius: 999,
+                fontSize: 12,
+                background: s === seconds ? 'var(--accent-color)' : 'rgba(255,255,255,0.07)',
+                color: s === seconds ? '#000' : 'var(--text-secondary)',
+              }}
+            >
+              {s}"
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>语音文字（可选，模拟转写内容）</div>
+        <textarea
+          value={transcript}
+          onChange={(e) => setTranscript(e.target.value)}
+          rows={3}
+          placeholder="例如：今天天气很好，想和你聊聊天…"
+          style={{ width: '100%', resize: 'none', borderRadius: 12 }}
+        />
+      </div>
+      <button className="btn btn-accent" onClick={() => onSend(seconds, transcript)}>发送语音</button>
     </div>
   )
 }

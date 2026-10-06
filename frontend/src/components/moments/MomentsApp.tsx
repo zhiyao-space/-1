@@ -115,6 +115,24 @@ export default function MomentsApp() {
     }
   }
 
+  const pickAvatar = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = async () => {
+      const f = input.files?.[0]
+      if (!f) return
+      try {
+        const id = await putBlob(await compressImage(f, 512))
+        updateProfile({ avatarId: id })
+        push('头像已更新')
+      } catch {
+        push('头像处理失败', 'error')
+      }
+    }
+    input.click()
+  }
+
   const pickCover = () => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -207,6 +225,40 @@ export default function MomentsApp() {
           <span className="fs-h2" style={{ color: 'var(--text-primary)' }}>{isOwnProfile ? myName : view.author.name} 的朋友圈</span>
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 24px' }}>
+          {isOwnProfile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '4px 4px 16px' }}>
+              <button
+                className="pressable"
+                onClick={pickAvatar}
+                title="更换头像"
+                style={{ position: 'relative', padding: 0, background: 'none', lineHeight: 0, flexShrink: 0 }}
+              >
+                <AuthorAvatar author={{ type: 'user', id: 'user', name: myName }} size={64} shape="rounded" />
+                <span
+                  style={{
+                    position: 'absolute',
+                    right: -3,
+                    bottom: -3,
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    background: 'var(--accent, #fff)',
+                    color: '#000',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid var(--bg, #0C0C0C)',
+                  }}
+                >
+                  <Camera size={12} />
+                </span>
+              </button>
+              <div style={{ minWidth: 0 }}>
+                <div className="fs-h2" style={{ color: 'var(--text-primary)' }}>{myName}</div>
+                <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginTop: 2 }}>点击头像可更换</div>
+              </div>
+            </div>
+          )}
           {isOwnProfile && visitors.length > 0 && <VisitorRow visitors={visitors} />}
           {list.length === 0 ? (
             <EmptyHint text="还没有动态。" />
@@ -250,9 +302,32 @@ export default function MomentsApp() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, marginTop: -26, paddingLeft: 10, position: 'relative' }}>
-            <div style={{ borderRadius: 14, border: '3px solid var(--bg, #0C0C0C)' }}>
+            <button
+              className="pressable"
+              onClick={pickAvatar}
+              title="更换头像"
+              style={{ borderRadius: 14, border: '3px solid var(--bg, #0C0C0C)', position: 'relative', padding: 0, background: 'none', lineHeight: 0 }}
+            >
               <AuthorAvatar author={{ type: 'user', id: 'user', name: myName }} size={58} shape="rounded" />
-            </div>
+              <span
+                style={{
+                  position: 'absolute',
+                  right: -3,
+                  bottom: -3,
+                  width: 22,
+                  height: 22,
+                  borderRadius: '50%',
+                  background: 'var(--accent, #fff)',
+                  color: '#000',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid var(--bg, #0C0C0C)',
+                }}
+              >
+                <ImagePlus size={11} />
+              </span>
+            </button>
             <div style={{ flex: 1, paddingBottom: 4, minWidth: 0 }}>
               <button className="pressable" onClick={() => openEditor('nickname')} style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: 16, display: 'block' }}>
                 {myName}

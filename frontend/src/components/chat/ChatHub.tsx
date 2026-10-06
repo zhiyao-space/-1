@@ -6,6 +6,7 @@ import MessagesApp from './MessagesApp'
 import ContactsApp from './ContactsApp'
 import ProfileApp from '../profile/ProfileApp'
 import MomentsApp from '../moments/MomentsApp'
+import '../../styles/chat.css'
 
 type HubTab = 'messages' | 'contacts' | 'moments' | 'me'
 

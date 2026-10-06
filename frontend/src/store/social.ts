@@ -53,6 +53,10 @@ export interface SocialCharacter {
   blocked: boolean
   /** 会话置顶 */
   pinned: boolean
+  /** 备注名：设置后在会话/资料中优先显示 */
+  remark?: string
+  /** 已互通到「聊天」模块时，记录对应的聊天角色 id */
+  linkedCharacterId?: string
 }
 
 export interface SocialMessage {
@@ -203,6 +207,11 @@ export const ONLINE_LABEL: Record<OnlineStatus, string> = {
   online: '在线',
   busy: '忙碌',
   offline: '离线',
+}
+
+/** 显示名：优先备注名，其次昵称 */
+export function socialDisplayName(c: { nickname: string; remark?: string }): string {
+  return c.remark?.trim() || c.nickname
 }
 
 function jaccard(a: string[], b: string[]): number {

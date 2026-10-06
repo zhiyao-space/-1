@@ -254,9 +254,9 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 13px;
-  border-radius: 18px;
+  gap: 13px;
+  padding: 14px 15px;
+  border-radius: 20px;
   background: var(--fx-face);
   box-shadow: var(--fx-mid-shadow);
   cursor: pointer;
@@ -266,6 +266,9 @@
 .sc-conv__body {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 .sc-conv__top {
   display: flex;
@@ -289,7 +292,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-top: 2px;
+  margin-top: 0;
+  line-height: 1.5;
 }
 .sc-conv__side {
   flex: 0 0 auto;

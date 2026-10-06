@@ -3,6 +3,7 @@ import type { PointerEvent as ReactPointerEvent } from 'react'
 import { Ban, BellOff, Pin, Search, Trash2 } from 'lucide-react'
 import {
   lastMessageOf,
+  socialDisplayName,
   sortCharactersByActivity,
   unreadCount,
   useSocial,
@@ -61,7 +62,7 @@ export default function MessagesTab({
 
   const list = useMemo(() => {
     const kw = q.trim().toLowerCase()
-    const filtered = kw ? characters.filter((c) => c.nickname.toLowerCase().includes(kw)) : characters
+    const filtered = kw ? characters.filter((c) => socialDisplayName(c).toLowerCase().includes(kw)) : characters
     return sortCharactersByActivity(filtered, messages)
   }, [characters, messages, q])
 
@@ -135,10 +136,10 @@ export default function MessagesTab({
           flex: 1,
           minHeight: 0,
           overflowY: 'auto',
-          padding: '12px 16px',
+          padding: '14px 16px 20px',
           display: 'flex',
           flexDirection: 'column',
-          gap: 10,
+          gap: 14,
         }}
       >
         {list.length === 0 ? (
@@ -179,7 +180,7 @@ export default function MessagesTab({
                   </button>
                   <button
                     className="fx-press-soft"
-                    onClick={() => removeConversation(char.id, char.nickname)}
+                    onClick={() => removeConversation(char.id, socialDisplayName(char))}
                     style={{
                       width: SWIPE_W / 2,
                       height: '100%',
@@ -223,7 +224,7 @@ export default function MessagesTab({
                   <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', flexShrink: 0 }}>
                     <SocialAvatar
                       avatarId={char.avatarId}
-                      name={char.nickname}
+                      name={socialDisplayName(char)}
                       size={46}
                       status={char.onlineStatus}
                       onClick={() => onOpenCard(char.id)}
@@ -231,7 +232,7 @@ export default function MessagesTab({
                   </span>
                   <div className="sc-conv__body">
                     <div className="sc-conv__top">
-                      <span className="sc-conv__name">{char.nickname}</span>
+                      <span className="sc-conv__name">{socialDisplayName(char)}</span>
                       {char.pinned && <Pin size={11} color="var(--fx-t3)" />}
                       {char.muted && <BellOff size={11} color="var(--fx-t3)" />}
                       {char.blocked && <Ban size={11} color="var(--fx-t3)" />}

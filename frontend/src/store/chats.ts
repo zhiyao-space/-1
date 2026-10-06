@@ -26,6 +26,12 @@ export interface MessageData {
   songCover?: string
   /** 网易云歌曲 ID，便于卡片随时重新解析链接播放 */
   songNcmId?: string
+  /** 引用回复：被引用消息的发送者与内容摘要 */
+  quote?: { name: string; content: string }
+  /** 模拟语音（无真实音频文件，仅自定义时长/文案） */
+  simulated?: boolean
+  /** 模拟语音附带文字 */
+  transcript?: string
 }
 
 export interface ChatMessage {

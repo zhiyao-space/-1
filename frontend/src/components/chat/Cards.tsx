@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Banknote, Gift, Play, Dices, Clock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Banknote, Gift, Play, Pause, Dices, Clock } from 'lucide-react'
 import type { MessageData } from '../../store/chats'
 import { useBlobURL } from '../WallpaperLayer'
 
@@ -115,48 +115,66 @@ export function RedPacketCard({
   )
 }
 
-export function VoiceBubble({ voiceId, seconds }: { voiceId?: string; seconds?: number }) {
+export function VoiceBubble({
+  voiceId,
+  seconds,
+  simulated,
+  transcript,
+}: {
+  voiceId?: string
+  seconds?: number
+  simulated?: boolean
+  transcript?: string
+}) {
   const url = useBlobURL(voiceId)
   const [playing, setPlaying] = useState(false)
-  if (!url) return null
+  const secs = seconds ?? 0
+  // 无真实音频文件时退化为「模拟语音」，仅按时长播放波形动画
+  const isSimulated = simulated || !url
+
+  useEffect(() => {
+    if (!playing || !isSimulated) return
+    const t = window.setTimeout(() => setPlaying(false), Math.max(1000, secs * 1000))
+    return () => window.clearTimeout(t)
+  }, [playing, isSimulated, secs])
+
+  const bars = Math.min(9, Math.max(4, Math.round(secs / 2) + 3))
+
   return (
-    <div
-      className="no-select"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        padding: '9px 13px',
-        minWidth: 120,
-      }}
-    >
-      <button
-        className="pressable"
-        onClick={() => {
-          const el = document.getElementById(`voice-${voiceId}`) as HTMLAudioElement | null
-          if (!el) return
-          if (el.paused) {
-            el.play()
-            setPlaying(true)
-          } else {
-            el.pause()
-            setPlaying(false)
-          }
-        }}
-        style={{ color: 'inherit' }}
-      >
-        <Play size={15} />
-      </button>
-      <span className="fs-body" style={{ letterSpacing: 1 }}>
-        {'▎'.repeat(Math.min(8, Math.max(3, Math.round((seconds ?? 2) / 1.5))))}
-      </span>
-      <span className="fs-micro">{seconds ?? 0}"</span>
-      <audio
-        id={`voice-${voiceId}`}
-        src={url}
-        onEnded={() => setPlaying(false)}
-        style={{ display: 'none' }}
-      />
+    <div className="no-select" style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="voice-row">
+        <button
+          className="pressable"
+          onClick={() => {
+            if (isSimulated) {
+              setPlaying((p) => !p)
+              return
+            }
+            const el = document.getElementById(`voice-${voiceId}`) as HTMLAudioElement | null
+            if (!el) return
+            if (el.paused) {
+              el.play()
+              setPlaying(true)
+            } else {
+              el.pause()
+              setPlaying(false)
+            }
+          }}
+          style={{ color: 'inherit' }}
+        >
+          {playing ? <Pause size={15} /> : <Play size={15} />}
+        </button>
+        <span className={`voice-row__bars${playing ? ' is-playing' : ''}`}>
+          {Array.from({ length: bars }).map((_, i) => (
+            <i key={i} style={{ height: 6 + ((i * 7) % 11), animationDelay: `${i * 0.09}s` }} />
+          ))}
+        </span>
+        <span className="voice-row__secs">{secs}"</span>
+        {!isSimulated && (
+          <audio id={`voice-${voiceId}`} src={url!} onEnded={() => setPlaying(false)} style={{ display: 'none' }} />
+        )}
+      </div>
+      {transcript && <div className="voice-row__text">{transcript}</div>}
     </div>
   )
 }
