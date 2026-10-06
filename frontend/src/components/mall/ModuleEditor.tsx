@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, ChevronLeft, Pencil, Plus, Sparkles, Trash2, Wand2 } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronUp, Pencil, Plus, Sparkles, Trash2, Wand2 } from 'lucide-react'
 import {
   useMall,
   type MallBanner,
@@ -18,10 +18,10 @@ import {
 import { generateProducts, suggestConfig } from '../../lib/mallEngine'
 import { useToast } from '../../store/ui'
 import { SliderRow } from '../common'
-import { Field, Sheet, Thumb } from './mallParts'
+import { Field, MallIcon, Sheet, Thumb } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 模块编辑
+   mulin 商城 MALLÉ · 模块编辑
    名称 / 图标 / 布局 / 主题 / Banner / 商品 / 分类 / 排序 / 简介
    改动先落在草稿，点「保存」一次性写回
    ============================================================ */
@@ -161,7 +161,7 @@ export default function ModuleEditor({ moduleId, onBack }: { moduleId: string; o
       categories: draft.categories,
     })
     setModuleProducts(draft.id, items)
-    push('模块已保存 ✦')
+    push('模块已保存')
     onBack()
   }
 
@@ -176,7 +176,7 @@ export default function ModuleEditor({ moduleId, onBack }: { moduleId: string; o
       setDraft((d) =>
         d ? { ...d, layout: res.layout, theme: res.theme, sortRule: res.sortRule } : d
       )
-      push(res.source === 'ai' ? 'AI 已生成配置方案 ✦' : '已应用本地推荐配置')
+      push(res.source === 'ai' ? 'AI 已生成配置方案' : '已应用本地推荐配置')
     } finally {
       setAiBusy(false)
     }
@@ -187,7 +187,7 @@ export default function ModuleEditor({ moduleId, onBack }: { moduleId: string; o
     try {
       const next = await generateProducts({ ...draft }, Math.max(6, items.length || 8))
       setItems(next)
-      push('已生成一组新商品 ✦')
+      push('已生成一组新商品')
     } finally {
       setAiBusy(false)
     }
@@ -231,18 +231,17 @@ export default function ModuleEditor({ moduleId, onBack }: { moduleId: string; o
           />
         </Field>
         <Field label="图标">
-          <div className="ml-chiprow" style={{ marginBottom: 8 }}>
+          <div className="ml-chiprow">
             {ICON_CHOICES.map((ic) => (
               <button
                 key={ic}
                 className={`ml-emoji${draft.icon === ic ? ' ml-emoji--on' : ''}`}
                 onClick={() => patch({ icon: ic })}
               >
-                {ic}
+                <MallIcon name={ic} size={20} />
               </button>
             ))}
           </div>
-          <input className="fx-input" value={draft.icon} maxLength={4} onChange={(e) => patch({ icon: e.target.value })} />
         </Field>
 
         {/* 布局与排序 */}
@@ -348,11 +347,11 @@ export default function ModuleEditor({ moduleId, onBack }: { moduleId: string; o
                 patch({ banners: list })
               }}
             />
-            <button className="ml-chip" onClick={() => bannerMove(i, -1)}>
-              ↑
+            <button className="ml-chip" onClick={() => bannerMove(i, -1)} aria-label="上移">
+              <ChevronUp size={14} />
             </button>
-            <button className="ml-chip" onClick={() => bannerMove(i, 1)}>
-              ↓
+            <button className="ml-chip" onClick={() => bannerMove(i, 1)} aria-label="下移">
+              <ChevronDown size={14} />
             </button>
             <button
               className="ml-iconbtn ml-iconbtn--sm fx-press"

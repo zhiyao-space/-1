@@ -1,7 +1,9 @@
 import { ReactNode, useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { ImagePlus, X } from 'lucide-react'
 import { useToast } from '../store/ui'
-import { cropImage, type CropState } from '../lib/image'
+import { cropImage, compressImage, type CropState } from '../lib/image'
+import { putBlob } from '../lib/idb'
+import { useBlobURL } from './WallpaperLayer'
 
 export function Modal({
   open,
@@ -363,5 +365,158 @@ export function ImageCropModal({
         </div>
       </div>
     </div>
+  )
+}
+
+/* ============================================================
+   统一的「从相册 / 文件导入图片」能力
+   头像与封面通用：压缩后存入 IndexedDB，只保存 blob id
+   ============================================================ */
+
+/** 打开系统相册 / 文件选择器，返回选中的图片文件 */
+export function pickImageFile(): Promise<File | null> {
+  return new Promise((resolve) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.onchange = () => resolve(input.files?.[0] ?? null)
+    input.click()
+  })
+}
+
+/**
+ * 头像 / 封面选择器。
+ * avatar：圆形，选完直接压缩存库
+ * cover：宽幅，选完先裁剪再存库
+ */
+export function ImageField({
+  value,
+  onChange,
+  kind = 'avatar',
+  size,
+  radius,
+}: {
+  /** IndexedDB 中的图片 id */
+  value: string | null | undefined
+  onChange: (id: string | null) => void
+  kind?: 'avatar' | 'cover'
+  /** 头像直径 */
+  size?: number
+  /** 封面圆角 */
+  radius?: number
+}) {
+  const url = useBlobURL(value)
+  const push = useToast((s) => s.push)
+  const [raw, setRaw] = useState<Blob | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const pick = async () => {
+    const file = await pickImageFile()
+    if (!file) return
+    if (kind === 'cover') {
+      setRaw(file)
+      return
+    }
+    setBusy(true)
+    try {
+      onChange(await putBlob(await compressImage(file, 512)))
+      push('头像已更新')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (kind === 'cover') {
+    return (
+      <>
+        <button
+          className="pressable"
+          onClick={pick}
+          disabled={busy}
+          style={{
+            position: 'relative',
+            width: '100%',
+            height: 132,
+            display: 'block',
+            overflow: 'hidden',
+            borderRadius: radius ?? 12,
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px dashed rgba(255,255,255,0.18)',
+          }}
+        >
+          {url && <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+          {!url && (
+            <span style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center', justifyContent: 'center', color: 'var(--text-disabled)' }}>
+              <ImagePlus size={20} />
+              <span className="fs-micro">从相册导入封面</span>
+            </span>
+          )}
+          {value && (
+            <span
+              className="pressable"
+              onClick={(e) => {
+                e.stopPropagation()
+                onChange(null)
+                push('已清除封面', 'info')
+              }}
+              style={{ position: 'absolute', top: 8, right: 8, width: 26, height: 26, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff8a8a' }}
+            >
+              <X size={14} />
+            </span>
+          )}
+        </button>
+
+        <ImageCropModal
+          open={!!raw}
+          src={raw}
+          title="裁剪封面"
+          onClose={() => setRaw(null)}
+          onConfirm={async (blob) => {
+            onChange(await putBlob(blob))
+            push('封面已更新')
+            setRaw(null)
+          }}
+        />
+      </>
+    )
+  }
+
+  const s = size ?? 72
+  return (
+    <button
+      className="pressable"
+      onClick={pick}
+      disabled={busy}
+      title="从相册导入头像"
+      style={{
+        position: 'relative',
+        width: s,
+        height: s,
+        borderRadius: '50%',
+        overflow: 'hidden',
+        flexShrink: 0,
+        background: 'var(--bg-panel)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--text-tertiary)',
+      }}
+    >
+      {url ? <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ImagePlus size={Math.round(s * 0.3)} />}
+      {value && (
+        <span
+          className="pressable"
+          onClick={(e) => {
+            e.stopPropagation()
+            onChange(null)
+            push('已清除头像', 'info')
+          }}
+          style={{ position: 'absolute', right: 0, bottom: 0, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ff8a8a' }}
+        >
+          <X size={11} />
+        </span>
+      )}
+    </button>
   )
 }

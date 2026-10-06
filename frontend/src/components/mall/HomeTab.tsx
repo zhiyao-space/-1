@@ -5,10 +5,10 @@ import { generateBanners, generateProducts } from '../../lib/mallEngine'
 import { useLongPress } from '../../hooks'
 import { useToast } from '../../store/ui'
 import ModuleContent from './ModuleContent'
-import { Price, Sheet, Stars, Thumb, moduleVars, thumbBg } from './mallParts'
+import { MallIcon, Price, Sheet, Stars, Thumb, moduleVars, thumbBg } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 首页
+   mulin 商城 MALLÉ · 首页
    搜索 / 一键刷新全部 / 模块 Tab / 下拉刷新 / 模块编辑
    ============================================================ */
 
@@ -155,7 +155,7 @@ export default function HomeTab({
         setModuleProducts(module.id, next)
         if (banners.length) setModuleBanners(module.id, banners)
         addRefreshRecord([module.id], next.length)
-        if (!silent) push(`${module.name} 已刷新 ✦`)
+        if (!silent) push(`${module.name} 已刷新`)
       } finally {
         setRefreshingId(null)
       }
@@ -188,7 +188,7 @@ export default function HomeTab({
       const remain = MIN_REFRESH_MS - (Date.now() - startedAt)
       if (remain > 0) await wait(remain)
       addRefreshRecord(list.map((m) => m.id), list.length)
-      push('全部已刷新 ✦')
+      push('全部已刷新')
     } finally {
       setRefreshingAll(false)
       setPull(0)
@@ -295,8 +295,9 @@ export default function HomeTab({
             <BannerCarousel module={active} />
             <div className="ml-modhead">
               <span style={{ minWidth: 0 }}>
-                <span className="ml-modhead__name">
-                  {active.icon} {active.name}
+                <span className="ml-modhead__name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <MallIcon name={active.icon} size={16} color="var(--ml-accent)" />
+                  {active.name}
                 </span>
                 {active.description && <span className="ml-modhead__desc" style={{ display: 'block' }}>{active.description}</span>}
               </span>
@@ -330,7 +331,16 @@ export default function HomeTab({
         )}
       </div>
 
-      <Sheet open={!!menuFor} onClose={() => setMenuFor(null)} title={menuFor ? `${menuFor.icon} ${menuFor.name}` : ''}>
+      <Sheet
+        open={!!menuFor}
+        onClose={() => setMenuFor(null)}
+        title={menuFor ? (
+          <>
+            <MallIcon name={menuFor.icon} size={16} color="var(--ml-accent)" />
+            {menuFor.name}
+          </>
+        ) : ''}
+      >
         {menuFor && (
           <>
             <button
@@ -398,7 +408,7 @@ function ModuleTab({
   const handlers = useLongPress(onLongPress)
   return (
     <button className={`ml-tab${active ? ' ml-tab--active' : ''}`} onClick={onClick} {...handlers}>
-      <span className="ml-tab__icon">{module.icon}</span>
+      <MallIcon name={module.icon} size={15} className="ml-tab__icon" />
       <span>{module.name}</span>
     </button>
   )

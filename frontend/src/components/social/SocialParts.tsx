@@ -1,29 +1,60 @@
 import { ReactNode, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { useBlobURL } from '../WallpaperLayer'
 import type { OnlineStatus } from '../../store/social'
 
 /* 「mu社区恋爱交友软件」通用小件 */
 
 export function SocialAvatar({
-  emoji,
+  avatarId,
+  name,
   size = 46,
   status,
   onClick,
 }: {
-  emoji: string
+  /** IndexedDB 中的头像图片 id，为空时显示名字首字 */
+  avatarId?: string | null
+  name: string
   size?: number
   status?: OnlineStatus
   onClick?: () => void
 }) {
+  const url = useBlobURL(avatarId)
   return (
     <button
       className="sc-avatar"
       onClick={onClick}
-      style={{ width: size, height: size, fontSize: size * 0.5, border: 0, cursor: onClick ? 'pointer' : 'default' }}
+      style={{ width: size, height: size, fontSize: size * 0.42, padding: 0, border: 0, cursor: onClick ? 'pointer' : 'default' }}
     >
-      <span style={{ lineHeight: 1 }}>{emoji}</span>
+      {url ? (
+        <img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+      ) : (
+        <span style={{ lineHeight: 1, fontWeight: 600 }}>{name.slice(0, 1) || '?'}</span>
+      )}
       {status && <span className={`sc-online-dot sc-online-dot--${status}`} />}
     </button>
+  )
+}
+
+export function SocialCover({
+  avatarId,
+  name,
+  height = 92,
+}: {
+  /** IndexedDB 中的封面图片 id，为空时显示名字首字 */
+  avatarId?: string | null
+  name: string
+  height?: number
+}) {
+  const url = useBlobURL(avatarId)
+  return (
+    <div className="sc-card__cover" style={{ height, overflow: 'hidden' }}>
+      {url ? (
+        <img src={url} alt={name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        <span style={{ fontSize: 30, fontWeight: 600, color: 'var(--fx-t3)' }}>{name.slice(0, 1) || '?'}</span>
+      )}
+    </div>
   )
 }
 

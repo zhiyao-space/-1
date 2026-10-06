@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowRight, Bus, CreditCard, Plane, TrainFront, Zap } from 'lucide-react'
+import { ArrowRight, Building2, Bus, CreditCard, Plane, TrainFront, Zap } from 'lucide-react'
 import { AIRLINES, AIRCRAFTS, CITIES_CN, DESTINATIONS, HS_SEATS, METRO_LINES, TRAIN_SEATS, pick, randInt } from '../../lib/cityCatalog'
 import { generateTravelStory, hasCityAi } from '../../lib/cityEngine'
 import { fmtCityTime, landmarkById, useMe, useMulCity, type TicketKind } from '../../store/mulCity'
@@ -490,7 +490,7 @@ function TravelStage({ state, onClose }: { state: StageState; onClose: () => voi
   const [busy, setBusy] = useState(false)
   const meet = useMemo(() => people.find((p) => p.id === state.meetId) ?? null, [people, state.meetId])
 
-  const mover = state.kind === 'flight' ? '✈' : state.kind === 'metro' ? '🚇' : '🚄'
+  const Mover = state.kind === 'flight' ? Plane : state.kind === 'metro' ? TrainFront : Bus
   const labels = ['前往站点', '检票进站', '途中', '抵达']
 
   const runStory = async () => {
@@ -517,7 +517,7 @@ function TravelStage({ state, onClose }: { state: StageState; onClose: () => voi
   return (
     <div className="cx-stage">
       <div className="cx-stage__scene">
-        <span className="cx-stage__mover">{phase >= 3 ? '🏙' : mover}</span>
+        <span className="cx-stage__mover">{phase >= 3 ? <Building2 size={34} /> : <Mover size={34} />}</span>
         <span className="cx-stage__title">{phase >= 3 ? `抵达 ${state.to}` : labels[phase]}</span>
         <span className="cx-stage__sub">
           {phase === 0 && `从 ${state.from} 出发，人流正往同一个方向走。`}

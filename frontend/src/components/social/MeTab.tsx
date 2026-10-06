@@ -14,6 +14,7 @@ import {
 import { daysSince, exportSocialData, importSocialData, ME, useSocial, type SocialCharacter } from '../../store/social'
 import { useToast } from '../../store/ui'
 import { Dialog, EmptyHint, Pill, Sheet, SocialAvatar } from './SocialParts'
+import { ImageField } from '../common'
 
 /* 「mu社区恋爱交友软件」· 我的 Tab */
 
@@ -44,7 +45,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
   const [sheet, setSheet] = useState<ListSheet | null>(null)
   const [resetOpen, setResetOpen] = useState(false)
   const [importText, setImportText] = useState('')
-  const [form, setForm] = useState({ nickname: '', bio: '', interests: '', tags: '', zodiac: '', mbti: '' })
+  const [form, setForm] = useState<{ nickname: string; avatarId?: string; bio: string; interests: string; tags: string; zodiac: string; mbti: string }>({ nickname: '', bio: '', interests: '', tags: '', zodiac: '', mbti: '' })
 
   const charById = useMemo(() => {
     const m = new Map<string, SocialCharacter>()
@@ -74,6 +75,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
   const openEdit = () => {
     setForm({
       nickname: profile.nickname,
+      avatarId: profile.avatarId,
       bio: profile.bio,
       interests: profile.interests.join(', '),
       tags: profile.tags.join(', '),
@@ -87,6 +89,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
     const toList = (value: string) => value.split(',').map((x) => x.trim()).filter(Boolean)
     patchProfile({
       nickname: form.nickname.trim() || profile.nickname,
+      avatarId: form.avatarId,
       bio: form.bio.trim(),
       interests: toList(form.interests),
       tags: toList(form.tags),
@@ -134,7 +137,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
         {/* 资料卡 */}
         <div className="sc-hero" style={{ marginTop: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SocialAvatar emoji={profile.avatar} size={64} status={profile.onlineStatus} />
+            <SocialAvatar avatarId={profile.avatarId} name={profile.nickname} size={64} status={profile.onlineStatus} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sc-title">{profile.nickname}</div>
               <div className="sc-sub" style={{ marginTop: 4, lineHeight: 1.5 }}>{profile.bio || '这个人很懒，什么都没写'}</div>
@@ -240,6 +243,11 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
 
       {/* 编辑资料 */}
       <Sheet open={editOpen} onClose={() => setEditOpen(false)} title="编辑资料">
+        <div className="sc-sub" style={{ marginBottom: 6 }}>头像</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
+          <ImageField value={form.avatarId} onChange={(id) => setForm({ ...form, avatarId: id ?? undefined })} />
+          <span className="sc-sub" style={{ lineHeight: 1.7 }}>点击从相册或文件导入，自动压缩后保存在本机</span>
+        </div>
         <div className="sc-sub" style={{ marginBottom: 6 }}>昵称</div>
         <input className="fx-input" value={form.nickname} onChange={(e) => setForm({ ...form, nickname: e.target.value })} />
         <div className="sc-sub" style={{ margin: '14px 0 6px' }}>签名</div>
@@ -285,7 +293,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
                 onClick={() => setCouple(c.id)}
                 style={{ cursor: 'pointer' }}
               >
-                <SocialAvatar emoji={c.avatar} size={40} status={c.onlineStatus} />
+                <SocialAvatar avatarId={c.avatarId} name={c.nickname} size={40} status={c.onlineStatus} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 600, color: 'var(--fx-t1)' }}>{c.nickname}</div>
                   <div className="sc-sub">好感度 {c.affinity}</div>
@@ -375,7 +383,7 @@ export default function MeTab({ onOpenCard }: { onOpenCard: (charId: string) => 
                   }}
                   style={{ cursor: 'pointer' }}
                 >
-                  <SocialAvatar emoji={c.avatar} size={40} status={c.onlineStatus} />
+                  <SocialAvatar avatarId={c.avatarId} name={c.nickname} size={40} status={c.onlineStatus} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontWeight: 600, color: 'var(--fx-t1)' }}>{c.nickname}</div>
                     <div className="sc-sub" style={{ lineHeight: 1.5 }}>{c.bio}</div>

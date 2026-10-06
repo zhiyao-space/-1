@@ -99,3 +99,14 @@ Entries discovered by the Agent during task execution should follow this format:
   - 多标签切换的底部导航栏（如聊天的 消息/通讯录/我）必须固定在屏幕底部（图标+文字纵向排列，active 用 accent 色），内容区在上方 flex:1，参考 frontend/src/components/chat/ChatHub.tsx 的实现
   - 应用打开时内容页 top 必须为 calc(var(--statusbar-height) + var(--nav-height))，保证 TopNav 返回按钮始终可见（见 PhoneHome.tsx）
   - 锁屏解锁冒烟手势：mouse.move(240,700) → mouse.down() → move(240,200,steps) → mouse.up()，纯 move 拖动无法触发解锁
+
+[UI/功能规范：主页自定义头像与背景 + 禁用 emoji]
+- Date: 2026-10-06
+- Context: 用户明确指示"以后记住写代码的时候就像主页不管是用户还是角色还是npc角色都要能自定义编辑资料从相册文件导入图片当头像背景，还有不要用emoji图标样式之类的，主要其次就是美观"
+- Instructions:
+  - 原则：任何「主页 / 资料页」——用户（me）、角色（character）、NPC（npc）——都必须支持自定义编辑资料
+  - 头像与背景（封面）都要能从相册 / 本地文件导入图片
+  - 统一实现：复用 components/common.tsx 的 `ImageField`（kind='avatar' | 'cover'，支持压缩与封面裁剪）；图片经 compressImage / ImageCropModal 处理，压缩后存入 IndexedDB（lib/idb.ts 的 putBlob），状态里只保存图片 id（avatarId / coverId 字段），展示时用 `useBlobURL(id)` 解析
+  - 兜底展示：无自定义图片时用姓名首字，禁止用 emoji 充当头像
+  - 禁止用 emoji 作为图标 / 样式字符，一律改用 lucide-react 矢量图标（尺寸、颜色贴合主题）
+  - 优先级：先满足"可自定义 + 无 emoji"，其次再追求美观

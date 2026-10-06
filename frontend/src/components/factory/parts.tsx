@@ -1,6 +1,65 @@
 import type { CSSProperties, ReactNode } from 'react'
+import {
+  Banknote,
+  BookOpen,
+  Brain,
+  Cake,
+  Calculator,
+  CloudSun,
+  Coffee,
+  Dices,
+  FlaskConical,
+  Flame,
+  Heart,
+  Hourglass,
+  ListChecks,
+  Lock,
+  Moon,
+  NotebookPen,
+  Package,
+  Pin,
+  Puzzle,
+  StickyNote,
+  Target,
+  Timer,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 
-/** 应用图标：厚块底座 + emoji，凸起样式 */
+/** 应用图标名 -> lucide 组件；未知名称回退为拼图 */
+const APP_ICONS: Record<string, LucideIcon> = {
+  Banknote,
+  BookOpen,
+  Brain,
+  Cake,
+  Calculator,
+  CloudSun,
+  Coffee,
+  Dices,
+  FlaskConical,
+  Flame,
+  Heart,
+  Hourglass,
+  ListChecks,
+  Lock,
+  Moon,
+  NotebookPen,
+  Package,
+  Pin,
+  Puzzle,
+  StickyNote,
+  Target,
+  Timer,
+  Zap,
+}
+
+/** 按名称渲染应用图标 */
+export function AppIcon({ icon, size = 20, color, strokeWidth }: { icon?: string; size?: number; color?: string; strokeWidth?: number }) {
+  const Cmp = (icon && APP_ICONS[icon]) || Puzzle
+  return <Cmp size={size} color={color} strokeWidth={strokeWidth} />
+}
+
+/** 应用图标：厚块底座 + lucide 图标，凸起样式 */
 export function AppGlyph({ icon, size = 46, level = 'front' }: { icon: string; size?: number; level?: 'front' | 'mid' }) {
   return (
     <span
@@ -12,11 +71,9 @@ export function AppGlyph({ icon, size = 46, level = 'front' }: { icon: string; s
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: size * 0.46,
-        lineHeight: 1,
       }}
     >
-      {icon || '🧩'}
+      <AppIcon icon={icon} size={Math.round(size * 0.5)} />
     </span>
   )
 }

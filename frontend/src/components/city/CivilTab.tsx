@@ -5,6 +5,7 @@ import { generatePersonDrafts, hasCityAi, type PersonDraft } from '../../lib/cit
 import { districtById, landmarkById, useMe, useMulCity, visiblePeople, type PersonAttrs, type PersonType } from '../../store/mulCity'
 import { AttrGrid, Avatar, Card, ChipRow, Empty, Field, IdCard, PersonRow, Progress, Row, Sheet, SubTabs, fmtDateFull } from './cityParts'
 import { useCityNav } from './cityNav'
+import { ImageField } from '../common'
 
 /* ============================================================
    Tab2 · 市籍（身份系统）
@@ -59,6 +60,8 @@ function MyProfile() {
   const save = () => {
     updatePerson(me.id, {
       avatar: draft.avatar,
+      avatarId: draft.avatarId,
+      coverId: draft.coverId,
       nickname: draft.nickname,
       occupation: draft.occupation,
       bio: draft.bio,
@@ -131,6 +134,15 @@ function MyProfile() {
       <Sheet open={edit} onClose={() => setEdit(false)} title="编辑市籍档案">
         <Field label="昵称">
           <input className="fx-input" value={draft.nickname} onChange={(e) => setDraft({ ...draft, nickname: e.target.value })} />
+        </Field>
+        <Field label="封面大图">
+          <ImageField kind="cover" value={draft.coverId} onChange={(id) => setDraft((d) => ({ ...d, coverId: id ?? undefined }))} />
+        </Field>
+        <Field label="头像">
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <ImageField value={draft.avatarId} onChange={(id) => setDraft((d) => ({ ...d, avatarId: id ?? undefined }))} />
+            <span className="cx-muted" style={{ fontSize: 'calc(11px * var(--fs-scale))', lineHeight: 1.7 }}>从相册或文件导入，自动压缩保存</span>
+          </div>
         </Field>
         <Field label="头像地址（可留空）">
           <input className="fx-input" placeholder="https://…" value={draft.avatar} onChange={(e) => setDraft({ ...draft, avatar: e.target.value })} />
@@ -288,6 +300,8 @@ const EMPTY_FORM = {
   name: '',
   nickname: '',
   avatar: '',
+  avatarId: '',
+  coverId: '',
   gender: 'other' as 'male' | 'female' | 'other',
   age: 24,
   birthday: '01-01',
@@ -350,6 +364,8 @@ function NewIdentity() {
       name: form.name.trim(),
       nickname: form.nickname.trim() || form.name.trim(),
       avatar: form.avatar,
+      avatarId: form.avatarId || undefined,
+      coverId: form.coverId || undefined,
       gender: form.gender,
       age: form.age,
       birthday: form.birthday,
@@ -459,6 +475,12 @@ function NewIdentity() {
         </Field>
         <Field label="详细住址（可留空）">
           <input className="fx-input" value={form.address} onChange={(e) => set('address', e.target.value)} />
+        </Field>
+        <Field label="封面大图">
+          <ImageField kind="cover" value={form.coverId} onChange={(id) => set('coverId', id ?? '')} />
+        </Field>
+        <Field label="头像">
+          <ImageField value={form.avatarId} onChange={(id) => set('avatarId', id ?? '')} />
         </Field>
         <Field label="职业">
           <div style={{ display: 'flex', gap: 8 }}>

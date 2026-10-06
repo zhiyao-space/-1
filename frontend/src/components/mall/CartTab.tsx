@@ -5,7 +5,7 @@ import { useToast } from '../../store/ui'
 import { CheckBox, Empty, Price, Stepper, Thumb } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 购物车
+   mulin 商城 MALLÉ · 购物车
    ============================================================ */
 
 export default function CartTab({ onGoHome, onGoOrders }: { onGoHome: () => void; onGoOrders: () => void }) {
@@ -54,7 +54,7 @@ export default function CartTab({ onGoHome, onGoOrders }: { onGoHome: () => void
       push(res.reason ?? '结算失败', 'error')
       return
     }
-    push('下单成功，正在配送 ✦')
+    push('下单成功，正在配送')
     onGoOrders()
   }
 

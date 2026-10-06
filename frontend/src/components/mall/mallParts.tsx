@@ -1,9 +1,28 @@
 import type { CSSProperties, ReactNode } from 'react'
-import { Check, Star } from 'lucide-react'
+import {
+  BookOpen,
+  Brush,
+  CakeSlice,
+  Check,
+  Coffee,
+  Gamepad2,
+  Gift,
+  Hammer,
+  Headphones,
+  Shirt,
+  ShoppingBag,
+  Soup,
+  Sprout,
+  Star,
+  Store,
+  ToyBrick,
+  Zap,
+  type LucideIcon,
+} from 'lucide-react'
 import type { MallTheme } from '../../store/mall'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 共享零件
+   mulin 商城 MALLÉ · 共享零件
    缩略图（无需外链图片）/ 星级 / 价格 / 底部抽屉 / 小控件
    ============================================================ */
 
@@ -26,6 +45,42 @@ export function hashHue(str: string): number {
 export function thumbBg(name: string, seed = 0): string {
   const hue = (hashHue(name) + seed * 17) % 360
   return `linear-gradient(150deg, hsl(${hue} 16% 27%) 0%, hsl(${(hue + 34) % 360} 20% 13%) 100%)`
+}
+
+/** 数据层以 lucide 图标名保存模块 / 店铺图标，这里统一映射为组件 */
+const MALL_ICONS: Record<string, LucideIcon> = {
+  ShoppingBag,
+  Soup,
+  Zap,
+  Gift,
+  Shirt,
+  Headphones,
+  Hammer,
+  Store,
+  BookOpen,
+  ToyBrick,
+  CakeSlice,
+  Coffee,
+  Brush,
+  Sprout,
+  Gamepad2,
+}
+
+export function MallIcon({
+  name,
+  size = 16,
+  color,
+  className,
+  strokeWidth,
+}: {
+  name?: string
+  size?: number
+  color?: string
+  className?: string
+  strokeWidth?: number
+}) {
+  const Icon = (name && MALL_ICONS[name]) || ShoppingBag
+  return <Icon size={size} color={color} className={className} strokeWidth={strokeWidth} />
 }
 
 export function Thumb({

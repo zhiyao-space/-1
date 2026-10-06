@@ -29,7 +29,7 @@ export default function CommunityTab({ onOpenCard }: { onOpenCard: (charId: stri
   const detail = useMemo(() => posts.find((p) => p.id === detailId) ?? null, [posts, detailId])
 
   const nameOf = (authorId: string) => (authorId === ME ? '我' : charById.get(authorId)?.nickname ?? '神秘人')
-  const avatarOf = (authorId: string) => (authorId === ME ? profile.avatar : charById.get(authorId)?.avatar ?? '👤')
+  const avatarIdOf = (authorId: string) => (authorId === ME ? profile.avatarId : charById.get(authorId)?.avatarId)
 
   const submit = () => {
     const value = draft.trim()
@@ -68,7 +68,8 @@ export default function CommunityTab({ onOpenCard }: { onOpenCard: (charId: stri
                 style={{ cursor: 'pointer', alignItems: 'flex-start' }}
               >
                 <SocialAvatar
-                  emoji={avatarOf(post.authorId)}
+                  avatarId={avatarIdOf(post.authorId)}
+                  name={nameOf(post.authorId)}
                   size={40}
                   status={post.authorId === ME ? undefined : charById.get(post.authorId)?.onlineStatus}
                 />
@@ -105,7 +106,8 @@ export default function CommunityTab({ onOpenCard }: { onOpenCard: (charId: stri
           <>
             <div className="sc-post__head">
               <SocialAvatar
-                emoji={avatarOf(detail.authorId)}
+                avatarId={avatarIdOf(detail.authorId)}
+                name={nameOf(detail.authorId)}
                 size={40}
                 status={detail.authorId === ME ? undefined : charById.get(detail.authorId)?.onlineStatus}
                 onClick={detail.authorId === ME ? undefined : () => onOpenCard(detail.authorId)}

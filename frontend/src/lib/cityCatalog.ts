@@ -191,6 +191,8 @@ export function localPerson(input: Partial<Person> & { name?: string; type?: Per
     name,
     nickname: input.nickname ?? pick(NICKNAMES),
     avatar: input.avatar ?? '',
+    avatarId: input.avatarId,
+    coverId: input.coverId,
     civilId: input.civilId ?? `MUL-2026-${String(randInt(1, 9999)).padStart(4, '0')}`,
     gender: input.gender ?? pick(['male', 'female', 'other'] as const),
     age: input.age ?? randInt(18, 46),

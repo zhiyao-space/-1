@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { useFactory } from '../../store/factory'
 import { useUI } from '../../store/ui'
 import Preview from './Preview'
+import { AppIcon } from './parts'
 
 /** 桌面图标点开后的运行容器：full 全屏、medium 卡片浮层、small 小组件浮层 */
 export default function AppRunner() {
@@ -48,8 +49,8 @@ export default function AppRunner() {
 
       <div className="fx-root" style={panelStyle}>
         <div className="no-select" style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px' }}>
-          <span className="fx-sunken" style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
-            {target?.icon ?? '🧩'}
+          <span className="fx-sunken" style={{ width: 34, height: 34, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <AppIcon icon={target?.icon} size={18} />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span className="fs-body" style={{ display: 'block', color: 'var(--fx-t1,#fff)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

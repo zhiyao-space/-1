@@ -31,13 +31,13 @@ export default function AboutApp() {
           </div>
 
           <div style={{ textAlign: 'center', lineHeight: 1.5 }}>
-            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>｡ﾟ+┈｡✧･ﾟ</div>
+            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>｡ﾟ+┈｡･ﾟ</div>
             <div style={{ fontSize: 26, fontWeight: 700, color: INK, letterSpacing: 1, margin: '2px 0' }}>
-              <span style={{ fontSize: 17, color: GRAY, marginRight: 6 }}>♡･ﾟ:</span>
+              <span style={{ fontSize: 17, color: GRAY, marginRight: 6 }}>･ﾟ:</span>
               mulin 小手机
-              <span style={{ fontSize: 17, color: GRAY, marginLeft: 6 }}>:ﾟ･✧┈｡+ﾟ｡</span>
+              <span style={{ fontSize: 17, color: GRAY, marginLeft: 6 }}>:ﾟ･┈｡+ﾟ｡</span>
             </div>
-            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>･✧･┈｡ﾟ+..｡ﾟ+┈✧･</div>
+            <div style={{ fontSize: 13, color: DIM, letterSpacing: 2 }}>･･┈｡ﾟ+..｡ﾟ+┈･</div>
           </div>
 
           <div style={{ fontSize: 12, color: GRAY, letterSpacing: 0.5 }}>口袋里的一台玻璃小手机 · 黑灰白</div>
@@ -87,7 +87,7 @@ export default function AboutApp() {
         </button>
 
         <div style={{ textAlign: 'center', marginTop: 22, fontSize: 11, color: DIM, letterSpacing: 1.5 }}>
-          ✧･ﾟ: *✧･ﾟ:* MULIN PHONE *:ﾟ･✧* :ﾟ･✧
+          ･ﾟ: *･ﾟ:* MULIN PHONE *:ﾟ･* :ﾟ･
         </div>
       </div>
     </div>

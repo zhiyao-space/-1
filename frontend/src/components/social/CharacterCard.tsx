@@ -7,7 +7,8 @@ import {
   useSocial,
 } from '../../store/social'
 import { useToast } from '../../store/ui'
-import { AffinityBar, Pill, Sheet, SocialAvatar } from './SocialParts'
+import { AffinityBar, Pill, Sheet } from './SocialParts'
+import { ImageField } from '../common'
 
 /* 「mu社区恋爱交友软件」角色卡：资料 / 好感度 / 主动来信 / 快捷操作 */
 
@@ -21,6 +22,7 @@ export default function CharacterCard({
   onOpenChat: (charId: string) => void
 }) {
   const character = useCharacter(charId)
+  const patchCharacter = useSocial((s) => s.patchCharacter)
   const toggleProactive = useSocial((s) => s.toggleProactive)
   const toggleMute = useSocial((s) => s.toggleMute)
   const toggleBlock = useSocial((s) => s.toggleBlock)
@@ -47,7 +49,14 @@ export default function CharacterCard({
       {character && (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <SocialAvatar emoji={character.avatar} size={64} status={character.onlineStatus} />
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <ImageField
+                value={character.avatarId}
+                onChange={(id) => patchCharacter(character.id, { avatarId: id ?? undefined })}
+                size={64}
+              />
+              <span className={`sc-online-dot sc-online-dot--${character.onlineStatus}`} />
+            </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div className="sc-title" style={{ fontSize: 18 }}>
                 {character.nickname}

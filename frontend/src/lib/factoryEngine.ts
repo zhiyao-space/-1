@@ -74,7 +74,7 @@ export function buildGeneratePrompt(opts: { description: string; style: string; 
 6. 所有 DOM 查询都要做空值保护，禁止抛错。
 
 只输出一个 JSON 对象，不要输出任何解释文字或 markdown 代码块围栏，格式如下：
-{"name":"应用名称","description":"一句话功能说明","category":"效率|生活|娱乐|工具|自定义","icon":"一个 emoji","html":"...","css":"...","js":"..."}`
+{"name":"应用名称","description":"一句话功能说明","category":"效率|生活|娱乐|工具|自定义","icon":"lucide 图标名（如 Check、FileText、Target）","html":"...","css":"...","js":"..."}`
 
   return [
     { role: 'system', content: system },
@@ -142,7 +142,7 @@ function toGenerated(j: Record<string, unknown>): GeneratedApp | null {
     name: String(j.name ?? '').trim() || '未命名应用',
     description: String(j.description ?? '').trim(),
     category: normalizeCategory(j.category),
-    icon: String(j.icon ?? '').trim().slice(0, 4) || '🧩',
+    icon: String(j.icon ?? '').trim().slice(0, 40) || 'Puzzle',
     // 若模型把整份文档塞进 html，剥掉外壳，避免二次包壳
     html: html.replace(/<\/?(?:html|head|body)[^>]*>/gi, '').replace(/<style[\s\S]*?<\/style>/gi, '').replace(/<script[\s\S]*?<\/script>/gi, '').trim() || html,
     css,

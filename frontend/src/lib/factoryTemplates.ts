@@ -9,7 +9,7 @@ import type { AppCategory } from '../store/factory'
 export interface AppTemplate {
   id: string
   name: string
-  /** 单个 emoji 作为图标 */
+  /** lucide 图标名，渲染时按名称取图标 */
   icon: string
   /** 只能是 '效率' | '生活' | '娱乐' | '工具' | '自定义' */
   category: AppCategory
@@ -25,7 +25,7 @@ export const APP_TEMPLATES: AppTemplate[] = [
   {
     id: 'tmpl_todo',
     name: '待办清单',
-    icon: '✅',
+    icon: 'ListChecks',
     category: '效率',
     description: '随手记录待办，完成即划掉的极简清单',
     html: `<div class="app">
@@ -79,7 +79,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
       var box=document.createElement('button');
       box.className='check';
       box.setAttribute('aria-label','切换完成');
-      box.textContent=it.done?'✓':'';
+      box.innerHTML=it.done?'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>':'';
       box.onclick=function(){ it.done=!it.done; save(); render() };
       var span=document.createElement('span');
       span.className='txt';
@@ -113,7 +113,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_notes',
     name: '备忘录',
-    icon: '📝',
+    icon: 'NotebookPen',
     category: '效率',
     description: '快速记录零散想法与文字片段',
     html: `<div class="app">
@@ -219,7 +219,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_habit',
     name: '习惯打卡',
-    icon: '🎯',
+    icon: 'Target',
     category: '生活',
     description: '每天一点，连续打卡养成好习惯',
     html: `<div class="app">
@@ -332,7 +332,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_countdown',
     name: '纪念日',
-    icon: '🎂',
+    icon: 'Cake',
     category: '生活',
     description: '记录纪念日与重要日子的倒计时',
     html: `<div class="app">
@@ -431,7 +431,7 @@ input[type=date]{color-scheme:dark}
   {
     id: 'tmpl_mood',
     name: '心情记录',
-    icon: '🌤️',
+    icon: 'CloudSun',
     category: '生活',
     description: '用表情记录每天的心情与随笔',
     html: `<div class="app">
@@ -557,7 +557,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_pomodoro',
     name: '番茄钟',
-    icon: '🍅',
+    icon: 'Timer',
     category: '效率',
     description: '专注二十五分钟，然后好好休息',
     html: `<div class="app">
@@ -668,7 +668,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_calculator',
     name: '计算器',
-    icon: '🧮',
+    icon: 'Calculator',
     category: '工具',
     description: '支持四则运算与括号的简易计算器',
     html: `<div class="app">
@@ -756,7 +756,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_sticky',
     name: '便签墙',
-    icon: '🗒️',
+    icon: 'StickyNote',
     category: '效率',
     description: '便签墙随手贴，灵感不再丢失',
     html: `<div class="app">
@@ -865,7 +865,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_currency',
     name: '汇率转换器',
-    icon: '💱',
+    icon: 'Banknote',
     category: '工具',
     description: '离线可编辑汇率的货币换算小工具',
     html: `<div class="app">
@@ -881,7 +881,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   <div class="convert">
     <input id="amount" class="field" type="number" inputmode="decimal" value="100" />
     <select id="from" class="field sel"></select>
-    <button id="swap" class="btn swap">⇅</button>
+    <button id="swap" class="btn swap"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 16 4 4 4-4"/><path d="M7 20V4"/><path d="m21 8-4-4-4 4"/><path d="M17 4v16"/></svg></button>
     <select id="to" class="field sel"></select>
   </div>
   <details class="rates">
@@ -970,7 +970,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_vault',
     name: '密码保险箱',
-    icon: '🔐',
+    icon: 'Lock',
     category: '工具',
     description: '本地保存账号密码的加密小保险箱',
     html: `<div class="app">
@@ -1118,7 +1118,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_reading',
     name: '追剧读书',
-    icon: '📚',
+    icon: 'BookOpen',
     category: '生活',
     description: '追踪读书观影进度与完成百分比',
     html: `<div class="app">
@@ -1217,7 +1217,7 @@ body{margin:0;min-height:100vh;background:linear-gradient(160deg,#000 0%,#1a1a1a
   {
     id: 'tmpl_dice',
     name: '随机抽签',
-    icon: '🎲',
+    icon: 'Dices',
     category: '娱乐',
     description: '输入选项随机抽取幸运结果',
     html: `<div class="app">

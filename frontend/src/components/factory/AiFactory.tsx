@@ -1,9 +1,9 @@
 import { useMemo, useRef, useState } from 'react'
-import { Copy, Eye, Loader2, Pencil, RefreshCw, Save, Sparkles, FlaskConical } from 'lucide-react'
+import { Check, Copy, Eye, Loader2, Pencil, RefreshCw, Save, Sparkles, FlaskConical } from 'lucide-react'
 import { FACTORY_EXTRAS, FACTORY_STYLES, fallbackFromTemplates, generateApp, hasAiPreset, type GeneratedApp } from '../../lib/factoryEngine'
 import { APP_SIZES, type AppSize, useFactory } from '../../store/factory'
 import { useToast } from '../../store/ui'
-import { Chip, Divider, Field } from './parts'
+import { Chip, Divider, Field, AppIcon } from './parts'
 import Preview from './Preview'
 
 const EXAMPLES = ['一个记录喝水的小工具', '帮我做一个口红试色记录本', '每天记账的极简本', '记录我家猫喂食时间']
@@ -150,7 +150,7 @@ export default function AiFactory({ onSaved, onEdit }: { onSaved: (id: string) =
         <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap' }}>
           {FACTORY_EXTRAS.map((e) => (
             <Chip key={e} active={extras.includes(e)} onClick={() => toggleExtra(e)}>
-              {extras.includes(e) ? '✓ ' : ''}
+              {extras.includes(e) && <Check size={11} style={{ marginRight: 4, verticalAlign: '-1px' }} />}
               {e}
             </Chip>
           ))}
@@ -182,8 +182,8 @@ export default function AiFactory({ onSaved, onEdit }: { onSaved: (id: string) =
           <Divider />
           <div className="fx-block fx-front fx-in" style={{ padding: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-              <span className="fx-sunken" style={{ width: 44, height: 44, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-                {result.icon}
+              <span className="fx-sunken" style={{ width: 44, height: 44, borderRadius: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AppIcon icon={result.icon} size={22} />
               </span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="fs-body" style={{ color: 'var(--fx-t1,#fff)', fontWeight: 600 }}>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, Send, ImagePlus, Users, UserPlus } from 'lucide-react'
+import { ChevronLeft, Send, ImagePlus, Users, UserPlus, Smile } from 'lucide-react'
 import { useForum, type ForumDM } from '../../store/forum'
 import { useCharacters } from '../../store/characters'
 import { useStickers } from '../../store/stickers'
@@ -256,7 +256,7 @@ function DmChat({ dm, onBack, onOpenPost }: { dm: ForumDM; onBack: () => void; o
           <ImagePlus size={18} />
         </button>
         <button className="pressable" onClick={() => setStickerOpen((v) => !v)} style={{ color: 'var(--text-secondary)', padding: 6 }}>
-          <span className="fs-body">☺</span>
+          <Smile size={18} />
         </button>
         <input
           value={text}

@@ -10,7 +10,7 @@ import {
 } from '../lib/mallCatalog'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 数据层
+   mulin 商城 MALLÉ · 数据层
    模块 / 模板 / 商品 / 购物车 / 订单 / 资产，全部 localStorage 持久化
    核心：模块的内容、布局、样式都能自由定义
    ============================================================ */
@@ -310,12 +310,12 @@ function buildModule(input: {
 function createSeed() {
   const now = Date.now()
   const drafts = [
-    { name: '美食外卖', type: 'product' as MallType, icon: '🍜', layout: 'list' as MallLayout, theme: DEFAULT_THEME, description: '今天想吃什么？热汤热饭，30 分钟送到。', categories: ['辣度', '主食', '饮品'], bannerLabels: ['今日新店', '满 30 减 8', '深夜食堂'], productCount: 9 },
-    { name: '限时闪购', type: 'flash-sale' as MallType, icon: '⚡', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#e8c07d', bgColor: '#241f19' }, description: '每小时一批，抢完就恢复原价。', categories: ['数码', '家电', '好物'], bannerLabels: ['10 点开抢', '前 100 名半价', '最后 2 小时'], productCount: 8 },
-    { name: '盲盒抽抽乐', type: 'blind-box' as MallType, icon: '🎁', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#c0aee6', bgColor: '#1f1c26', cardStyle: 'pill' as CardStyle, borderRadius: 24 }, description: '拆开才知道是谁，隐藏款等你集齐。', categories: ['系列一', '系列二', '限定'], bannerLabels: ['新系列上线', '隐藏款概率翻倍'], productCount: 8 },
-    { name: '服饰穿搭', type: 'product' as MallType, icon: '👕', layout: 'waterfall' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#f0a6b4', bgColor: '#241c1e' }, description: '按场景挑衣服，顺手给你配好一套。', categories: ['尺码', '场景', '季节'], bannerLabels: ['秋冬新款', '搭配灵感'], productCount: 10 },
-    { name: '数码好物', type: 'product' as MallType, icon: '🎧', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#9dc0e6', bgColor: '#1a1f26', cardStyle: 'square' as CardStyle, borderRadius: 12 }, description: '折腾过才敢推荐，都是自己用过的。', categories: ['音频', '外设', '配件'], bannerLabels: ['编辑推荐', '开箱实测'], productCount: 8 },
-    { name: '旧物拍卖', type: 'auction' as MallType, icon: '🔨', layout: 'list' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#9fd8c4', bgColor: '#1b2321' }, description: '孤品一件，出价最高的人带走。', categories: ['相机', '器物', '音像'], bannerLabels: ['今夜 22:00 结拍', '无底价专场'], productCount: 7 },
+    { name: '美食外卖', type: 'product' as MallType, icon: 'Soup', layout: 'list' as MallLayout, theme: DEFAULT_THEME, description: '今天想吃什么？热汤热饭，30 分钟送到。', categories: ['辣度', '主食', '饮品'], bannerLabels: ['今日新店', '满 30 减 8', '深夜食堂'], productCount: 9 },
+    { name: '限时闪购', type: 'flash-sale' as MallType, icon: 'Zap', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#e8c07d', bgColor: '#241f19' }, description: '每小时一批，抢完就恢复原价。', categories: ['数码', '家电', '好物'], bannerLabels: ['10 点开抢', '前 100 名半价', '最后 2 小时'], productCount: 8 },
+    { name: '盲盒抽抽乐', type: 'blind-box' as MallType, icon: 'Gift', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#c0aee6', bgColor: '#1f1c26', cardStyle: 'pill' as CardStyle, borderRadius: 24 }, description: '拆开才知道是谁，隐藏款等你集齐。', categories: ['系列一', '系列二', '限定'], bannerLabels: ['新系列上线', '隐藏款概率翻倍'], productCount: 8 },
+    { name: '服饰穿搭', type: 'product' as MallType, icon: 'Shirt', layout: 'waterfall' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#f0a6b4', bgColor: '#241c1e' }, description: '按场景挑衣服，顺手给你配好一套。', categories: ['尺码', '场景', '季节'], bannerLabels: ['秋冬新款', '搭配灵感'], productCount: 10 },
+    { name: '数码好物', type: 'product' as MallType, icon: 'Headphones', layout: 'grid' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#9dc0e6', bgColor: '#1a1f26', cardStyle: 'square' as CardStyle, borderRadius: 12 }, description: '折腾过才敢推荐，都是自己用过的。', categories: ['音频', '外设', '配件'], bannerLabels: ['编辑推荐', '开箱实测'], productCount: 8 },
+    { name: '旧物拍卖', type: 'auction' as MallType, icon: 'Hammer', layout: 'list' as MallLayout, theme: { ...DEFAULT_THEME, accentColor: '#9fd8c4', bgColor: '#1b2321' }, description: '孤品一件，出价最高的人带走。', categories: ['相机', '器物', '音像'], bannerLabels: ['今夜 22:00 结拍', '无底价专场'], productCount: 7 },
   ]
 
   const modules: MallModule[] = []
@@ -388,7 +388,7 @@ function createSeed() {
       { id: mallId('ad'), name: '小林', phone: '138****6621', detail: '杭州市西湖区文一路 88 号 3 幢 502', isDefault: true },
     ] as Address[],
     refreshHistory: [] as RefreshRecord[],
-    shop: { open: false, name: '小林の杂货铺', desc: '只卖我自己也会用的东西。', icon: '🏪' } as MyShop,
+    shop: { open: false, name: '小林の杂货铺', desc: '只卖我自己也会用的东西。', icon: 'Store' } as MyShop,
     settings: { notify: true, animate: true } as MallSettings,
     lastRefreshAt: 0,
   }
@@ -412,7 +412,7 @@ export const useMall = create<MallState>()(
           id,
           name: input.name.trim() || '未命名模块',
           type: input.type,
-          icon: input.icon || tpl?.icon || '🛍️',
+          icon: input.icon || tpl?.icon || 'ShoppingBag',
           enabled: true,
           sortOrder: modules.length,
           layout,

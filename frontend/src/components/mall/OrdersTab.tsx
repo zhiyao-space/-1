@@ -10,7 +10,7 @@ import { useToast } from '../../store/ui'
 import { Empty, Sheet, Thumb, fmtDateTime } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 订单
+   mulin 商城 MALLÉ · 订单
    状态筛选 / 物流进度 / 详情时间线 / 评价与售后
    ============================================================ */
 
@@ -81,7 +81,7 @@ export default function OrdersTab() {
           style={{ minHeight: 34, padding: '0 14px' }}
           onClick={() => {
             payOrder(o.id)
-            push('付款成功 ✦')
+            push('付款成功')
           }}
         >
           去付款
@@ -233,7 +233,7 @@ export default function OrdersTab() {
                   style={{ width: '100%', marginTop: 12 }}
                   onClick={() => {
                     reviewOrder(detail.id, rating, text.trim() || '默认好评')
-                    push('评价已发布 ✦')
+                    push('评价已发布')
                     setReviewing(false)
                   }}
                 >

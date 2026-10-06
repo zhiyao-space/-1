@@ -79,7 +79,7 @@ export function useAppTitle(): string {
     phone: '电话',
     factory: 'mulin功能应用制造厂',
     social: 'mu社区恋爱交友软件',
-    mall: 'mulin 商城 ✦ MALLÉ',
+    mall: 'mulin 商城 MALLÉ',
     city: 'Mul市',
   }
   return activeApp ? names[activeApp] : ''

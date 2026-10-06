@@ -13,13 +13,13 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useMall, visibleModules } from '../../store/mall'
-import { MALL_TEMPLATES, MODULE_TYPE_LABEL } from '../../lib/mallCatalog'
+import { ICON_CHOICES, MALL_TEMPLATES, MODULE_TYPE_LABEL } from '../../lib/mallCatalog'
 import { useToast } from '../../store/ui'
 import { Toggle } from '../common'
-import { Empty, Sheet, fmtTime } from './mallParts'
+import { Empty, MallIcon, Sheet, fmtTime } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 我的
+   mulin 商城 MALLÉ · 我的
    资产 / 虚拟小店 / 模块管理与拖拽排序 / 地址 / 刷新历史 / 设置
    ============================================================ */
 
@@ -98,7 +98,9 @@ function ModuleManager({ onBack, onEdit }: { onBack: () => void; onEdit: (id: st
             >
               <GripVertical size={17} />
             </span>
-            <span className="ml-manage-row__icon">{m.icon}</span>
+            <span className="ml-manage-row__icon">
+              <MallIcon name={m.icon} size={18} />
+            </span>
             <span className="ml-manage-row__name" onClick={() => onEdit(m.id)}>
               {m.name}
               <span className="ml-manage__val" style={{ display: 'block', fontSize: 'calc(10px * var(--fs-scale))', color: 'var(--fx-t3)', marginTop: 2 }}>
@@ -242,7 +244,9 @@ function ShopPanel({ onBack }: { onBack: () => void }) {
       <SubPageHead title="我的店铺" sub={shop.open ? '营业中' : '未开张'} onBack={onBack} />
       <div className="ml-orderscroll">
         <div className="ml-store" style={{ marginBottom: 16 }}>
-          <span className="ml-store__avatar">{shop.icon}</span>
+          <span className="ml-store__avatar">
+            <MallIcon name={shop.icon} size={26} />
+          </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span className="ml-store__name">{shop.name}</span>
             <span className="ml-store__desc" style={{ display: 'block' }}>
@@ -262,13 +266,17 @@ function ShopPanel({ onBack }: { onBack: () => void }) {
         </div>
         <div className="ml-field">
           <span className="ml-field__label">店铺图标</span>
-          <input
-            className="fx-input"
-            value={form.icon}
-            maxLength={4}
-            onChange={(e) => setForm({ ...form, icon: e.target.value })}
-            style={{ width: 90 }}
-          />
+          <div className="ml-chiprow">
+            {ICON_CHOICES.map((ic) => (
+              <button
+                key={ic}
+                className={`ml-emoji${form.icon === ic ? ' ml-emoji--on' : ''}`}
+                onClick={() => setForm({ ...form, icon: ic })}
+              >
+                <MallIcon name={ic} size={20} />
+              </button>
+            ))}
+          </div>
         </div>
         <button
           className="fx-btn fx-press"
@@ -289,8 +297,8 @@ function ShopPanel({ onBack }: { onBack: () => void }) {
               push('你已有一个小店模块了')
               return
             }
-            createModule({ name: form.name || '我的小店', type: 'store', icon: form.icon || '🏪', description: form.desc })
-            push('小店模块已生成，去首页看看 ✦')
+            createModule({ name: form.name || '我的小店', type: 'store', icon: form.icon || 'Store', description: form.desc })
+            push('小店模块已生成，去首页看看')
           }}
         >
           用店铺信息生成首页模块

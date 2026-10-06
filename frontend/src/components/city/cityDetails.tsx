@@ -7,12 +7,15 @@ import {
   Bookmark,
   Briefcase,
   CalendarDays,
+  ChevronRight,
   Clock,
   Eye,
   Flame,
   Heart,
+  ImagePlus,
   MapPin,
   MessageCircle,
+  Mic,
   Newspaper,
   Plane,
   Plus,
@@ -20,6 +23,7 @@ import {
   Repeat2,
   Send,
   ShoppingBag,
+  Smartphone,
   Sparkles,
   ThumbsDown,
   Ticket,
@@ -51,6 +55,8 @@ import {
   Empty,
   IdCard,
   KLineChart,
+  PersonCover,
+  PersonImageEditor,
   PersonRow,
   Progress,
   Row,
@@ -99,6 +105,7 @@ export function PersonDetail({ id }: { id: string }) {
   const posts = useMulCity((s) => s.posts)
   const nav = useCityNav()
   const [relOpen, setRelOpen] = useState(false)
+  const [imgOpen, setImgOpen] = useState(false)
 
   const person = personById(people, id)
   if (!person) return <DetailShell title="居民不存在"><Empty icon={<Users size={30} />} text="这位居民已经离开了 Mul市" /></DetailShell>
@@ -112,10 +119,14 @@ export function PersonDetail({ id }: { id: string }) {
 
   return (
     <DetailShell title={isMe ? '我的档案' : person.name} sub={person.civilId}>
+      <PersonCover person={person} height={120} radius={14} />
       <IdCard person={person} />
 
       <div className="cx-acts" style={{ marginTop: 12 }}>
-        <button className="fx-btn fx-btn--front fx-press" onClick={() => nav.push({ view: 'landmark', id: person.lastSeenLocation })}>
+        <button className="fx-btn fx-btn--front fx-press" onClick={() => setImgOpen(true)}>
+          <ImagePlus size={14} /> 编辑形象
+        </button>
+        <button className="fx-btn fx-press" onClick={() => nav.push({ view: 'landmark', id: person.lastSeenLocation })}>
           <MapPin size={14} /> {here ? `在 ${here.name}` : '位置未知'}
         </button>
         {!isMe && (
@@ -204,6 +215,8 @@ export function PersonDetail({ id }: { id: string }) {
           ))}
         </>
       )}
+
+      {imgOpen && <PersonImageEditor person={person} onClose={() => setImgOpen(false)} />}
 
       <Sheet open={relOpen} onClose={() => setRelOpen(false)} title="设置关系">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -489,7 +502,7 @@ export function ShowTicketDetail({ id }: { id: string }) {
       {stage && (
         <div className="cx-stage">
           <div className="cx-stage__scene">
-            <span className="cx-stage__mover">{phase >= 2 ? '🎤' : phase === 1 ? '🎫' : '📱'}</span>
+            <span className="cx-stage__mover">{phase >= 2 ? <Mic size={34} /> : phase === 1 ? <Ticket size={34} /> : <Smartphone size={34} />}</span>
             <span className="cx-stage__title">{labels[phase]}</span>
             <span className="cx-stage__sub">
               {phase === 0 && '闸机亮起绿灯，屏幕上的座位号被扫过一遍。'}
@@ -833,7 +846,7 @@ export function PostDetail({ id }: { id: string }) {
         </div>
       </Card>
       <button className="cx-link" style={{ marginTop: 12 }} onClick={() => nav.push({ view: 'profile', id: post.authorId })}>
-        查看作者主页 →
+        查看作者主页 <ChevronRight size={13} />
       </button>
     </DetailShell>
   )
@@ -944,7 +957,7 @@ export function CommunityDetail({ id }: { id: string }) {
 
       <div className="cx-sechead"><span className="cx-sechead__t">社群动态</span><span className="cx-sechead__sub">{community.posts.length} 条</span></div>
       {community.posts.length ? community.posts.map((p) => <MicroPostCard key={p.id} post={p} compact />) : <Empty icon={<MessageCircle size={24} />} text="还没有动态" />}
-      <button className="cx-link" style={{ marginTop: 12 }} onClick={() => nav.goTab('microblog')}>← 回到微博广场</button>
+      <button className="cx-link" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }} onClick={() => nav.goTab('microblog')}><ArrowLeft size={13} /> 回到微博广场</button>
     </DetailShell>
   )
 }
@@ -959,6 +972,7 @@ export function ProfileDetail({ id }: { id: string }) {
   const unfollow = useMulCity((s) => s.unfollowPerson)
   const nav = useCityNav()
   const [tab, setTab] = useState<'posts' | 'bookmarks'>('posts')
+  const [imgOpen, setImgOpen] = useState(false)
   const person = personById(people, id)
   const me = useMe()
 
@@ -974,10 +988,13 @@ export function ProfileDetail({ id }: { id: string }) {
   return (
     <DetailShell title={person.name} sub={`@${person.nickname}`}>
       <Card front>
-        <div className="cx-mb-cover" />
+        <PersonCover person={person} height={112} radius={10} />
         <div className="cx-mb-profile">
           <Avatar person={person} size={64} />
           <div className="cx-mb-profile__acts">
+            <button className="fx-btn fx-press" onClick={() => setImgOpen(true)}>
+              <ImagePlus size={13} /> 编辑形象
+            </button>
             {!isMe && (
               <button className={`fx-btn fx-press ${isFollowing ? '' : 'fx-btn--accent'}`} onClick={() => (isFollowing ? unfollow(person.id) : follow(person.id))}>
                 {isFollowing ? '已关注' : '+ 关注'}
@@ -1001,6 +1018,8 @@ export function ProfileDetail({ id }: { id: string }) {
       </div>
 
       {list.length ? list.map((p) => <MicroPostCard key={p.id} post={p} />) : <Empty icon={<MessageCircle size={26} />} text={tab === 'posts' ? '还没有发过微博' : '还没有收藏'} />}
+
+      {imgOpen && <PersonImageEditor person={person} onClose={() => setImgOpen(false)} />}
     </DetailShell>
   )
 }

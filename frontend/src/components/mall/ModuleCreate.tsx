@@ -13,10 +13,10 @@ import {
 import { generateProducts } from '../../lib/mallEngine'
 import { useToast } from '../../store/ui'
 import { SliderRow } from '../common'
-import { Field } from './mallParts'
+import { Field, MallIcon } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 新建模块
+   mulin 商城 MALLÉ · 新建模块
    类型 → 名称与图标 → 布局与主题 → 内容与 AI 生成 → 保存
    可从 6 套内置模板导入，也可完全从零定义
    ============================================================ */
@@ -33,7 +33,7 @@ export default function ModuleCreate({ onBack, templateFirst = false }: { onBack
   const [templateId, setTemplateId] = useState<string | null>(null)
   const [type, setType] = useState<MallType>('product')
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('🛍️')
+  const [icon, setIcon] = useState('ShoppingBag')
   const [layout, setLayout] = useState<MallLayout>('grid')
   const [theme, setTheme] = useState<MallTheme>(DEFAULT_THEME)
   const [description, setDescription] = useState('')
@@ -58,7 +58,7 @@ export default function ModuleCreate({ onBack, templateFirst = false }: { onBack
   const clearTemplate = () => {
     setTemplateId(null)
     setType('product')
-    setIcon('🛍️')
+    setIcon('ShoppingBag')
     setLayout('grid')
     setTheme(DEFAULT_THEME)
     setDescription('')
@@ -92,7 +92,7 @@ export default function ModuleCreate({ onBack, templateFirst = false }: { onBack
           addRefreshRecord([id], ps.length)
         }
       }
-      push(`${name} 已添加到首页 ✦`)
+      push(`${name} 已添加到首页`)
       onBack()
     } finally {
       setBusy(false)
@@ -145,7 +145,9 @@ export default function ModuleCreate({ onBack, templateFirst = false }: { onBack
                 className={`ml-tmplcard${templateId === t.id ? ' ml-tmplcard--on' : ''}`}
                 onClick={() => applyTemplate(t.id)}
               >
-                <span className="ml-tmplcard__thumb">{t.icon}</span>
+                <span className="ml-tmplcard__thumb">
+                  <MallIcon name={t.icon} size={25} />
+                </span>
                 <span className="ml-prodrow__body">
                   <span className="ml-tmplcard__name">{t.name}</span>
                   <span className="ml-tmplcard__desc">{t.description}</span>
@@ -175,14 +177,13 @@ export default function ModuleCreate({ onBack, templateFirst = false }: { onBack
               />
             </Field>
             <Field label="图标">
-              <div className="ml-chiprow" style={{ marginBottom: 8 }}>
+              <div className="ml-chiprow">
                 {ICON_CHOICES.map((ic) => (
                   <button key={ic} className={`ml-emoji${icon === ic ? ' ml-emoji--on' : ''}`} onClick={() => setIcon(ic)}>
-                    {ic}
+                    <MallIcon name={ic} size={20} />
                   </button>
                 ))}
               </div>
-              <input className="fx-input" value={icon} maxLength={4} onChange={(e) => setIcon(e.target.value)} style={{ width: 100 }} />
             </Field>
           </>
         )}

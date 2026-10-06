@@ -13,7 +13,7 @@ import {
 import type { MallBanner, MallLayout, MallModule, MallProduct, MallTheme, SortRule } from '../store/mall'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · AI 引擎
+   mulin 商城 MALLÉ · AI 引擎
    刷新商品 / 辅助配置样式
    有可用 LLM 预设时真实生成；否则本地生成，保证离线也能用
    ============================================================ */

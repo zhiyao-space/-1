@@ -11,10 +11,10 @@ import {
 import { SORT_RULES } from '../../lib/mallCatalog'
 import { useClock } from '../../hooks'
 import { useToast } from '../../store/ui'
-import { Price, Sheet, Stars, Thumb } from './mallParts'
+import { MallIcon, Price, Sheet, Stars, Thumb } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 模块内容渲染
+   mulin 商城 MALLÉ · 模块内容渲染
    5 种通用布局 + 闪购 / 盲盒 / 拍卖 / 小店 特色块
    每种布局都是一个独立 render 函数
    ============================================================ */
@@ -209,7 +209,9 @@ function BlindBox({ module, products, onOpen }: { module: MallModule; products: 
     <>
       <div className="ml-blind">
         <Dices size={15} color="var(--ml-accent)" />
-        <div className={`ml-blind__box${shaking ? ' ml-blind__box--shake' : ''}`}>{module.icon || '🎁'}</div>
+        <div className={`ml-blind__box${shaking ? ' ml-blind__box--shake' : ''}`}>
+          <MallIcon name={module.icon || 'Gift'} size={50} color="var(--ml-accent)" />
+        </div>
         <div className="ml-blind__hint">抽一次消耗 {DRAW_COST} 积分，隐藏款概率更高</div>
         <div className="ml-blind__stat">
           <span>
@@ -343,7 +345,9 @@ function StorePanel({ module }: { module: MallModule }) {
   const desc = module.customFields.storeDesc || module.description || '只卖我自己也会用的东西。'
   return (
     <div className="ml-store">
-      <span className="ml-store__avatar">{module.icon || '🏪'}</span>
+      <span className="ml-store__avatar">
+        <MallIcon name={module.icon || 'Store'} size={26} />
+      </span>
       <span style={{ flex: 1, minWidth: 0 }}>
         <span className="ml-store__name" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Store size={13} color="var(--ml-accent)" />

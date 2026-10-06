@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Heart, MessageCircle, Plus, Trash2 } from 'lucide-react'
+import { Heart, MessageCircle, Plus, Trash2, Building2, UtensilsCrossed, PawPrint, Headphones, Camera, Coffee, Moon, Footprints } from 'lucide-react'
 import { useSocial, ME, type SocialCharacter } from '../../store/social'
 import { useToast } from '../../store/ui'
 import { EmptyHint, Pill, Sheet, SocialAvatar } from './SocialParts'
@@ -14,7 +14,17 @@ const MODES: { key: FeedMode; label: string }[] = [
   { key: 'latest', label: '最新' },
 ]
 
-const EMOJIS = ['🌆', '🍜', '🐱', '🎧', '📷', '☕', '🌙', '🏃']
+const PICKS = [
+  { key: 'city', Icon: Building2 },
+  { key: 'food', Icon: UtensilsCrossed },
+  { key: 'pet', Icon: PawPrint },
+  { key: 'music', Icon: Headphones },
+  { key: 'photo', Icon: Camera },
+  { key: 'coffee', Icon: Coffee },
+  { key: 'night', Icon: Moon },
+  { key: 'sport', Icon: Footprints },
+]
+const PIC_BY_KEY = new Map(PICKS.map((p) => [p.key, p.Icon]))
 
 function relativeTime(ts: number) {
   const min = Math.floor((Date.now() - ts) / 60000)
@@ -68,7 +78,7 @@ export default function FeedTab({ onOpenCard }: { onOpenCard: (charId: string) =
   }, [posts, mode, following, charById])
 
   const nameOf = (authorId: string) => (authorId === ME ? profile.nickname : charById.get(authorId)?.nickname ?? '神秘人')
-  const avatarOf = (authorId: string) => (authorId === ME ? profile.avatar : charById.get(authorId)?.avatar ?? '👤')
+  const avatarIdOf = (authorId: string) => (authorId === ME ? profile.avatarId : charById.get(authorId)?.avatarId)
 
   const toggleComments = (id: string) => setOpenComments((o) => ({ ...o, [id]: !o[id] }))
 
@@ -79,8 +89,8 @@ export default function FeedTab({ onOpenCard }: { onOpenCard: (charId: string) =
     setDrafts((d) => ({ ...d, [id]: '' }))
   }
 
-  const toggleEmoji = (emoji: string) =>
-    setPicked((p) => (p.includes(emoji) ? p.filter((x) => x !== emoji) : p.length >= 4 ? p : [...p, emoji]))
+  const togglePick = (key: string) =>
+    setPicked((p) => (p.includes(key) ? p.filter((x) => x !== key) : p.length >= 4 ? p : [...p, key]))
 
   const publish = () => {
     const content = text.trim()
@@ -121,7 +131,8 @@ export default function FeedTab({ onOpenCard }: { onOpenCard: (charId: string) =
                 <div key={post.id} className="sc-post">
                   <div className="sc-post__head">
                     <SocialAvatar
-                      emoji={avatarOf(post.authorId)}
+                      avatarId={avatarIdOf(post.authorId)}
+                      name={nameOf(post.authorId)}
                       size={38}
                       status={char?.onlineStatus}
                       onClick={isMine ? undefined : () => onOpenCard(post.authorId)}
@@ -153,9 +164,10 @@ export default function FeedTab({ onOpenCard }: { onOpenCard: (charId: string) =
 
                   {post.images.length > 0 && (
                     <div className="sc-post__grid">
-                      {post.images.slice(0, 4).map((img, i) => (
-                        <span key={i}>{img}</span>
-                      ))}
+                      {post.images.slice(0, 4).map((img, i) => {
+                        const Icon = PIC_BY_KEY.get(img)
+                        return <span key={i}>{Icon ? <Icon size={26} /> : null}</span>
+                      })}
                     </div>
                   )}
 
@@ -228,14 +240,14 @@ export default function FeedTab({ onOpenCard }: { onOpenCard: (charId: string) =
           配图（最多 4 张）
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {EMOJIS.map((emoji) => (
+          {PICKS.map(({ key, Icon }) => (
             <button
-              key={emoji}
-              className={`sc-pill fx-press-soft${picked.includes(emoji) ? ' sc-pill--on' : ''}`}
-              onClick={() => toggleEmoji(emoji)}
-              style={{ border: 0, cursor: 'pointer', fontSize: 18, padding: '4px 10px' }}
+              key={key}
+              className={`sc-pill fx-press-soft${picked.includes(key) ? ' sc-pill--on' : ''}`}
+              onClick={() => togglePick(key)}
+              style={{ border: 0, cursor: 'pointer', padding: '6px 10px' }}
             >
-              {emoji}
+              <Icon size={18} />
             </button>
           ))}
         </div>

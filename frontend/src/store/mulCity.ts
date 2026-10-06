@@ -117,6 +117,10 @@ export interface Person {
   name: string
   nickname: string
   avatar: string
+  /** 自定义头像（从相册导入后存入 IndexedDB 的图片 id） */
+  avatarId?: string
+  /** 自定义封面大图（IndexedDB 的图片 id） */
+  coverId?: string
   civilId: string
   gender: Gender
   age: number
@@ -1466,7 +1470,7 @@ export const useMulCity = create<MulCityState>()(
                 name: c.name,
                 occupation: c.identity || undefined,
                 bio: c.personality || '',
-                avatar: c.avatarId || '',
+                avatarId: c.avatarId || undefined,
               })
             )
             added += 1

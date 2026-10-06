@@ -383,6 +383,23 @@
   flex: 0 0 auto;
 }
 
+/* ---------- 人物封面大图 ---------- */
+.cx-cover {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--fx-sunken);
+  box-shadow: var(--fx-inset-shadow);
+}
+.cx-cover img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* ---------- 市籍身份证 ---------- */
 .cx-idcard {
   position: relative;

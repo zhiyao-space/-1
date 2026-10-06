@@ -17,7 +17,8 @@ export const ME = 'me'
 export interface SocialProfile {
   id: string
   nickname: string
-  avatar: string
+  /** 从相册导入的头像（IndexedDB 图片 id） */
+  avatarId?: string
   bio: string
   tags: string[]
   interests: string[]
@@ -31,7 +32,8 @@ export interface SocialProfile {
 export interface SocialCharacter {
   id: string
   nickname: string
-  avatar: string
+  /** 从相册导入的头像（IndexedDB 图片 id） */
+  avatarId?: string
   bio: string
   personality: string[]
   skills: string[]
@@ -275,7 +277,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_001',
     nickname: '林知夏',
-    avatar: '🌷',
     bio: '开书店的，喜欢在雨天读诗。不太会主动，但会记住你说过的每句话。',
     personality: ['温柔', '安静', '文艺'],
     skills: ['写作', '咖啡', '烘焙'],
@@ -288,7 +289,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_002',
     nickname: '江岁',
-    avatar: '🍊',
     bio: '嘴硬心软，被夸会假装不在意。爱好是抬杠和半夜发奇怪的东西。',
     personality: ['傲娇', '活泼', '有趣'],
     skills: ['游戏', '编程', '摄影'],
@@ -301,7 +301,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_003',
     nickname: '陈屿',
-    avatar: '🌻',
     bio: '每天六点起床跑步，相信阳光能治百病。',
     personality: ['阳光', '元气', '温柔'],
     skills: ['跑步', '吉他', '唱歌'],
@@ -314,7 +313,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_004',
     nickname: '沈砚',
-    avatar: '🌙',
     bio: '话很少，但深夜会突然说一句很戳你的话。',
     personality: ['高冷', '安静', '腹黑'],
     skills: ['绘画', '编程'],
@@ -327,7 +325,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_005',
     nickname: '苏晚',
-    avatar: '🍰',
     bio: '烘焙爱好者，家里永远有刚出炉的蛋糕味。',
     personality: ['温柔', '治愈', '阳光'],
     skills: ['烘焙', '烹饪', '摄影'],
@@ -340,7 +337,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_006',
     nickname: '顾野',
-    avatar: '🏍️',
     bio: '骑机车去远方，行李箱里永远有半张没听完的唱片。',
     personality: ['阳光', '有趣', '元气'],
     skills: ['旅行', '吉他', '摄影'],
@@ -353,7 +349,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_007',
     nickname: '温以宁',
-    avatar: '📚',
     bio: '在读研，最擅长把复杂的知识讲成故事。',
     personality: ['安静', '文艺', '温柔'],
     skills: ['写作', '学习', '绘画'],
@@ -366,7 +361,6 @@ const CHARACTER_SEED: Omit<
   {
     id: 'char_008',
     nickname: '许澜',
-    avatar: '🐱',
     bio: '养了三只猫，朋友圈除了猫还是猫。',
     personality: ['活泼', '治愈', '有趣'],
     skills: ['宠物', '烹饪', '唱歌'],
@@ -401,7 +395,6 @@ function createSeed() {
   const profile: SocialProfile = {
     id: 'user_001',
     nickname: '小 M',
-    avatar: '🙂',
     bio: '想认识一个能一起吃饭、聊废话、看日落的人。',
     tags: ['温柔', '文艺'],
     interests: ['美食', '旅行', '电影', '音乐'],
@@ -433,7 +426,7 @@ function createSeed() {
     char_005: [
       { id: sid('m'), senderId: 'char_005', text: '刚烤好一炉曲奇，第一个想到你，尝尝？', type: 'text', timestamp: now - 3 * 3600000, read: true, recalled: false, favorited: true },
       { id: sid('m'), senderId: ME, text: '看起来也太香了，我不客气了。', type: 'text', timestamp: now - 3 * 3600000 + 60000, read: true, recalled: false, favorited: false },
-      { id: sid('m'), senderId: 'char_005', text: '🍪', type: 'gift', timestamp: now - 2.6 * 3600000, read: false, recalled: false, favorited: false, meta: { gift: '手工曲奇' } },
+      { id: sid('m'), senderId: 'char_005', text: '', type: 'gift', timestamp: now - 2.6 * 3600000, read: false, recalled: false, favorited: false, meta: { gift: '手工曲奇' } },
     ],
     char_008: [
       { id: sid('m'), senderId: 'char_008', text: '救命，我家猫又把我耳机线咬断了。', type: 'text', timestamp: now - 26 * 3600000, read: true, recalled: false, favorited: false },

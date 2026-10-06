@@ -3,10 +3,10 @@ import { Eye, LayoutTemplate, Wand2, X } from 'lucide-react'
 import { APP_TEMPLATES, type AppTemplate } from '../../lib/factoryTemplates'
 import { APP_CATEGORIES, APP_SIZES, type AppCategory, type AppSize, useFactory } from '../../store/factory'
 import { useToast } from '../../store/ui'
-import { Chip, Divider, EmptyBlock, Field } from './parts'
+import { Chip, Divider, EmptyBlock, Field, AppIcon } from './parts'
 import Preview from './Preview'
 
-const ICON_CHOICES = ['🧩', '✅', '📝', '🔥', '⏳', '💗', '🍅', '🧮', '📌', '💱', '🔐', '📖', '🎲', '🎯', '🌙', '⚡', '☕', '🧠']
+const ICON_CHOICES = ['Puzzle', 'ListChecks', 'NotebookPen', 'Flame', 'Hourglass', 'Heart', 'Timer', 'Calculator', 'Pin', 'Banknote', 'Lock', 'BookOpen', 'Dices', 'Target', 'Moon', 'Zap', 'Coffee', 'Brain']
 
 export default function TemplateFactory({ onCreated }: { onCreated: (id: string, advanced: boolean) => void }) {
   const addApp = useFactory((s) => s.addApp)
@@ -17,7 +17,7 @@ export default function TemplateFactory({ onCreated }: { onCreated: (id: string,
   const [previewT, setPreviewT] = useState<AppTemplate | null>(null)
 
   const [name, setName] = useState('')
-  const [icon, setIcon] = useState('🧩')
+  const [icon, setIcon] = useState('Puzzle')
   const [size, setSize] = useState<AppSize>('medium')
   const [cat, setCat] = useState<AppCategory>('效率')
 
@@ -69,8 +69,8 @@ export default function TemplateFactory({ onCreated }: { onCreated: (id: string,
           {list.map((t) => (
             <div key={t.id} className="fx-block fx-mid fx-in" style={{ padding: 13, display: 'flex', flexDirection: 'column', gap: 8 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="fx-sunken" style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19 }}>
-                  {t.icon}
+                <span className="fx-sunken" style={{ width: 40, height: 40, borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AppIcon icon={t.icon} size={20} />
                 </span>
                 <span className="fs-body" style={{ color: 'var(--fx-t1,#fff)', fontWeight: 600, flex: 1, minWidth: 0 }}>
                   {t.name}
@@ -158,9 +158,9 @@ export default function TemplateFactory({ onCreated }: { onCreated: (id: string,
                     key={ic}
                     className={`fx-press-soft ${icon === ic ? 'fx-sunken' : 'fx-block fx-back'}`}
                     onClick={() => setIcon(ic)}
-                    style={{ width: 40, height: 40, border: 0, borderRadius: 13, fontSize: 18, cursor: 'pointer' }}
+                    style={{ width: 40, height: 40, border: 0, borderRadius: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
-                    {ic}
+                    <AppIcon icon={ic} size={18} />
                   </button>
                 ))}
               </div>

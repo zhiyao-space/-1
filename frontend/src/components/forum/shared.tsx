@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArrowBigDown, ArrowBigUp, Star, MessageSquare, Share2, BadgeCheck, Eye } from 'lucide-react'
+import { ArrowBigDown, ArrowBigUp, Star, MessageSquare, Share2, BadgeCheck, Eye, ArrowDown } from 'lucide-react'
 import { useForum, heatOf, type ForumAuthor, type ForumPost } from '../../store/forum'
 import { useCharacters } from '../../store/characters'
 import { useSettings } from '../../store/settings'
@@ -210,7 +210,7 @@ export function PostCard({
         {post.content}
       </div>
       {post.threadParts.length > 0 && (
-        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginTop: 4 }}>连续发帖 {post.threadParts.length + 1} 条 ↓</div>
+        <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginTop: 4 }}>连续发帖 {post.threadParts.length + 1} 条 <ArrowDown size={12} style={{ verticalAlign: '-2px' }} /></div>
       )}
       <PostImages imageIds={post.imageIds} desc={post.imageDesc || undefined} compact />
 

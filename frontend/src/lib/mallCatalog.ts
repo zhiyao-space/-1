@@ -11,7 +11,7 @@ import type {
 } from '../store/mall'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 静态目录与纯函数
+   mulin 商城 MALLÉ · 静态目录与纯函数
    模板库 / 商品名池 / 本地商品生成（离线兜底）
    本文件不依赖 store 的运行时导出，避免循环依赖
    ============================================================ */
@@ -81,7 +81,8 @@ export const THEME_PRESETS: { id: string; label: string; theme: MallTheme }[] = 
 
 export const DEFAULT_THEME: MallTheme = THEME_PRESETS[0].theme
 
-export const ICON_CHOICES = ['🛍️', '🍜', '⚡', '🎁', '👕', '🎧', '🔨', '🏪', '📚', '🧸', '🍰', '🌿', '☕', '💄', '🪴', '🎮']
+/** 可选图标：lucide-react 图标名，渲染见 mallParts 的 MallIcon */
+export const ICON_CHOICES = ['ShoppingBag', 'Soup', 'Zap', 'Gift', 'Shirt', 'Headphones', 'Hammer', 'Store', 'BookOpen', 'ToyBrick', 'CakeSlice', 'Coffee', 'Brush', 'Sprout', 'Gamepad2']
 
 /* ---------- 商品名池 ---------- */
 
@@ -221,7 +222,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_food',
     name: '美食外卖模板',
     type: 'product',
-    icon: '🍜',
+    icon: 'Soup',
     thumbnail: '',
     defaultLayout: 'list',
     description: '列表布局 + 店铺卡片，适合餐饮与外卖',
@@ -234,7 +235,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_blind',
     name: '盲盒抽抽乐模板',
     type: 'blind-box',
-    icon: '🎁',
+    icon: 'Gift',
     thumbnail: '',
     defaultLayout: 'grid',
     description: '概率抽取 + 开盒特效，适合潮玩与收集',
@@ -247,7 +248,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_flash',
     name: '限时闪购模板',
     type: 'flash-sale',
-    icon: '⚡',
+    icon: 'Zap',
     thumbnail: '',
     defaultLayout: 'grid',
     description: '倒计时 + 抢购进度条，制造紧迫感',
@@ -260,7 +261,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_outfit',
     name: '服饰穿搭模板',
     type: 'product',
-    icon: '👕',
+    icon: 'Shirt',
     thumbnail: '',
     defaultLayout: 'waterfall',
     description: '瀑布流 + 搭配推荐，适合服装与配饰',
@@ -273,7 +274,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_store',
     name: '虚拟小店模板',
     type: 'store',
-    icon: '🏪',
+    icon: 'Store',
     thumbnail: '',
     defaultLayout: 'grid',
     description: '店主个人资料 + 商品陈列，适合小店经营',
@@ -286,7 +287,7 @@ export const MALL_TEMPLATES: MallTemplate[] = [
     id: 'tmpl_blank',
     name: '完全空白模板',
     type: 'custom',
-    icon: '🛍️',
+    icon: 'ShoppingBag',
     thumbnail: '',
     defaultLayout: 'grid',
     description: '什么都由你来定义',

@@ -222,7 +222,8 @@ export default function MessagesTab({
                 >
                   <span onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', flexShrink: 0 }}>
                     <SocialAvatar
-                      emoji={char.avatar}
+                      avatarId={char.avatarId}
+                      name={char.nickname}
                       size={46}
                       status={char.onlineStatus}
                       onClick={() => onOpenCard(char.id)}

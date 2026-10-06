@@ -5,7 +5,7 @@ import { useToast } from '../../store/ui'
 import { Price, Sheet, Stepper, Stars, Thumb } from './mallParts'
 
 /* ============================================================
-   mulin 商城 ✦ MALLÉ · 商品详情
+   mulin 商城 MALLÉ · 商品详情
    ============================================================ */
 
 export default function ProductSheet({

@@ -169,7 +169,7 @@ export default function MyApps({ onEdit }: { onEdit: (id: string) => void }) {
               {sandbox.map((exp) => (
                 <div key={exp.id} className="fx-block fx-mid fx-in" style={{ padding: 13, opacity: exp.status === 'archived' ? 0.55 : 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <AppGlyph icon={exp.status === 'archived' ? '📦' : '🧪'} size={40} level="mid" />
+                    <AppGlyph icon={exp.status === 'archived' ? 'Package' : 'FlaskConical'} size={40} level="mid" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="fs-body" style={{ color: 'var(--fx-t1,#fff)', fontWeight: 600 }}>
                         {exp.name}

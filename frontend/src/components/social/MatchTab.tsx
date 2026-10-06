@@ -3,7 +3,7 @@ import { Heart, MessageCircle, UserCheck } from 'lucide-react'
 import { useSocial, MATCH_WEIGHTS, RELATIONSHIP_LABEL, ONLINE_LABEL } from '../../store/social'
 import type { SocialCharacter, SocialMatch } from '../../store/social'
 import { useToast } from '../../store/ui'
-import { EmptyHint, Pill, SectionTitle } from './SocialParts'
+import { EmptyHint, Pill, SectionTitle, SocialCover } from './SocialParts'
 
 /* 「mu社区恋爱交友软件」· 匹配 Tab
    缘分墙：按算法匹配度展示角色，可搜索 / 按个性筛选，卡片进详细资料或直接打招呼 */
@@ -92,7 +92,7 @@ export default function MatchTab({ onOpenCard, onOpenChat }: { onOpenCard: (char
               const followed = following.includes(char.id)
               return (
                 <div key={char.id} className="sc-card fx-press" onClick={() => onOpenCard(char.id)}>
-                  <div className="sc-card__cover">{char.avatar}</div>
+                  <SocialCover avatarId={char.avatarId} name={char.nickname} />
 
                   <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 6 }}>
                     <span

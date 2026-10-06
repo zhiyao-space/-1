@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
+  ArrowLeft,
   Bookmark,
   Heart,
   MapPin,
@@ -231,7 +232,7 @@ function GroupsPanel() {
   if (open) {
     return (
       <div className="cx-scroll">
-        <button className="fx-btn fx-btn--soft fx-press" style={{ marginBottom: 10 }} onClick={() => setOpenId('')}>← 返回群列表</button>
+        <button className="fx-btn fx-btn--soft fx-press" style={{ marginBottom: 10, display: 'inline-flex', alignItems: 'center', gap: 6 }} onClick={() => setOpenId('')}><ArrowLeft size={14} /> 返回群列表</button>
         <Card front>
           <div className="cx-row__title"><Users size={15} /> {open.name}</div>
           <div className="cx-row__sub">{open.memberIds.length} 位成员 · 话题：{open.topics.join('、')}</div>

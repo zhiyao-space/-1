@@ -1,7 +1,9 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { ChevronRight, MapPin } from 'lucide-react'
 import type { Candle, Landmark, Person, PersonAttrs, TicketKind } from '../../store/mulCity'
-import { TICKET_KIND_LABEL } from '../../store/mulCity'
+import { TICKET_KIND_LABEL, useMe, useMulCity } from '../../store/mulCity'
+import { useBlobURL } from '../WallpaperLayer'
+import { ImageField, Modal } from '../common'
 
 /* ============================================================
    Mul市 · 共享零件
@@ -27,12 +29,19 @@ export function Avatar({
   showOnline,
   className,
 }: {
-  person: { name: string; avatar?: string; isOnline?: boolean; type?: Person['type'] }
+  person: { name: string; avatar?: string; avatarId?: string; isOnline?: boolean; type?: Person['type'] }
   size?: number
   radius?: number
   showOnline?: boolean
   className?: string
 }) {
+  // avatar 允许是外链 URL，也兼容历史数据里误存的 blob id
+  const raw = person.avatar ?? ''
+  const isUrl = /^(https?:|data:|blob:|\/)/.test(raw)
+  const legacyId = !isUrl && raw ? raw : null
+  const blobUrl = useBlobURL(person.avatarId ?? legacyId)
+  const src = blobUrl ?? (isUrl ? raw : null)
+
   return (
     <span className="cx-avatar__wrap" style={{ width: size, height: size }}>
       <span
@@ -41,14 +50,62 @@ export function Avatar({
           width: size,
           height: size,
           borderRadius: radius ?? Math.round(size * 0.34),
-          background: person.avatar ? undefined : avatarBg(person.name),
+          background: src ? undefined : avatarBg(person.name),
           fontSize: Math.round(size * 0.42),
         }}
       >
-        {person.avatar ? <img src={person.avatar} alt="" /> : person.name.slice(0, 1)}
+        {src ? <img src={src} alt="" /> : person.name.slice(0, 1)}
       </span>
       {showOnline && person.isOnline && <span className="cx-avatar__online" />}
     </span>
+  )
+}
+
+/** 人物封面大图：有自定义封面就显示，否则留出渐变占位 */
+export function PersonCover({ person, height = 132, radius = 0 }: { person: { coverId?: string; name: string }; height?: number; radius?: number }) {
+  const url = useBlobURL(person.coverId)
+  return (
+    <div
+      className="cx-cover"
+      style={{
+        height,
+        borderRadius: radius,
+        background: url ? undefined : avatarBg(person.name),
+      }}
+    >
+      {url && <img src={url} alt="" />}
+    </div>
+  )
+}
+
+/**
+ * 编辑任意居民（含用户 / 角色 / NPC）的头像与封面。
+ * 图片从相册或文件导入，压缩后存进 IndexedDB。
+ */
+export function PersonImageEditor({ person, onClose }: { person: Person; onClose: () => void }) {
+  const updatePerson = useMulCity((s) => s.updatePerson)
+  const me = useMe()
+  return (
+    <Modal open onClose={onClose} title={person.id === me.id ? '编辑我的形象' : `编辑 ${person.name} 的形象`}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>封面大图</div>
+          <ImageField kind="cover" value={person.coverId} onChange={(id) => updatePerson(person.id, { coverId: id ?? undefined })} />
+        </div>
+        <div>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>头像</div>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <ImageField value={person.avatarId} onChange={(id) => updatePerson(person.id, { avatarId: id ?? undefined })} />
+            <span className="fs-micro" style={{ color: 'var(--text-tertiary)', lineHeight: 1.7 }}>
+              点头像或封面即可从相册导入，自动压缩后保存在本机。
+            </span>
+          </div>
+        </div>
+        <button className="fx-btn fx-btn--front fx-press" style={{ width: '100%' }} onClick={onClose}>
+          完成
+        </button>
+      </div>
+    </Modal>
   )
 }
 

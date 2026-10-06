@@ -16,7 +16,7 @@ export type AppSource = 'template' | 'custom' | 'ai'
 export interface CustomApp {
   id: string
   name: string
-  /** 单个 emoji 作为图标 */
+  /** lucide 图标名 */
   icon: string
   description: string
   html: string
@@ -151,7 +151,7 @@ export const useFactory = create<FactoryState>()(
         const app: CustomApp = {
           id,
           name: input.name.trim() || '未命名应用',
-          icon: input.icon?.trim() || '🧩',
+          icon: input.icon?.trim() || 'Puzzle',
           description: input.description?.trim() || '',
           html: input.html,
           css: input.css,

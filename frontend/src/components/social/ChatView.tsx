@@ -4,7 +4,7 @@ import type {
   KeyboardEvent as ReactKeyboardEvent,
   ReactNode,
 } from 'react'
-import { ChevronLeft, Gift, Image, MapPin, Mic, Smile, Star, Trash2, Undo2 } from 'lucide-react'
+import { ChevronLeft, Gift, Image, MapPin, Mic, Star, Trash2, Undo2 } from 'lucide-react'
 import {
   ME,
   ONLINE_LABEL,
@@ -19,12 +19,6 @@ import { useToast } from '../../store/ui'
 import { Sheet, SocialAvatar } from './SocialParts'
 
 /* 「mu社区恋爱交友软件」单聊：气泡 / 长按操作 / 工具与 AI 回信 */
-
-const EMOJIS = [
-  '😀', '😄', '😊', '🥰', '😍', '😎', '🤔', '😴', '😭', '🥺',
-  '😳', '🙈', '👍', '👏', '🤝', '💪', '🎉', '🌟', '❤️', '💔',
-  '🌈', '☕', '🍰', '🎁', '🌸', '🐱', '🌙', '✨',
-]
 
 const GIFTS = ['一束玫瑰', '草莓蛋糕', '手冲咖啡', '手工曲奇', '一只小猫玩偶', '热可可', '向日葵花束']
 
@@ -57,8 +51,8 @@ function bubbleClassOf(m: SocialMessage, isMe: boolean) {
 
 function bubbleTextOf(m: SocialMessage, isMe: boolean) {
   if (m.recalled) return isMe ? '你撤回了一条消息' : '对方撤回了一条消息'
-  if (m.type === 'gift') return `🎁 ${m.meta?.gift ?? '礼物'}`
-  if (m.type === 'location') return `📍 ${m.meta?.place ?? '位置'}`
+  if (m.type === 'gift') return m.meta?.gift ?? '礼物'
+  if (m.type === 'location') return m.meta?.place ?? '位置'
   return m.text
 }
 
@@ -118,7 +112,6 @@ export default function ChatView({
   )
 
   const [input, setInput] = useState('')
-  const [showEmoji, setShowEmoji] = useState(false)
   const [sending, setSending] = useState(false)
   const [menuMsg, setMenuMsg] = useState<SocialMessage | null>(null)
 
@@ -129,7 +122,6 @@ export default function ChatView({
 
   useEffect(() => {
     setInput('')
-    setShowEmoji(false)
     setSending(false)
     setMenuMsg(null)
     busyRef.current = false
@@ -194,7 +186,6 @@ export default function ChatView({
     busyRef.current = true
     sendMessage(charId, payload)
     setInput('')
-    setShowEmoji(false)
     setSending(true)
     const ctrl = new AbortController()
     abortRef.current = ctrl
@@ -257,7 +248,8 @@ export default function ChatView({
           <ChevronLeft size={22} />
         </button>
         <SocialAvatar
-          emoji={character.avatar}
+          avatarId={character.avatarId}
+          name={character.nickname}
           size={38}
           status={character.onlineStatus}
           onClick={() => onOpenCard(charId)}
@@ -277,7 +269,7 @@ export default function ChatView({
           const isMe = m.senderId === ME
           return (
             <div key={m.id} className={`sc-msg-row${isMe ? ' sc-msg-row--me' : ''}`}>
-              <SocialAvatar emoji={isMe ? profile.avatar : character.avatar} size={30} />
+              <SocialAvatar avatarId={isMe ? profile.avatarId : character.avatarId} name={isMe ? profile.nickname : character.nickname} size={30} />
               <div
                 style={{
                   display: 'flex',
@@ -307,7 +299,7 @@ export default function ChatView({
         })}
         {sending && (
           <div className="sc-msg-row">
-            <SocialAvatar emoji={character.avatar} size={30} />
+            <SocialAvatar avatarId={character.avatarId} name={character.nickname} size={30} />
             <div className="sc-bubble sc-bubble--other">
               <span className="sc-typing">
                 <i />
@@ -344,20 +336,7 @@ export default function ChatView({
         </div>
       ) : (
         <div className="sc-composer">
-          {showEmoji && (
-            <div className="sc-emoji-panel">
-              {EMOJIS.map((em) => (
-                <button key={em} onClick={() => setInput((v) => v + em)}>
-                  {em}
-                </button>
-              ))}
-            </div>
-          )}
           <div className="sc-composer__tools">
-            <button className="sc-tool fx-press-soft" onClick={() => setShowEmoji((v) => !v)}>
-              <Smile size={15} />
-              表情
-            </button>
             <button
               className="sc-tool fx-press-soft"
               onClick={() => void dispatch({ type: 'image', text: '[图片]' })}

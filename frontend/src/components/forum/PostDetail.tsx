@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, ArrowBigUp, ArrowBigDown, Star, Share2, RefreshCw, Flag, CornerDownRight, Lock, BadgeCheck, Pin, MessageSquare, Send, Scissors, Ban } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ArrowBigUp, ArrowBigDown, Star, Share2, RefreshCw, Flag, CornerDownRight, Lock, BadgeCheck, Pin, MessageSquare, Send, Scissors, Ban, Check, X } from 'lucide-react'
 import { useForum, type ForumComment, type ForumPost } from '../../store/forum'
 import { useCharacters } from '../../store/characters'
 import { useToast } from '../../store/ui'
@@ -190,7 +190,7 @@ export default function PostDetail({ post, onBack, onQuote, onOpenDm }: Props) {
                   >
                     <div style={{ position: 'absolute', inset: 0, width: `${pct}%`, background: 'rgba(255,255,255,0.12)' }} />
                     <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '100%', padding: '0 12px' }}>
-                      <span className="fs-aux" style={{ color: mine ? 'var(--accent)' : 'var(--text-body)' }}>{o}{mine ? ' ✓' : ''}</span>
+                      <span className="fs-aux" style={{ color: mine ? 'var(--accent)' : 'var(--text-body)' }}>{o}{mine && <Check size={13} style={{ marginLeft: 4, verticalAlign: '-2px' }} />}</span>
                       <span className="fs-micro mono" style={{ color: 'var(--text-tertiary)' }}>{pct}%</span>
                     </div>
                   </button>
@@ -292,8 +292,8 @@ export default function PostDetail({ post, onBack, onQuote, onOpenDm }: Props) {
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {replyTo && (
-              <button className="pressable" onClick={() => setReplyTo(null)} style={{ color: 'var(--text-tertiary)', fontSize: 'calc(11px * var(--fs-scale))', whiteSpace: 'nowrap' }}>
-                回复 {replyTo.author.name} ✕
+              <button className="pressable" onClick={() => setReplyTo(null)} style={{ color: 'var(--text-tertiary)', fontSize: 'calc(11px * var(--fs-scale))', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                回复 {replyTo.author.name} <X size={12} />
               </button>
             )}
             <input value={replyText} onChange={(e) => setReplyText(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && sendReply()} placeholder={post.locked ? '帖子已被封' : replyTo ? `回复 @${replyTo.author.name}…` : '写下回复…'} disabled={post.locked} maxLength={500} />
