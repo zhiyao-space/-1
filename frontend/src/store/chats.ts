@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card' | 'music-card' | 'narration'
+export type MessageType = 'text' | 'image' | 'sticker' | 'ooc' | 'system' | 'redpacket' | 'transfer' | 'voice' | 'dice' | 'moment-card' | 'music-card' | 'narration' | 'game-card'
 
 export type ChatMode = 'online' | 'offline'
 
@@ -32,6 +32,8 @@ export interface MessageData {
   simulated?: boolean
   /** 模拟语音附带文字 */
   transcript?: string
+  /** 游戏卡：指向 games store 的会话 id，卡片状态实时从 store 读取 */
+  gameId?: string
 }
 
 export interface ChatMessage {

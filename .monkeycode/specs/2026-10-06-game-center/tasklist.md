@@ -5,7 +5,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 
 ---
 
-## T1 [TODO] 消息层扩展 — chats.ts
+## T1 [DONE] 消息层扩展 — chats.ts
 
 - 文件：`frontend/src/store/chats.ts`
 - 行 4：`MessageType` 追加 `'game-card'`
