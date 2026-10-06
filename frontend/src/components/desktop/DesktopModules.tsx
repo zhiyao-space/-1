@@ -1,31 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
-import Avatar from '../chat/Avatar'
+import { useEffect, useState } from 'react'
 import { useSettings } from '../../store/settings'
-import { useCharacters } from '../../store/characters'
-import { useChats } from '../../store/chats'
-import { useSms } from '../../store/sms'
-import { useCalls } from '../../store/calls'
-import { useUI } from '../../store/ui'
 import { useCopy } from '../../store/copy'
 import { useDesktop, type ModuleStyles } from '../../store/desktopModules'
 import { rollMonologueLine, rollSignature } from '../../lib/monologue'
 import { CloudIcon, RefreshIcon } from './DockIcons'
 import DesktopMusicCard from './DesktopMusicCard'
+import AdoreCard from './AdoreCard'
 import { cardStyle } from './moduleStyle'
-
-function relTime(ts: number): string {
-  const diff = Date.now() - ts
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return '刚刚'
-  if (m < 60) return `${m}分钟前`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}小时前`
-  const d = Math.floor(h / 24)
-  if (d === 1) return '昨天'
-  if (d === 2) return '前天'
-  const dt = new Date(ts)
-  return `${dt.getMonth() + 1}/${dt.getDate()}`
-}
 
 const WEATHERS = [
   { label: '阴', temp: 18 },
@@ -129,95 +110,6 @@ function MonologueCard({ styles }: { styles: ModuleStyles }) {
   )
 }
 
-function RecentCard({ styles }: { styles: ModuleStyles }) {
-  const characters = useCharacters((s) => s.characters)
-  const sessions = useChats((s) => s.sessions)
-  const sms = useSms((s) => s.messages)
-  const calls = useCalls((s) => s.records)
-  const openApp = useUI((s) => s.openApp)
-  const setPendingChat = useUI((s) => s.setPendingChat)
-  const title = useCopy((s) => s.texts.recentTitle)
-  const emptyRecent = useCopy((s) => s.texts.emptyRecent)
-
-  const items = useMemo(() => {
-    const lastActive = new Map<string, number>()
-    for (const s of sessions) {
-      lastActive.set(s.characterId, Math.max(lastActive.get(s.characterId) ?? 0, s.lastActive))
-    }
-    return characters
-      .map((c) => ({
-        c,
-        at: lastActive.get(c.id) ?? c.createdAt,
-        unread:
-          sms.filter((m) => m.senderId === c.id && !m.isRead && !m.outgoing).length +
-          calls.filter((r) => r.callerId === c.id && r.callType === 'missed' && !r.isRead).length,
-      }))
-      .sort((a, b) => b.at - a.at)
-      .slice(0, 8)
-  }, [characters, sessions, sms, calls])
-
-  if (items.length === 0) {
-    return (
-      <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 16px' }}>
-        <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 8 }}>{title}</div>
-        <div className="fs-micro" style={{ color: 'var(--text-disabled)' }}>{emptyRecent}</div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="no-select" style={{ ...cardStyle(styles), padding: '14px 0 12px' }}>
-      <div className="fs-aux" style={{ color: '#888888', letterSpacing: '1px', marginBottom: 10, padding: '0 16px' }}>{title}</div>
-      <div
-        style={{
-          display: 'flex',
-          gap: 14,
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          padding: '0 16px',
-        }}
-      >
-        {items.map(({ c, at, unread }) => (
-          <button
-            key={c.id}
-            className="pressable"
-            onClick={() => {
-              setPendingChat({ kind: 'single', characterId: c.id })
-              openApp('chat')
-            }}
-            style={{ flexShrink: 0, width: 64, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}
-          >
-            <span style={{ position: 'relative', display: 'flex' }}>
-              <Avatar imageId={c.avatarId} name={c.name} size={48} />
-              {unread > 0 && (
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    right: 0,
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#fe2c55',
-                    boxShadow: '0 0 0 2px rgba(0,0,0,0.6)',
-                  }}
-                />
-              )}
-            </span>
-            <span
-              className="fs-micro"
-              style={{ color: '#c0c0c0', maxWidth: 64, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-            >
-              {c.name}
-            </span>
-            <span className="fs-micro" style={{ color: '#666666', marginTop: -4 }}>{relTime(at)}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 export default function DesktopModules() {
   const styles = useDesktop((s) => s.styles)
   const visibility = useDesktop((s) => s.visibility)
@@ -229,7 +121,7 @@ export default function DesktopModules() {
     <div style={{ marginBottom: 18 }}>
       {visibility.time && <TimeCard styles={styles} />}
       {visibility.monologue && <MonologueCard styles={styles} />}
-      {visibility.recent && <RecentCard styles={styles} />}
+      {visibility.recent && <AdoreCard styles={styles} />}
       {visibility.playing && <DesktopMusicCard styles={styles} />}
     </div>
   )

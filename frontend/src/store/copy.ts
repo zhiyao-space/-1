@@ -23,7 +23,7 @@ export const DEFAULT_COPY: CopyTexts = {
   signature: '今天也不想见人。',
   monologueTitle: '今日独白',
   monologueContent: '',
-  recentTitle: '最近互动',
+  recentTitle: '你是我仰慕的光',
   emptyRecent: '还没有互动记录',
   emptyMonologue: '……',
   appLabels: {
@@ -57,7 +57,18 @@ export const useCopy = create<CopyState>()(
         set((s) => ({ texts: { ...s.texts, appLabels: { ...s.texts.appLabels, [id]: value } } })),
       reset: () => set({ texts: { ...DEFAULT_COPY, appLabels: { ...DEFAULT_COPY.appLabels } } }),
     }),
-    { name: 'ksc:copy' }
+    {
+      name: 'ksc:copy',
+      version: 1,
+      // 旧版默认标题「最近互动」升级为新标题（用户自定义过的文案保持不变）
+      migrate: (persisted) => {
+        const state = persisted as CopyState | undefined
+        if (state?.texts?.recentTitle === '最近互动') {
+          return { ...state, texts: { ...state.texts, recentTitle: DEFAULT_COPY.recentTitle } }
+        }
+        return persisted as CopyState
+      },
+    }
   )
 )
 

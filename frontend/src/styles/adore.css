@@ -1,0 +1,360 @@
+/* 「你是我仰慕的光」桌面卡片：星空浪漫主题（发光字符 + 星连线 + 互动特效） */
+
+.adore-card {
+  position: relative;
+  isolation: isolate;
+  min-height: 190px;
+  overflow: hidden;
+}
+
+.adore-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  opacity: 0.95;
+}
+
+/* 顶部/底部柔光氛围 */
+.adore-veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 92% at 50% -22%, rgba(150, 162, 255, 0.2), transparent 62%),
+    radial-gradient(86% 74% at 50% 122%, rgba(255, 140, 200, 0.15), transparent 64%);
+  mix-blend-mode: screen;
+}
+
+.adore-body {
+  position: relative;
+  z-index: 2;
+  padding: 13px 16px 15px;
+}
+
+/* ---------------- 标题：发光渐变扫光 ---------------- */
+
+.adore-title {
+  display: inline-block;
+  font-family: 'ZCOOL XiaoWei', 'Noto Sans SC', serif;
+  font-size: 13px;
+  letter-spacing: 3px;
+  background: linear-gradient(92deg, #e9ecff 0%, #ffd9ef 42%, #cfe0ff 68%, #ffffff 100%);
+  background-size: 260% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 8px rgba(178, 190, 255, 0.5));
+  animation: adore-shine 6s linear infinite;
+}
+
+/* ---------------- 头像栏：角色 ⇄ 用户 ---------------- */
+
+.adore-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0 12px;
+}
+
+.adore-ava {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.adore-ring {
+  position: relative;
+  display: flex;
+  padding: 2px;
+  border-radius: 50%;
+  background: linear-gradient(142deg, rgba(255, 255, 255, 0.72), rgba(176, 188, 255, 0.2));
+  box-shadow: 0 0 14px rgba(168, 180, 255, 0.38);
+  animation: adore-breathe 4.2s ease-in-out infinite;
+}
+
+.adore-ring--user {
+  background: linear-gradient(142deg, rgba(255, 214, 236, 0.78), rgba(176, 188, 255, 0.22));
+  box-shadow: 0 0 14px rgba(255, 158, 208, 0.34);
+  animation-delay: -2.1s;
+}
+
+.adore-ring::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(190, 202, 255, 0.34), transparent 68%);
+  animation: adore-halo 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.adore-name {
+  font-size: 11px;
+  color: #b9bccb;
+  max-width: 76px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 中间的发光星连线 */
+.adore-link {
+  position: relative;
+  flex: 1;
+  height: 46px;
+  min-width: 54px;
+}
+
+.adore-link svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.adore-link .adore-dash {
+  animation: adore-dash 1.7s linear infinite;
+}
+
+.adore-link .adore-flow {
+  animation: adore-flow 2.6s ease-in-out infinite;
+}
+
+.adore-heart {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  padding: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  background: radial-gradient(circle, rgba(255, 236, 248, 0.22), transparent 70%);
+  animation: adore-beat 2.6s ease-in-out infinite;
+}
+
+/* ---------------- 手写体文案：发光逐字显影 ---------------- */
+
+.adore-line {
+  display: block;
+  text-align: center;
+  font-family: 'Ma Shan Zheng', 'STKaiti', 'KaiTi', 'Noto Sans SC', cursive;
+  font-size: 23px;
+  line-height: 1.55;
+  letter-spacing: 1px;
+  transform: rotate(-1.2deg);
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.32)) drop-shadow(0 0 15px rgba(188, 182, 255, 0.5));
+}
+
+/* 渐变填充必须落在每个字身上：逐字 span 自带合成层，父级被裁剪的渐变无法绘入子层 */
+.adore-line span {
+  display: inline-block;
+  opacity: 0;
+  filter: blur(6px);
+  transform: translateY(9px) scale(0.86);
+  background-image: linear-gradient(96deg, #ffffff 0%, #ffe8f4 28%, #dfe7ff 56%, #ffffff 100%);
+  background-size: 240% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: adore-ink 1.05s cubic-bezier(0.2, 0.72, 0.25, 1) forwards, adore-shine 7s linear infinite;
+  animation-delay: var(--d, 0s);
+  will-change: transform, opacity, filter;
+}
+
+/* ---------------- 其余最近互动（小头像） ---------------- */
+
+.adore-mini {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.adore-mini-btn {
+  position: relative;
+  display: flex;
+  border: 0;
+  padding: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.72;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.adore-mini-btn:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.adore-dot {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #fe2c55;
+  box-shadow: 0 0 0 2px rgba(10, 10, 14, 0.85);
+}
+
+.adore-empty {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 11px;
+  color: #6f7284;
+}
+
+/* ---------------- 互动粒子 ---------------- */
+
+.adore-fx {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.adore-spark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff 0%, #ffd8ef 58%, transparent 72%);
+  box-shadow: 0 0 10px rgba(255, 212, 240, 0.9);
+  animation: adore-spark 900ms ease-out forwards;
+  animation-delay: var(--d, 0s);
+}
+
+.adore-rise {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 13px;
+  color: #ffd8ec;
+  text-shadow: 0 0 10px rgba(255, 170, 215, 0.85);
+  animation: adore-rise 1.7s ease-out forwards;
+  animation-delay: var(--d, 0s);
+}
+
+/* ---------------- 关键帧 ---------------- */
+
+@keyframes adore-shine {
+  to {
+    background-position: 240% 0;
+  }
+}
+
+@keyframes adore-ink {
+  55% {
+    filter: blur(0.4px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+    filter: blur(0);
+  }
+}
+
+@keyframes adore-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.045);
+  }
+}
+
+@keyframes adore-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes adore-dash {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+@keyframes adore-flow {
+  0% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.25;
+  }
+}
+
+@keyframes adore-beat {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  18% {
+    transform: translate(-50%, -50%) scale(1.22);
+  }
+  36% {
+    transform: translate(-50%, -50%) scale(1);
+  }
+  54% {
+    transform: translate(-50%, -50%) scale(1.12);
+  }
+}
+
+@keyframes adore-spark {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.4);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -60px))) scale(0.1);
+  }
+}
+
+@keyframes adore-rise {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  22% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -80px))) scale(1.15);
+  }
+}
