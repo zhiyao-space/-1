@@ -12,6 +12,7 @@ export type AppId =
   | 'mall'
   | 'city'
   | 'snoop'
+  | 'douyin'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

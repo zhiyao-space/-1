@@ -19,6 +19,7 @@ import SocialApp from './social/SocialApp'
 import MallApp from './mall/MallApp'
 import CityApp from './city/CityApp'
 import SnoopApp from './snoop/SnoopApp'
+import DouyinApp from './douyin/DouyinApp'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -62,6 +63,7 @@ export default function PhoneHome() {
           {activeApp === 'mall' && <MallApp />}
           {activeApp === 'city' && <CityApp />}
           {activeApp === 'snoop' && <SnoopApp />}
+          {activeApp === 'douyin' && <DouyinApp />}
         </div>
       )}
 
@@ -84,6 +86,7 @@ export function useAppTitle(): string {
     mall: 'mulin 商城 MALLÉ',
     city: 'Mul市',
     snoop: '查手机',
+    douyin: 'mul抖音短视频',
   }
   return activeApp ? names[activeApp] : ''
 }
