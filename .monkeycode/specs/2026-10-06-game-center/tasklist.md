@@ -28,7 +28,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 - 文案风格：与 `frontend/src/lib/momentFallback.ts` 一致的中文口语风
 - 提交：`feat(game): T3 本地降级文案池`
 
-## T4 [TODO] 核心引擎 — gameEngine
+## T4 [DONE] 核心引擎 — gameEngine
 
 - 新建：`frontend/src/lib/gameEngine.ts`
 - 内容：严格按 design.md「Components 2」：startGame / handleGameTurn / buildGameSystemPrompt / parseGameBlock / trpgPresets(5 模板)

@@ -93,7 +93,7 @@ export function localTurn(session: GameSession, userText: string): { narrative: 
   const progress = Math.min(100, st.progress + advance)
   const events: string[] = []
   events.push(`（离线模式）你掷出了 ${dice} 点，${success ? '行动顺利' : '过程磕磕绊绊'}。`)
-  events.push(pick(FALLBACK_TRPG_EVENTS).replaceAll('{scene}', st.scene || '此地'))
+  events.push(pick(FALLBACK_TRPG_EVENTS).replace(/\{scene\}/g, st.scene || '此地'))
   let hp = st.hp
   if (!success && Math.random() < 0.5) {
     hp = Math.max(0, hp - 1)
