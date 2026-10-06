@@ -10,6 +10,7 @@ export type AppId =
   | 'factory'
   | 'social'
   | 'mall'
+  | 'city'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

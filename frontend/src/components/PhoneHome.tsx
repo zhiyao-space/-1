@@ -17,6 +17,7 @@ import FactoryApp from './factory/FactoryApp'
 import AppRunner from './factory/AppRunner'
 import SocialApp from './social/SocialApp'
 import MallApp from './mall/MallApp'
+import CityApp from './city/CityApp'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -58,6 +59,7 @@ export default function PhoneHome() {
           {activeApp === 'factory' && <FactoryApp />}
           {activeApp === 'social' && <SocialApp />}
           {activeApp === 'mall' && <MallApp />}
+          {activeApp === 'city' && <CityApp />}
         </div>
       )}
 
@@ -78,6 +80,7 @@ export function useAppTitle(): string {
     factory: 'mulin功能应用制造厂',
     social: 'mu社区恋爱交友软件',
     mall: 'mulin 商城 ✦ MALLÉ',
+    city: 'Mul市',
   }
   return activeApp ? names[activeApp] : ''
 }

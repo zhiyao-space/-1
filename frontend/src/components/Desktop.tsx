@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { Factory, Ghost, Globe, Heart, Maximize2, MessageCircle, Music, Settings, Store } from 'lucide-react'
+import { Factory, Ghost, Globe, Heart, Map, Maximize2, MessageCircle, Music, Settings, Store } from 'lucide-react'
 import { useSettings } from '../store/settings'
 import { useUI, AppId } from '../store/ui'
 import { useCopy } from '../store/copy'
@@ -15,6 +15,7 @@ const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
   { id: 'forum', name: '论坛', icon: Globe },
   { id: 'social', name: 'mu社区', icon: Heart },
   { id: 'mall', name: 'mulin 商城', icon: Store },
+  { id: 'city', name: 'Mul市', icon: Map },
   { id: 'music', name: '音乐', icon: Music },
   { id: 'factory', name: '制造厂', icon: Factory },
   { id: 'settings', name: '设置', icon: Settings },
