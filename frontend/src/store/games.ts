@@ -58,6 +58,7 @@ interface GamesState {
   games: GameSession[]
   createGame: (input: Omit<GameSession, 'id' | 'createdAt' | 'updatedAt' | 'status' | 'turn' | 'log'>) => GameSession
   patchState: (id: string, patch: Partial<TrpgState> & Partial<TurtleState>) => void
+  setCardMsg: (id: string, msgId: string) => void
   pushLog: (id: string, who: 'player' | 'gm', text: string) => void
   setStatus: (id: string, status: GameStatus) => void
   endGame: (id: string, ending: string) => void
@@ -108,6 +109,10 @@ export const useGames = create<GamesState>()(
             }
             return g
           }),
+        })),
+      setCardMsg: (id, msgId) =>
+        set((s) => ({
+          games: s.games.map((g) => (g.id === id ? { ...g, cardMsgId: msgId } : g)),
         })),
       pushLog: (id, who, text) =>
         set((s) => ({

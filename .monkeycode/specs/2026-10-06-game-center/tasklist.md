@@ -40,7 +40,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
   - 无 preset/preset.baseUrl 为空 → 自动走 gameFallback，并在返回叙述前加「（离线模式）」标记
 - 提交：`feat(game): T4 游戏引擎与LLM协议`
 
-## T5 [TODO] 创建面板 — GameSetupModal
+## T5 [DONE] 创建面板 — GameSetupModal
 
 - 新建：`frontend/src/components/games/GameSetupModal.tsx`
 - 内容：底部弹层；两步流程（选类型卡片 → 模板选择/自由输入/难度）；确认后：createGame → addMessage(system) + addMessage(game-card, data.gameId) → startGame → 开场叙述 addMessage(assistant)；无 API 时系统消息注明离线模式
