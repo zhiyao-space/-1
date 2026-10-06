@@ -10,10 +10,35 @@ import DesktopModules from './desktop/DesktopModules'
 import Dock from './desktop/Dock'
 import Preview from './factory/Preview'
 
-const APPS: { id: AppId; name: string; icon: typeof Music }[] = [
+type AppIconComponent = (p: { size?: number; strokeWidth?: number }) => ReactNode
+
+/** 「查手机」图标：手机轮廓 + 红色放大镜 */
+function SnoopIcon({ size = 24 }: { size?: number; strokeWidth?: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#ff4757"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <rect x="5" y="2" width="11" height="20" rx="2.6" />
+      <line x1="8" y1="18.6" x2="11" y2="18.6" />
+      <circle cx="13.4" cy="9.6" r="3.5" fill="rgba(255,71,87,0.14)" />
+      <line x1="15.9" y1="12.1" x2="18.6" y2="14.8" />
+    </svg>
+  )
+}
+
+const APPS: { id: AppId; name: string; icon: AppIconComponent }[] = [
   { id: 'chat', name: '聊天', icon: MessageCircle },
   { id: 'forum', name: '论坛', icon: Globe },
   { id: 'social', name: 'mu社区', icon: Heart },
+  { id: 'snoop', name: '查手机', icon: SnoopIcon },
   { id: 'mall', name: 'mulin 商城', icon: Store },
   { id: 'city', name: 'Mul市', icon: Map },
   { id: 'music', name: '音乐', icon: Music },

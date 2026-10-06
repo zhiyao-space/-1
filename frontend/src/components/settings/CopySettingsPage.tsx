@@ -7,6 +7,7 @@ const APP_LABEL_KEYS: { id: string; label: string }[] = [
   { id: 'chat', label: '聊天' },
   { id: 'forum', label: '论坛' },
   { id: 'music', label: '音乐' },
+  { id: 'snoop', label: '查手机' },
   { id: 'settings', label: '设置' },
   { id: 'sms', label: '短信' },
   { id: 'phone', label: '电话' },

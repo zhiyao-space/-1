@@ -33,6 +33,7 @@ export const DEFAULT_COPY: CopyTexts = {
     social: 'mu社区',
     mall: 'mulin 商城',
     city: 'Mul市',
+    snoop: '查手机',
     settings: '设置',
     sms: '短信',
     phone: '电话',

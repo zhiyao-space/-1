@@ -11,6 +11,7 @@ export type AppId =
   | 'social'
   | 'mall'
   | 'city'
+  | 'snoop'
 
 export interface PendingForum {
   view: 'post' | 'dm' | 'circle' | 'profile'

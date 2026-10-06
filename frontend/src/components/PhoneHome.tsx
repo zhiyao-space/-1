@@ -18,6 +18,7 @@ import AppRunner from './factory/AppRunner'
 import SocialApp from './social/SocialApp'
 import MallApp from './mall/MallApp'
 import CityApp from './city/CityApp'
+import SnoopApp from './snoop/SnoopApp'
 import { useCharacters } from '../store/characters'
 
 export default function PhoneHome() {
@@ -60,6 +61,7 @@ export default function PhoneHome() {
           {activeApp === 'social' && <SocialApp />}
           {activeApp === 'mall' && <MallApp />}
           {activeApp === 'city' && <CityApp />}
+          {activeApp === 'snoop' && <SnoopApp />}
         </div>
       )}
 
@@ -81,6 +83,7 @@ export function useAppTitle(): string {
     social: 'mu社区恋爱交友软件',
     mall: 'mulin 商城 MALLÉ',
     city: 'Mul市',
+    snoop: '查手机',
   }
   return activeApp ? names[activeApp] : ''
 }

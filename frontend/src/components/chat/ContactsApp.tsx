@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { UserPlus, Users, ChevronRight, Pencil, Trash2, MessageCircle, X, Sparkles, Wand2 } from 'lucide-react'
 import { useCharacters, removeCharacterEverywhere, type Character } from '../../store/characters'
+import { useSnoop } from '../../store/snoop'
 import { useGroups } from '../../store/groups'
 import { useToast, useUI } from '../../store/ui'
 import { useBlobURL } from '../WallpaperLayer'
@@ -368,6 +369,15 @@ function StackCell({ imageId, name }: { imageId: string | null | undefined; name
   )
 }
 
+/** 角色档案里展示的「查手机」锁屏密码（由角色 id 稳定派生） */
+function useSnoopPassword(charId: string): string {
+  const [pw, setPw] = useState('')
+  useEffect(() => {
+    setPw(useSnoop.getState().passwordOf(charId))
+  }, [charId])
+  return pw
+}
+
 function CharacterDetailSheet({
   character,
   onClose,
@@ -383,6 +393,7 @@ function CharacterDetailSheet({
   onGenerateNpc: () => void
   onDelete: () => void
 }) {
+  const phonePassword = useSnoopPassword(character.id)
   return (
     <div onClick={onClose} style={{ position: 'absolute', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-end' }}>
       <div
@@ -423,6 +434,7 @@ function CharacterDetailSheet({
           {character.extraFields.map((f) => (
             <FieldRow key={f.id} label={f.label} value={f.value} />
           ))}
+          <FieldRow label="手机锁屏密码（悄悄记下的）" value={phonePassword || '——'} />
         </SectionCard>
 
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
