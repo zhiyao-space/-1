@@ -21,7 +21,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 - 验收：tsc 通过；import 无循环
 - 提交：`feat(game): T2 games store 数据层`
 
-## T3 [TODO] 降级池 — gameFallback
+## T3 [DONE] 降级池 — gameFallback
 
 - 新建：`frontend/src/lib/gameFallback.ts`
 - 内容：按 design.md「Components 3」：FALLBACK_TRPG_EVENTS（12+ 条，支持 {scene}/{item} 占位）、FALLBACK_TURTLES（6+ 题，含 keywords 判定表）、localTurn、localTurtleTurn（纯函数，输入 session + userText，输出 {narrative, patch}）
