@@ -78,6 +78,8 @@ import { GameSetupModal } from '../games/GameSetupModal'
 import { GameCardBubble } from '../games/GameCardBubble'
 import { handleGameTurn } from '../../lib/gameEngine'
 import { WallpaperLayer, useBlobURL } from '../WallpaperLayer'
+import { observeUserMessage, resolveConfront } from '../../lib/gossipEngine'
+import { useGossip } from '../../store/gossip'
 
 function genId(): string {
   return `m${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
@@ -104,6 +106,12 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const session = useChats((s) => s.sessions.find((x) => x.id === sessionId))
   const activeBranchId = useBranches((s) => s.activeBranchId[sessionId] ?? null)
   const branch = useBranches((s) => s.branches.find((b) => b.id === activeBranchId) ?? null)
+  // 八卦系统：待用户应对的「被质问」事件（同一会话只取未处理的一条）
+  const confronts = useGossip((s) => s.confronts)
+  const pendingConfront = useMemo(
+    () => confronts.find((c) => c.sessionId === sessionId && !c.resolvedAt) ?? null,
+    [confronts, sessionId]
+  )
   const [input, setInput] = useState('')
   const [gameSetupOpen, setGameSetupOpen] = useState(false)
   const activeGame = useGames((s) => s.games.find((g) => g.chatId === sessionId && g.status === 'playing'))
@@ -392,6 +400,8 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     setInput('')
     setPlusOpen(false)
     setQuoteMsg(null)
+    // 八卦系统：观察用户这条消息是否构成八卦素材
+    observeUserMessage(character.id, text)
     if (activeGame) {
       void runGameTurn(activeGame, text)
       return
@@ -900,6 +910,25 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
               </div>
             )}
             <div ref={bottomRef} />
+          </div>
+        </div>
+      )}
+
+      {pendingConfront && view === 'chat' && (
+        <div style={{ padding: '6px 12px', flexShrink: 0 }}>
+          <div className="fs-micro" style={{ color: 'var(--text-tertiary)', marginBottom: 6 }}>
+            {pendingConfront.questionerName} 听到了关于你的传言，你要怎么回应？
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" style={{ flex: 1 }} onClick={() => resolveConfront(pendingConfront.id, 'admit')}>
+              承认
+            </button>
+            <button className="btn" style={{ flex: 1 }} onClick={() => resolveConfront(pendingConfront.id, 'deny')}>
+              否认
+            </button>
+            <button className="btn" style={{ flex: 1 }} onClick={() => resolveConfront(pendingConfront.id, 'trace')}>
+              谁告诉你的
+            </button>
           </div>
         </div>
       )}
