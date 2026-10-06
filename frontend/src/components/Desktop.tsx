@@ -12,7 +12,7 @@ import Preview from './factory/Preview'
 
 type AppIconComponent = (p: { size?: number; strokeWidth?: number }) => ReactNode
 
-/** 「查手机」图标：手机轮廓 + 红色放大镜 */
+/** 「查手机」图标：手机轮廓 + 放大镜，跟随主题色，与其他应用图标统一 */
 function SnoopIcon({ size = 24 }: { size?: number; strokeWidth?: number }) {
   return (
     <svg
@@ -20,16 +20,16 @@ function SnoopIcon({ size = 24 }: { size?: number; strokeWidth?: number }) {
       height={size}
       viewBox="0 0 24 24"
       fill="none"
-      stroke="#ff4757"
+      stroke="currentColor"
       strokeWidth={1.8}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
     >
-      <rect x="5" y="2" width="11" height="20" rx="2.6" />
-      <line x1="8" y1="18.6" x2="11" y2="18.6" />
-      <circle cx="13.4" cy="9.6" r="3.5" fill="rgba(255,71,87,0.14)" />
-      <line x1="15.9" y1="12.1" x2="18.6" y2="14.8" />
+      <rect x="5.5" y="2.5" width="10" height="19" rx="2.4" />
+      <line x1="9" y1="18.4" x2="12" y2="18.4" />
+      <circle cx="14.6" cy="13.4" r="3.1" />
+      <line x1="16.9" y1="15.7" x2="18.7" y2="17.5" />
     </svg>
   )
 }
