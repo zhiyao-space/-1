@@ -9,6 +9,7 @@ export interface ChatParams {
   allowRecall: boolean
   allowOoc: boolean
   typingSpeed: number
+  streamCharMs: number
   proactive: boolean
   proactivePerDay: number
   quietStart: string
@@ -42,6 +43,7 @@ export const useChatParams = create<ChatParamsState>()(
       allowRecall: true,
       allowOoc: true,
       typingSpeed: 30,
+      streamCharMs: 40,
       proactive: false,
       proactivePerDay: 3,
       quietStart: '00:00',

@@ -15,6 +15,7 @@ import type { ChatApiMessage } from './api'
 import { streamChat } from './api'
 import { BASE_STYLE_SPEC } from './basePrompt'
 import { buildOnlineModeBlock, buildOfflineModeBlock } from './offlineEngine'
+import { buildWorldContext } from './worldContext'
 
 export function buildCharacterPrompt(c: Character): string {
   const lines: string[] = [BASE_STYLE_SPEC, '', '【你的角色设定】']
@@ -114,6 +115,7 @@ export function buildSingleChatMessages(
     if (lastMsg.role === 'user') body = [...body.slice(0, lastIdx), { ...lastMsg, content: `${lastMsg.content}\n（${rs.perTurnChain}）` }]
   }
   const modeBlock = mode === 'offline' ? buildOfflineModeBlock(character.id) : buildOnlineModeBlock()
+  const worldBlock = mode === 'online' ? buildWorldContext(character.id) : ''
   const closingLine =
     mode === 'offline'
       ? `对话对象是"${userName()}"（用户本人）。严格按【线下模式 · 小说体】规范输出，先【时间】【地点】标注，再展开正文。`
@@ -127,6 +129,7 @@ export function buildSingleChatMessages(
     persona,
     timeStr,
     buildScheduleContext(character.id),
+    worldBlock,
     rs.outputBlock,
     rs.rulesBlock,
     rs.memoryBlock,

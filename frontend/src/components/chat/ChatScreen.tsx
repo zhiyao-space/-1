@@ -26,6 +26,7 @@ import {
   Quote,
   X,
   Dices,
+  Globe,
 } from 'lucide-react'
 import { useChats, type ChatMessage, type ChatMode } from '../../store/chats'
 import { useCharacters } from '../../store/characters'
@@ -54,6 +55,8 @@ import {
 import { streamChat } from '../../lib/api'
 import { maybeAutoSummarize } from '../../lib/runtimeEngine'
 import { ensureTodaySchedule } from '../../lib/scheduleEngine'
+import { ensureWorldDay, evolveEmotionAfterChat } from '../../lib/worldLife'
+import { useWorld, USER_ID, relationId } from '../../store/world'
 import {
   summarizeForModeSwitch,
   buildModeTransitionInstruction,
@@ -69,6 +72,7 @@ import MusicCardBubble from './MusicCardBubble'
 import { TransferModal, RedPacketModal, ReverseReportModal, beep } from './PayAndTools'
 import TomatoOverlay from './TomatoOverlay'
 import ScheduleView from './ScheduleView'
+import WorldView from './WorldView'
 import MindPanel from './MindPanel'
 import { GameSetupModal } from '../games/GameSetupModal'
 import { GameCardBubble } from '../games/GameCardBubble'
@@ -111,7 +115,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const [actionMsg, setActionMsg] = useState<ChatMessage | null>(null)
   const [quoteMsg, setQuoteMsg] = useState<ChatMessage | null>(null)
   const [voiceComposeOpen, setVoiceComposeOpen] = useState(false)
-  const [view, setView] = useState<'chat' | 'schedule'>('chat')
+  const [view, setView] = useState<'chat' | 'schedule' | 'world'>(chatMode === 'online' ? 'world' : 'chat')
   const [mindOpen, setMindOpen] = useState(false)
   const [checkinOpen, setCheckinOpen] = useState(false)
   const [sleepOpen, setSleepOpen] = useState(false)
@@ -125,6 +129,10 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const awakeUntilRef = useRef(0)
+  const twBufRef = useRef('')
+  const twDoneRef = useRef(false)
+  const twTimerRef = useRef<number | null>(null)
+  const twShownRef = useRef(0)
   const [viewer, openViewer] = useImageViewer()
   const stickers = useStickers((s) => s.stickers)
   const userAvatarId = useProfile(
@@ -140,9 +148,18 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
   const messages = branch ? branch.messages : baseMessages
   const [nowTick, setNowTick] = useState(0)
   const autoToday = useSchedule((s) => (character ? s.autoDays[`${character.id}_${todayKey()}`] : undefined))
+  const relToUser = useWorld((s) => (character ? s.relations.find((r) => r.id === relationId(character.id, USER_ID)) : undefined))
   useEffect(() => {
     if (character) ensureTodaySchedule(character)
   }, [character?.id])
+  useEffect(() => {
+    if (character) {
+      ensureWorldDay()
+    }
+  }, [character?.id])
+  useEffect(() => {
+    setView(chatMode === 'online' ? 'world' : 'chat')
+  }, [chatMode])
   useEffect(() => {
     const t = setInterval(() => setNowTick((x) => x + 1), 30000)
     return () => clearInterval(t)
@@ -239,25 +256,74 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
       let full = ''
       if (params.streamOutput) {
         setStreamText('')
+        twBufRef.current = ''
+        twDoneRef.current = false
+        startTypewriter()
         await streamChat(preset, apiMessages, {
           onDelta: (d) => {
             full += d
-            setStreamText(full)
+            twBufRef.current += d
           },
           signal: ctrl.signal,
         })
+        twDoneRef.current = true
+        await waitTypewriterDone()
         setStreamText(null)
       } else {
         full = await streamChat(preset, apiMessages, { onDelta: () => {}, signal: ctrl.signal })
       }
       emitParts(full)
+      if (chatMode === 'online') {
+        const lastUser = [...freshMessages].reverse().find((m) => m.role === 'user')
+        evolveEmotionAfterChat(character.id, lastUser?.content ?? '')
+      }
     } catch (err) {
+      twBufRef.current = ''
+      twDoneRef.current = true
       setStreamText(null)
       if ((err as Error).name !== 'AbortError') push(`生成失败：${(err as Error).message}`, 'error')
     } finally {
       abortRef.current = null
     }
   }
+
+  // 打字机：逐字上屏，标点停顿，长度自适应速度
+  const startTypewriter = () => {
+    if (twTimerRef.current !== null) return
+    twShownRef.current = 0
+    const tick = () => {
+      twTimerRef.current = null
+      if (twDoneRef.current && !twBufRef.current) return
+      const buf = twBufRef.current
+      if (!buf) {
+        twTimerRef.current = window.setTimeout(tick, 40)
+        return
+      }
+      const ch = buf[0]
+      twBufRef.current = buf.slice(1)
+      twShownRef.current += 1
+      setStreamText((prev) => (prev ?? '') + ch)
+      let delay = useChatParams.getState().streamCharMs
+      if (twShownRef.current < 30) delay *= 0.5
+      else if (twShownRef.current > 120) delay *= 1.4
+      if ('。！？…'.includes(ch)) delay += delay * 4
+      else if ('，、；：——'.includes(ch)) delay += delay * 2
+      twTimerRef.current = window.setTimeout(tick, delay)
+    }
+    twTimerRef.current = window.setTimeout(tick, 10)
+  }
+
+  const waitTypewriterDone = () =>
+    new Promise<void>((resolve) => {
+      const check = () => {
+        if (!twBufRef.current && twTimerRef.current === null) {
+          resolve()
+          return
+        }
+        setTimeout(check, 40)
+      }
+      check()
+    })
 
   const emitParts = (full: string) => {
     const parts = chatMode === 'offline' ? [full.trim()] : splitReply(full)
@@ -268,7 +334,7 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     parts.forEach((p, i) => {
       setTimeout(() => {
         addLocal({ role: 'assistant', type: 'text', content: p, mode: chatMode })
-      }, i * 250)
+      }, i * (350 + Math.floor(Math.random() * 350)))
     })
     const freshHistory = branch
       ? useBranches.getState().branches.find((b) => b.id === branch.id)?.messages ?? messages
@@ -360,6 +426,14 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
     })
     setVoiceComposeOpen(false)
     setQuoteMsg(null)
+    afterUserMsg()
+  }
+
+  // 角色世界页的输入框：发送后切到聊天视图看流式回复
+  const sendFromWorld = (text: string) => {
+    pendingGapRef.current = messages.length > 0 ? Date.now() - messages[messages.length - 1].timestamp : 0
+    addLocal({ role: 'user', type: 'text', content: text, mode: chatMode })
+    setView('chat')
     afterUserMsg()
   }
 
@@ -605,9 +679,29 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
               textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            {character.name}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{character.name}</span>
+            {relToUser && chatMode === 'online' && (
+              <span
+                className="fs-micro"
+                style={{
+                  flexShrink: 0,
+                  padding: '1px 7px',
+                  borderRadius: 999,
+                  fontSize: 10,
+                  lineHeight: 1.6,
+                  background: 'rgba(255,255,255,0.08)',
+                  color: 'rgba(255,255,255,0.65)',
+                  border: '1px solid rgba(255,255,255,0.16)',
+                }}
+              >
+                {relToUser.attitude}
+              </span>
+            )}
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, maxWidth: '100%' }}>
             <span className="fs-micro" style={{ color: 'var(--text-tertiary)', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -620,6 +714,16 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
             <span className="fs-micro mono" style={{ color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>{act.progress}%</span>
           </span>
         </button>
+        {chatMode === 'online' && (
+          <button
+            className="pressable"
+            onClick={() => setView((v) => (v === 'world' ? 'chat' : 'world'))}
+            style={{ color: view === 'world' ? '#f5f5f5' : 'var(--text-secondary)', padding: 5 }}
+            title="角色世界"
+          >
+            <Globe size={18} />
+          </button>
+        )}
         <button className="pressable" onClick={() => setMindOpen(true)} style={{ color: 'var(--text-secondary)', padding: 5 }} title="心声">
           <Heart size={18} />
         </button>
@@ -685,14 +789,16 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
               <Wand2 size={16} />
             </button>
           )}
-          <button
-            className="pressable"
-            onClick={() => setOfflineCfgOpen(true)}
-            style={{ color: chatMode === 'offline' ? 'var(--text-primary)' : 'var(--text-secondary)', padding: 5 }}
-            title="线下模式设置"
-          >
-            <SlidersHorizontal size={16} />
-          </button>
+          {chatMode === 'offline' && (
+            <button
+              className="pressable"
+              onClick={() => setOfflineCfgOpen(true)}
+              style={{ color: 'var(--text-secondary)', padding: 5 }}
+              title="线下模式设置"
+            >
+              <SlidersHorizontal size={16} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -715,7 +821,15 @@ export default function ChatScreen({ characterId, onExit }: { characterId: strin
         </button>
       )}
 
-      {view === 'schedule' ? (
+      {view === 'world' ? (
+        <WorldView
+          character={character}
+          act={act}
+          onOpenSchedule={() => setView('schedule')}
+          onEnterChat={() => setView('chat')}
+          onSendText={sendFromWorld}
+        />
+      ) : view === 'schedule' ? (
         <ScheduleView character={character} />
       ) : (
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>

@@ -68,6 +68,16 @@ export default function ChatParamsPage() {
           onChange={(v) => params.update({ typingSpeed: v })}
         />
         <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: -8 }}>数值越大，角色回复前等待越久</div>
+        <SliderRow
+          label="流式打字速度"
+          min={10}
+          max={120}
+          step={5}
+          value={params.streamCharMs}
+          format={(v) => `${v}ms/字`}
+          onChange={(v) => params.update({ streamCharMs: v })}
+        />
+        <div className="fs-micro" style={{ color: 'var(--text-disabled)', marginTop: -8 }}>流式输出时每个字上屏的间隔，标点处会自动停顿</div>
       </SectionCard>
 
       <ProactiveSection sentToday={sentToday} />
