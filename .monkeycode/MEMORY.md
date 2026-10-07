@@ -63,14 +63,15 @@ Entries discovered by the Agent during task execution should follow this format:
   - /workspace/backend 目录与 start.sh 中的后端启动段已作废
 
 [项目构建方式：空蚀纪前端]
-- Date: 2026-09-26
-- Context: Agent 完成批次1开发后验证构建与预览；批次4期间发生全应用黑屏并修复
+- Date: 2026-10-07
+- Context: Agent 完成批次1开发后验证构建与预览；批次4期间发生全应用黑屏并修复；2026-10-07 应用户要求项目根目录化以便静态托管部署
 - Category: Build Methods
 - Instructions:
-  - 前端位于 /workspace/frontend（Vite+React18+TS+Zustand），dev 端口 5173，已配置 allowedHosts
-  - 类型检查：`cd /workspace/frontend && npx tsc -b`
-  - 构建验证：`cd /workspace/frontend && npm run build`
-  - 预览启动：`cd /workspace/frontend && npm run dev`（后台终端运行）
+  - 前端位于仓库根目录（2026-10-07 起从 frontend/ 上移：index.html 在最外层，src/、vite.config.ts、package.json 均在根目录），dev 端口 5173，allowedHosts 已配置
+  - 静态托管部署：npm run build 产物 dist/，vite.config.ts 已设 base: './'（相对路径，任意子路径可部署）
+  - 类型检查：`npx tsc -b`（根目录执行）
+  - 构建验证：`npm run build`（根目录执行）
+  - 预览启动：`npm run dev`（根目录执行，后台终端运行）
   - 数据持久化：文本/设置走 zustand persist（localStorage，前缀 ksc:），图片/音频/字体文件存 IndexedDB（库名 kongshiji-db）
   - GitHub 仓库：https://github.com/zhiyao-space/-1，主分支 main，每批次完成后提交推送
   - Zustand 红线：selector 内禁止调用 filter/map/slice/sort 等返回新引用的方法（如 `useX((s) => s.arr.filter(...))`），会触发无限重渲染（Maximum update depth exceeded）整树卸载黑屏；必须选稳定引用后再在组件体里用 useMemo/普通调用派生（`useX((s) => s.arr).filter(...)`）；selector 里 .length 取数值安全
