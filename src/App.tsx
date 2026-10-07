@@ -4,6 +4,7 @@ import { useUI } from './store/ui'
 import { getBlob } from './lib/idb'
 import { runProactiveTick } from './lib/proactive'
 import { runForumTick } from './lib/forumScheduler'
+import { runGossipTick, mountGossipSystem } from './lib/gossipEngine'
 import { ToastHost } from './components/common'
 import { GradDefs } from './components/desktop/DockIcons'
 import LockScreen from './components/LockScreen'
@@ -37,15 +38,21 @@ export default function App() {
   }, [settings.customFontCnId, settings.customFontEnId])
 
   useEffect(() => {
+    mountGossipSystem()
     const timer = setInterval(() => {
       void runProactiveTick()
     }, 60_000)
     const forumTimer = setInterval(() => {
       void runForumTick()
     }, 45_000)
+    // 八卦传播系统心跳：每 45 秒推进一条正在传播的八卦
+    const gossipTimer = setInterval(() => {
+      void runGossipTick()
+    }, 45_000)
     return () => {
       clearInterval(timer)
       clearInterval(forumTimer)
+      clearInterval(gossipTimer)
     }
   }, [])
 
