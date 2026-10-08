@@ -1,41 +1,16 @@
-/* public/fonts/fonts.css
-   自托管 阿里巴巴普惠体 (Alibaba PuHuiTi)
-   请把对应的 woff2 放到 public/fonts/ 下，文件名与下面 src 路径一致。
-   font-display: swap 可避免字体阻塞渲染。
-
-   我不会在仓库中提交字体二进制文件（woff2）。请把你下载或转换好的以下文件放到 public/fonts/：
-     - AlibabaPuHuiTi-Regular.woff2
-     - AlibabaPuHuiTi-Bold.woff2
-*/
-
-@font-face {
-  font-family: "AlibabaPuHuiTi";
-  font-style: normal;
-  font-weight: 400;
-  src: url("/fonts/AlibabaPuHuiTi-Regular.woff2") format("woff2");
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "AlibabaPuHuiTi";
-  font-style: normal;
-  font-weight: 700;
-  src: url("/fonts/AlibabaPuHuiTi-Bold.woff2") format("woff2");
-  font-display: swap;
-}
-
 :root {
-  --font-sans: "AlibabaPuHuiTi", "PingFang SC", "Noto Sans SC", "Microsoft YaHei",
-               "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "SFMono-Regular", "Menlo", "Monaco", "Courier New", monospace;
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC",
+               "WenQuanYi Micro Hei", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SFMono-Regular", "Consolas", "Liberation Mono", "Menlo", monospace;
 }
 
 html, body, #root {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-h1, h2, h3, strong {
+h1, h2, h3, h4, h5, h6, strong, b {
   font-weight: 700;
 }
