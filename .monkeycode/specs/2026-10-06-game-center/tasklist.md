@@ -64,7 +64,7 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
   4. removeSession 处挂钩删除匹配 games
 - 提交：`feat(game): T7 聊天流集成与路由`
 
-## T8 [TODO] 验证与收尾
+## T8 [DONE] 验证与收尾
 
 - `cd /workspace/frontend && npx tsc -b` 通过
 - dev server 冒烟：创建跑团局行动 3 回合 → 进度/hp 变化 → 暂停 → 插嘴 → 继续 → 结束归档；海龟汤提问 3 次 + 提示 + 猜底；刷新页面持久化恢复
@@ -78,3 +78,4 @@ Feature: game-center | 设计文档: 同目录 design.md（含全部文件路径
 
 - 2026-10-06 规格(requirements/design/tasklist)已推送。执行从 T1 开始。
 - 2026-10-06 T1-T7 完成（提交 9edfcd0/20ba3f2/14d3057/fdd60d9/39f39bd/9b9c7e3 及本次）。设计偏差：T7 第 4 项「removeSession 删除聊天时清理 games」未挂钩——孤儿游戏会话无副作用（路由按 chatId 匹配、卡片有已删除兜底渲染），从简处理。games store 额外增加了 setCardMsg action（卡片消息与会话互链）。剩余：T8 验证收尾。
+- 2026-10-06 T8 完成：npx tsc -b 通过；vite dev server 无编译错误（HMR 已加载全部新文件）；预览地址 5173-29b7c7a33a442dc6.monkeycode-ai.online 连通正常。功能入口：聊天输入区 + 号 → 一起玩。待用户实际体验跑团/海龟汤对局反馈。
